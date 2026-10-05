@@ -7,10 +7,12 @@ import tempfile
 from datetime import datetime, timedelta, timezone
 
 _DB = os.path.join(tempfile.mkdtemp(), "reios_test.db")
-os.environ["DATABASE_URL"] = f"sqlite:///{_DB}"
+# REIOS_TEST_DATABASE_URL runs the suite against another database, e.g. a throwaway PostgreSQL
+os.environ["DATABASE_URL"] = os.environ.get("REIOS_TEST_DATABASE_URL") or f"sqlite:///{_DB}"
 os.environ["SUPER_ADMIN_EMAIL"] = "root@reios.test"
 os.environ["SUPER_ADMIN_PASSWORD"] = "RootPass123"
-os.environ.setdefault("ADMIN_PASSWORD", "legacy-admin-pass")
+# Independent of the developer's backend/.env (load_dotenv never overrides variables already set)
+os.environ["FIREBASE_PROJECT_ID"] = ""
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
@@ -349,3 +351,282 @@ def test_deactivated_college_blocks_login(client, setup):
     client.patch(f"/api/reios/super/colleges/{cid}", headers=auth(setup["root"]), json={"is_active": True})
     stats = client.get("/api/reios/super/stats", headers=auth(setup["root"])).json()
     assert stats["colleges"] == 2 and stats["students"] == 4
+
+
+def _word_doc(lines=None, table=None) -> bytes:
+    import io
+    from docx import Document
+    d = Document()
+    for t in lines or []:
+        d.add_paragraph(t)
+    if table:
+        t = d.add_table(rows=0, cols=len(table[0]))
+        for row in table:
+            for c, v in zip(t.add_row().cells, row):
+                c.text = v
+    buf = io.BytesIO()
+    d.save(buf)
+    return buf.getvalue()
+
+
+def test_sets_exam_types_preview_and_leaderboard(client, setup):
+    root = setup["root"]
+    college = client.post("/api/reios/super/colleges", headers=auth(root),
+                          json={"name": "Sets College", "code": "SETC"}).json()
+    client.post(f"/api/reios/super/colleges/{college['id']}/admins", headers=auth(root),
+                json={"name": "Sets TPO", "email": "tpo@setc.edu", "password": "SetsPass1"})
+    admin = client.post("/api/reios/auth/login",
+                        json={"identifier": "tpo@setc.edu", "password": "SetsPass1"}).json()["access_token"]
+    admin = client.post("/api/reios/auth/change-password", headers=auth(admin),
+                        json={"current_password": "SetsPass1", "new_password": "SetsPass2"}).json()["access_token"]
+    docx = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+
+    # Students from a Word table using the headers colleges actually use
+    table = [["Roll Number", "Student Name", "Department", "Password"]] + \
+            [[f"S00{i}", f"Student {i}", "CSE", f"start{i}pass"] for i in range(1, 6)]
+    r = client.post("/api/reios/admin/students/import", headers=auth(admin),
+                    files={"file": ("students.docx", _word_doc(table=table), docx)})
+    assert r.status_code == 200 and r.json()["created"] == 5, r.text
+
+    now = datetime.now(timezone.utc)
+    r = client.post("/api/reios/admin/exams", headers=auth(admin), json={
+        "title": "GK Sets", "exam_type": "mcq", "start_at": (now - timedelta(minutes=1)).isoformat(),
+        "end_at": (now + timedelta(hours=1)).isoformat(), "duration_minutes": 30, "show_answers": True})
+    assert r.status_code == 201, r.text
+    exam_id = r.json()["id"]
+    assert r.json()["exam_type"] == "mcq"
+
+    # An MCQ-only exam refuses coding questions
+    r = client.put(f"/api/reios/admin/exams/{exam_id}/items", headers=auth(admin),
+                   json={"items": [{"item_type": "coding", "question_id": setup["problem"]["id"]}]})
+    assert r.status_code == 400 and "MCQ-only" in r.text
+
+    # Upload two sets (Word and plain text), reviewed through /questions/parse first
+    keep = {"section", "question_text", "options", "correct_options", "explanation", "marks", "negative_marks"}
+
+    def upload_set(name, filename, data, mime):
+        r = client.post("/api/reios/admin/questions/parse", headers=auth(admin),
+                        files={"file": (filename, data, mime)}, data={"default_section": "General Knowledge"})
+        assert r.status_code == 200, r.text
+        parsed = r.json()
+        assert parsed["ready"] == len(parsed["questions"]) == 2, parsed
+        qs = [{k: v for k, v in q.items() if k in keep} for q in parsed["questions"]]
+        r = client.post(f"/api/reios/admin/exams/{exam_id}/sets", headers=auth(admin),
+                        json={"name": name, "source_filename": filename, "questions": qs})
+        assert r.status_code == 201, r.text
+        return r.json()["sets"]
+
+    upload_set("Set A", "a.docx", _word_doc(["1. Capital of India?", "A) Delhi", "B) Mumbai", "Answer: A",
+                                             "2. Largest ocean?", "A) Indian", "B) Pacific", "Answer: B"]), docx)
+    sets = upload_set("Set B", "b.txt", "1. National animal?\nA) Lion\nB) Tiger\nAns: B\n"
+                                        "2. 2 + 2 =\nA) 4\nB) 5\nAns: A\n", "text/plain")
+    set_a, set_b = sets[0]["id"], sets[1]["id"]
+    dup = {"name": "set a", "questions": [{"section": "X", "question_text": "q", "options": ["a", "b"],
+                                           "correct_options": [0]}]}
+    assert client.post(f"/api/reios/admin/exams/{exam_id}/sets", headers=auth(admin), json=dup).status_code == 409
+
+    # Set questions stay out of the browsable bank
+    assert client.get("/api/reios/admin/mcqs?q=Capital", headers=auth(admin)).json()["total"] == 0
+
+    # One common question every student gets; editing the common list keeps the sets
+    common = client.post("/api/reios/admin/mcqs", headers=auth(admin), json={
+        "section": "General Knowledge", "question_text": "Common: sun rises in the?",
+        "options": ["East", "West"], "correct_options": [0]}).json()
+    r = client.put(f"/api/reios/admin/exams/{exam_id}/items", headers=auth(admin),
+                   json={"items": [{"item_type": "mcq", "question_id": common["id"]}]})
+    assert r.status_code == 200 and len(r.json()["items"]) == 1
+    assert r.json()["set_count"] == 2 and r.json()["question_count"] == 3
+
+    # Sets were rotated automatically on upload: in roll order, student i gets set i mod N (A, B, A, B, A)
+    assign_url = f"/api/reios/admin/exams/{exam_id}/set-assignments"
+
+    def pattern():
+        r = client.get(assign_url, headers=auth(admin)).json()
+        by = {s["roll_no"]: s["set_id"] for s in r["students"]}
+        return [by[f"S00{i}"] for i in range(1, 6)], r
+
+    order, r = pattern()
+    assert r["auto_assign"] is True and r["unassigned"] == 0
+    assert order == [set_a, set_b, set_a, set_b, set_a]
+
+    # A third set rotates in (A, B, C, A, B) and out again, without touching anything by hand
+    r = client.post(f"/api/reios/admin/exams/{exam_id}/sets", headers=auth(admin), json={
+        "name": "Set C", "questions": [{"section": "GK", "question_text": "Temp?", "options": ["x", "y"],
+                                        "correct_options": [0]}]})
+    set_c = r.json()["sets"][2]["id"]
+    assert pattern()[0] == [set_a, set_b, set_c, set_a, set_b]
+    client.delete(f"/api/reios/admin/exams/{exam_id}/sets/{set_c}", headers=auth(admin))
+    assert pattern()[0] == [set_a, set_b, set_a, set_b, set_a]
+
+    # With automatic assignment off, a new set changes nothing until it's switched back on
+    client.put(f"/api/reios/admin/exams/{exam_id}/set-options", headers=auth(admin), json={"auto_assign": False})
+    r = client.post(f"/api/reios/admin/exams/{exam_id}/sets", headers=auth(admin), json={
+        "name": "Set C", "questions": [{"section": "GK", "question_text": "Temp?", "options": ["x", "y"],
+                                        "correct_options": [0]}]})
+    set_c = r.json()["sets"][2]["id"]
+    assert pattern()[0] == [set_a, set_b, set_a, set_b, set_a]
+    r = client.put(f"/api/reios/admin/exams/{exam_id}/set-options", headers=auth(admin), json={"auto_assign": True})
+    assert r.json()["auto_assign"] is True and pattern()[0] == [set_a, set_b, set_c, set_a, set_b]
+    client.delete(f"/api/reios/admin/exams/{exam_id}/sets/{set_c}", headers=auth(admin))
+    by_roll = {s["roll_no"]: s for s in client.get(assign_url, headers=auth(admin)).json()["students"]}
+    assert [by_roll[f"S00{i}"]["set_id"] for i in range(1, 6)] == [set_a, set_b, set_a, set_b, set_a]
+    counts = {s["id"]: s["assigned"] for s in client.get(f"/api/reios/admin/exams/{exam_id}/sets",
+                                                         headers=auth(admin)).json()["sets"]}
+    assert counts == {set_a: 3, set_b: 2}
+
+    # Override from a sheet: roll number + set column (S002 is already on Set B; S999 doesn't exist)
+    sheet = "roll_no,set\nS001,Set B\nS002,2\nS999,1\n"
+    r = client.post(f"/api/reios/admin/exams/{exam_id}/set-assignments/import", headers=auth(admin),
+                    files={"file": ("sets.csv", sheet, "text/csv")})
+    assert r.status_code == 200 and r.json()["changed"] == 1 and len(r.json()["errors"]) == 1, r.text
+    # A hand-made change switches automatic rotation off so the next upload won't undo it
+    assert r.json()["auto_assign"] is False
+
+    # Admin preview shows the chosen set with answers, without starting an attempt
+    r = client.get(f"/api/reios/admin/exams/{exam_id}/preview?set_id={set_b}", headers=auth(admin))
+    assert r.status_code == 200
+    texts = [i["question_text"] for i in r.json()["items"]]
+    assert "National animal?" in texts and "Capital of India?" not in texts and len(texts) == 3
+    assert all("correct_options" in i for i in r.json()["items"])
+
+    assert client.post(f"/api/reios/admin/exams/{exam_id}/publish", headers=auth(admin)).status_code == 200
+
+    # S001 was moved to Set B: their paper is the common question plus Set B only
+    t1 = client.post("/api/reios/auth/login", json={"identifier": "S001", "password": "start1pass",
+                                                    "college_code": "SETC"}).json()["access_token"]
+    t1 = client.post("/api/reios/auth/change-password", headers=auth(t1),
+                     json={"current_password": "start1pass", "new_password": "newpass001"}).json()["access_token"]
+    paper = client.post(f"/api/reios/student/exams/{exam_id}/start", headers=auth(t1)).json()
+    texts = {i["question_text"]: i for i in paper["items"]}
+    assert set(texts) == {"Common: sun rises in the?", "National animal?", "2 + 2 ="}
+    hdr = {**auth(t1), "X-Exam-Session": paper["session"]}
+    aid = paper["attempt_id"]
+
+    # Answering a question from another set is refused
+    set_a_items = client.get(f"/api/reios/admin/exams/{exam_id}/preview?set_id={set_a}",
+                             headers=auth(admin)).json()["items"]
+    other = next(i for i in set_a_items if i["set_id"] == set_a)
+    assert client.put(f"/api/reios/student/attempts/{aid}/mcq/{other['item_id']}", headers=hdr,
+                      json={"selected": [0]}).status_code == 404
+
+    correct = {"Common: sun rises in the?": "East", "National animal?": "Tiger", "2 + 2 =": "4"}
+    for text, item in texts.items():
+        opt = next(o["id"] for o in item["options"] if o["text"] == correct[text])
+        assert client.put(f"/api/reios/student/attempts/{aid}/mcq/{item['item_id']}", headers=hdr,
+                          json={"selected": [opt]}).status_code == 200
+    assert client.post(f"/api/reios/student/attempts/{aid}/submit", headers=hdr).status_code == 200
+
+    # S003 (Set A) submits blank
+    t3 = client.post("/api/reios/auth/login", json={"identifier": "S003", "password": "start3pass",
+                                                    "college_code": "SETC"}).json()["access_token"]
+    t3 = client.post("/api/reios/auth/change-password", headers=auth(t3),
+                     json={"current_password": "start3pass", "new_password": "newpass003"}).json()["access_token"]
+    p3 = client.post(f"/api/reios/student/exams/{exam_id}/start", headers=auth(t3)).json()
+    assert {i["question_text"] for i in p3["items"]} >= {"Capital of India?", "Largest ocean?"}
+    client.post(f"/api/reios/student/attempts/{p3['attempt_id']}/submit",
+                headers={**auth(t3), "X-Exam-Session": p3["session"]})
+
+    # Sets are locked once students have started
+    assert client.delete(f"/api/reios/admin/exams/{exam_id}/sets/{set_a}", headers=auth(admin)).status_code == 409
+
+    # Leaderboards
+    rows = client.get(f"/api/reios/admin/leaderboard?exam_id={exam_id}", headers=auth(admin)).json()["rows"]
+    assert [x["roll_no"] for x in rows] == ["S001", "S003"] and rows[0]["percentage"] == 100.0
+    assert rows[0]["set_name"] == "Set B"
+    r = client.get("/api/reios/admin/leaderboard", headers=auth(admin)).json()
+    assert r["mode"] == "overall" and r["rows"][0]["roll_no"] == "S001"
+
+    assert client.get(f"/api/reios/student/exams/{exam_id}/leaderboard", headers=auth(t1)).status_code == 404
+    exam = client.get(f"/api/reios/admin/exams/{exam_id}", headers=auth(admin)).json()
+    upd = {k: exam[k] for k in ("title", "start_at", "end_at", "duration_minutes", "exam_type", "show_answers")}
+    r = client.put(f"/api/reios/admin/exams/{exam_id}", headers=auth(admin), json={**upd, "show_leaderboard": True})
+    assert r.status_code == 200, r.text
+    r = client.get(f"/api/reios/student/exams/{exam_id}/leaderboard", headers=auth(t3))
+    assert r.status_code == 200 and r.json()["me"]["rank"] == 2 and r.json()["top"][0]["name"] == "Student 1"
+
+    # Switching to coding-only would strand the MCQs
+    assert client.put(f"/api/reios/admin/exams/{exam_id}", headers=auth(admin),
+                      json={**upd, "exam_type": "coding"}).status_code == 400
+
+    # Duplicating copies the sets and their questions
+    copy = client.post(f"/api/reios/admin/exams/{exam_id}/duplicate", headers=auth(admin)).json()
+    copy_sets = client.get(f"/api/reios/admin/exams/{copy['id']}/sets", headers=auth(admin)).json()["sets"]
+    assert [(s["name"], s["question_count"]) for s in copy_sets] == [("Set A", 2), ("Set B", 2)]
+    assert {s["id"] for s in copy_sets}.isdisjoint({set_a, set_b})
+
+    # Deleting the copy cleans up after itself without touching the original's shared set questions
+    assert client.delete(f"/api/reios/admin/exams/{copy['id']}", headers=auth(admin)).status_code == 200
+    assert len(client.get(f"/api/reios/admin/exams/{exam_id}/sets/{set_a}", headers=auth(admin)).json()["questions"]) == 2
+
+    # Super admin deletes the finished college: everything it owned goes, global questions stay
+    cid = college["id"]
+    global_before = client.get("/api/reios/admin/problems?source=global", headers=auth(root)).json()
+    assert client.delete(f"/api/reios/super/colleges/{cid}?confirm=WRONG", headers=auth(root)).status_code == 400
+    assert client.delete(f"/api/reios/super/colleges/{cid}?confirm=setc", headers=auth(admin)).status_code == 403
+    r = client.delete(f"/api/reios/super/colleges/{cid}?confirm=setc", headers=auth(root))
+    assert r.status_code == 200 and r.json()["students"] == 5 and r.json()["attempts"] == 2, r.text
+    assert all(c["id"] != cid for c in client.get("/api/reios/super/colleges", headers=auth(root)).json())
+    assert client.get("/api/reios/admin/exams", headers=auth(admin)).status_code == 401
+    assert client.post("/api/reios/auth/login", json={"identifier": "S001", "password": "newpass001",
+                                                      "college_code": "SETC"}).status_code in (400, 401, 404)
+    assert client.get("/api/reios/admin/problems?source=global", headers=auth(root)).json() == global_before
+
+
+def test_super_admin_firebase_sign_in(client, setup, monkeypatch):
+    import datetime as dt
+    import time as _time
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+    from cryptography.x509.oid import NameOID
+    from jose import jwt as jose_jwt
+    from app.config import settings
+    from app.database import SessionLocal
+    from app.reios import firebase_auth
+    from app.reios.security import ensure_super_admin
+
+    # Stand in for Google's signing key and certificate
+    key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    name = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, "securetoken.test")])
+    now = dt.datetime.now(dt.timezone.utc)
+    cert = (x509.CertificateBuilder().subject_name(name).issuer_name(name).public_key(key.public_key())
+            .serial_number(1).not_valid_before(now - dt.timedelta(days=1)).not_valid_after(now + dt.timedelta(days=1))
+            .sign(key, hashes.SHA256()))
+    pem_cert = cert.public_bytes(serialization.Encoding.PEM).decode()
+    pem_key = key.private_bytes(serialization.Encoding.PEM, serialization.PrivateFormat.PKCS8,
+                                serialization.NoEncryption()).decode()
+    monkeypatch.setattr(settings, "FIREBASE_PROJECT_ID", "reios-test")
+    monkeypatch.setitem(firebase_auth._cache, "certs", {"k1": pem_cert})
+    monkeypatch.setitem(firebase_auth._cache, "expires", _time.time() + 3600)
+    monkeypatch.setenv("SUPER_ADMIN_EMAIL", "Boss@Uni.test, second@uni.test")
+    db = SessionLocal()
+    ensure_super_admin(db)
+    db.close()
+
+    def token(email="boss@uni.test", verified=True, aud="reios-test", sub="uid-boss", kid="k1"):
+        t = int(_time.time())
+        claims = {"iss": f"https://securetoken.google.com/{aud}", "aud": aud, "sub": sub, "auth_time": t,
+                  "iat": t, "exp": t + 3600, "email": email, "email_verified": verified}
+        return jose_jwt.encode(claims, pem_key, algorithm="RS256", headers={"kid": kid})
+
+    def fb(tok):
+        return client.post("/api/reios/auth/firebase", json={"id_token": tok})
+
+    assert client.get("/api/reios/auth/config").json() == {"firebase_super_admin": True}
+
+    r = fb(token())
+    assert r.status_code == 200 and r.json()["user"]["role"] == "super_admin", r.text
+    assert client.get("/api/reios/super/colleges", headers=auth(r.json()["access_token"])).status_code == 200
+
+    assert fb(token(verified=False)).status_code == 403           # unverified email could be anyone's
+    assert fb(token(aud="someone-elses-project")).status_code == 401
+    assert fb(token(kid="unknown")).status_code == 401
+    assert fb(token(email="student@uni.test")).status_code == 403  # not a super admin
+    assert fb(token(sub="uid-impostor")).status_code == 403        # same email, different Firebase account
+    assert fb(token(email="second@uni.test", sub="uid-2")).status_code == 200
+
+    # Password sign-in is off for super admins while Firebase is on; college admins are unaffected
+    r = client.post("/api/reios/auth/login", json={"identifier": "root@reios.test", "password": "RootPass123"})
+    assert r.status_code == 403 and "Firebase" in r.text
+    r = client.post("/api/reios/auth/login", json={"identifier": "tpo@tec.edu", "password": "TpoSecure99"})
+    assert "Firebase" not in r.text

@@ -9,9 +9,11 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.auth import hash_password, verify_password
+from app.config import settings
 from app.database import get_db
+from app.reios.firebase_auth import verify_id_token
 from app.reios.models import College, Role, User
-from app.reios.security import check_login, get_current_user, issue_token
+from app.reios.security import check_login, get_current_user, issue_token, utcnow
 
 router = APIRouter(prefix="/api/reios/auth", tags=["Reios Auth"])
 
@@ -64,6 +66,40 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Enter your college code to log in with a roll number")
 
     user = check_login(db, user, body.password)
+    return {"access_token": issue_token(user), "token_type": "bearer", "user": user_payload(user)}
+
+
+class FirebaseLoginRequest(BaseModel):
+    id_token: str = Field(..., min_length=20, max_length=8192)
+
+
+@router.get("/config")
+def auth_config():
+    """What the sign-in page should offer."""
+    return {"firebase_super_admin": bool(settings.FIREBASE_PROJECT_ID)}
+
+
+@router.post("/firebase")
+def firebase_login(body: FirebaseLoginRequest, db: Session = Depends(get_db)):
+    """Super admin sign-in: a Firebase ID token for an email listed as a super admin."""
+    claims = verify_id_token(body.id_token)
+    email = claims["email"].strip().lower()
+    user = db.query(User).filter(func.lower(User.email) == email, User.role == Role.SUPER_ADMIN).first()
+    if not user:
+        raise HTTPException(status.HTTP_403_FORBIDDEN,
+                            f"{email} isn't a Reios super admin. Add it to SUPER_ADMIN_EMAIL in backend/.env "
+                            "and restart the server")
+    if not user.is_active:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Account is disabled")
+    # The first Firebase account to sign in owns this super admin; a different account with the same
+    # email (e.g. after the Firebase user was deleted and recreated) is refused.
+    if user.firebase_uid and user.firebase_uid != claims["sub"]:
+        raise HTTPException(status.HTTP_403_FORBIDDEN,
+                            "This super admin is linked to a different Firebase account")
+    user.firebase_uid = claims["sub"]
+    user.last_login_at = utcnow()
+    user.failed_login_attempts = 0
+    db.commit()
     return {"access_token": issue_token(user), "token_type": "bearer", "user": user_payload(user)}
 
 

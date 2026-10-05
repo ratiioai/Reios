@@ -35,6 +35,7 @@ class ItemType(str, PyEnum):
 SECTIONS = ["Quantitative Aptitude", "Logical Reasoning", "Verbal Ability", "Technical", "Coding"]
 DIFFICULTIES = ["easy", "medium", "hard"]
 LANGUAGES = ["python", "cpp", "c", "java", "javascript"]
+EXAM_TYPES = ["mcq", "coding", "mixed"]
 
 
 class College(Base):
@@ -69,6 +70,7 @@ class User(Base):
     hashed_password = Column(String(255), nullable=False)
     must_change_password = Column(Boolean, default=True, nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
+    firebase_uid = Column(String(128), nullable=True, index=True)  # bound at first Firebase sign-in
     token_version = Column(Integer, default=0, nullable=False)  # bump to invalidate all tokens
     failed_login_attempts = Column(Integer, default=0, nullable=False)
     locked_until = Column(DateTime(timezone=True), nullable=True)
@@ -152,10 +154,43 @@ class Exam(Base):
     show_results = Column(Boolean, default=True, nullable=False)
     show_answers = Column(Boolean, default=False, nullable=False)
     pass_percentage = Column(Float, default=40.0, nullable=False)
+    show_leaderboard = Column(Boolean, default=False, nullable=False)
+    # mcq | coding | mixed — decides which kinds of questions the paper may hold
+    exam_type = Column(String(16), default="mixed", nullable=False)
+    # Keep sets rotated over students in roll order (1..N, then repeat) whenever sets change
+    auto_assign_sets = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     items = relationship("ExamItem", back_populates="exam", cascade="all, delete-orphan",
-                         order_by="ExamItem.order")
+                         order_by="ExamItem.order", lazy="selectin")
+    sets = relationship("QuestionSet", back_populates="exam", cascade="all, delete-orphan",
+                        order_by="QuestionSet.id", lazy="selectin")
+
+
+class QuestionSet(Base):
+    """One uploaded paper variant. Each student sits the common items plus exactly one set."""
+    __tablename__ = "reios_question_sets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    exam_id = Column(Integer, ForeignKey("reios_exams.id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(64), nullable=False)
+    source_filename = Column(String(255), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    exam = relationship("Exam", back_populates="sets")
+
+    __table_args__ = (UniqueConstraint("exam_id", "name", name="uq_reios_set_name"),)
+
+
+class SetAssignment(Base):
+    __tablename__ = "reios_set_assignments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    exam_id = Column(Integer, ForeignKey("reios_exams.id", ondelete="CASCADE"), nullable=False, index=True)
+    student_id = Column(Integer, ForeignKey("reios_users.id"), nullable=False, index=True)
+    set_id = Column(Integer, ForeignKey("reios_question_sets.id", ondelete="CASCADE"), nullable=False)
+
+    __table_args__ = (UniqueConstraint("exam_id", "student_id", name="uq_reios_set_assignment"),)
 
 
 class ExamItem(Base):
@@ -169,10 +204,12 @@ class ExamItem(Base):
     section = Column(String(64), nullable=False)
     marks = Column(Float, nullable=True)  # None = use the question's own marks
     order = Column(Integer, default=0, nullable=False)
+    # None = common to every student; otherwise only students sitting this set see it
+    set_id = Column(Integer, ForeignKey("reios_question_sets.id", ondelete="CASCADE"), nullable=True, index=True)
 
     exam = relationship("Exam", back_populates="items")
-    mcq = relationship("MCQQuestion")
-    problem = relationship("CodingProblem")
+    mcq = relationship("MCQQuestion", lazy="selectin")
+    problem = relationship("CodingProblem", lazy="selectin")
 
     @property
     def effective_marks(self) -> float:
@@ -192,6 +229,7 @@ class Attempt(Base):
     started_at = Column(DateTime(timezone=True), nullable=False)
     deadline_at = Column(DateTime(timezone=True), nullable=False)
     submitted_at = Column(DateTime(timezone=True), nullable=True)
+    set_id = Column(Integer, ForeignKey("reios_question_sets.id", ondelete="SET NULL"), nullable=True)
     item_order = Column(JSON, nullable=False)  # list[item_id] in the order this student sees them
     option_order = Column(JSON, nullable=True)  # {item_id: [original option indices]}
     session_nonce = Column(String(64), nullable=False)  # only one browser tab may hold the attempt

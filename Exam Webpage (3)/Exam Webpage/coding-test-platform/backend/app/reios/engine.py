@@ -1,7 +1,6 @@
 """
 Exam engine: attempt lifecycle, scoring, code execution and similarity checks.
 """
-import asyncio
 import difflib
 import hashlib
 import random
@@ -13,10 +12,12 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 from fastapi import HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.reios.models import (
-    Attempt, AttemptStatus, CodeAnswer, Exam, ExamItem, ItemType, ProctorEvent, User,
+    Attempt, AttemptStatus, CodeAnswer, Exam, ExamItem, ItemType, ProctorEvent,
+    SetAssignment, User,
 )
 from app.reios.security import as_utc, utcnow
 
@@ -37,7 +38,12 @@ def _csv_set(value: Optional[str]) -> set:
 
 
 def student_is_eligible(exam: Exam, student: User) -> bool:
-    if exam.college_id != student.college_id or not exam.is_published:
+    return exam.is_published and matches_audience(exam, student)
+
+
+def matches_audience(exam: Exam, student: User) -> bool:
+    """Branch/batch/section filters only, so sets can be assigned before the exam is published."""
+    if exam.college_id != student.college_id:
         return False
     branches, batches, sections = _csv_set(exam.branch_filter), _csv_set(exam.batch_filter), _csv_set(exam.section_filter)
     if branches and (student.branch or "").strip().lower() not in branches:
@@ -58,14 +64,47 @@ def exam_window(exam: Exam) -> str:
     return "live"
 
 
-def exam_max_score(exam: Exam) -> float:
-    return round(sum(item.effective_marks for item in exam.items), 2)
+def paper_items(exam: Exam, set_id: Optional[int]) -> List[ExamItem]:
+    """Common items plus the given set's items. With no set, the first set stands in (for previews/counts)."""
+    if set_id is None and exam.sets:
+        set_id = exam.sets[0].id
+    return [i for i in exam.items if i.set_id is None or i.set_id == set_id]
+
+
+def exam_max_score(exam: Exam, set_id: Optional[int] = None) -> float:
+    return round(sum(item.effective_marks for item in paper_items(exam, set_id)), 2)
+
+
+def assigned_set_id(db: Session, exam: Exam, student: User, create: bool = False) -> Optional[int]:
+    """
+    The set this student sits. Admins assign sets up front; anyone left unassigned gets the
+    least-used set when they start, so sets repeat evenly (10 sets, 30 students -> 3 each).
+    """
+    if not exam.sets:
+        return None
+    row = db.query(SetAssignment).filter(SetAssignment.exam_id == exam.id,
+                                         SetAssignment.student_id == student.id).first()
+    valid = {s.id for s in exam.sets}
+    if row and row.set_id in valid:
+        return row.set_id
+    if not create:
+        return None
+    usage = dict(db.query(SetAssignment.set_id, func.count(SetAssignment.id))
+                 .filter(SetAssignment.exam_id == exam.id).group_by(SetAssignment.set_id).all())
+    chosen = min(exam.sets, key=lambda s: (usage.get(s.id, 0), s.id)).id
+    if row:
+        row.set_id = chosen
+    else:
+        db.add(SetAssignment(exam_id=exam.id, student_id=student.id, set_id=chosen))
+    db.flush()
+    return chosen
 
 
 # ── Attempt lifecycle ─────────────────────────────────────────────────────
 
 def create_attempt(db: Session, exam: Exam, student: User, ip: Optional[str], ua: Optional[str]) -> Attempt:
-    items = list(exam.items)
+    set_id = assigned_set_id(db, exam, student, create=True)
+    items = paper_items(exam, set_id)
     if not items:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "This exam has no questions yet")
 
@@ -91,9 +130,9 @@ def create_attempt(db: Session, exam: Exam, student: User, ip: Optional[str], ua
     now = utcnow()
     deadline = min(now + timedelta(minutes=exam.duration_minutes), as_utc(exam.end_at))
     attempt = Attempt(
-        exam_id=exam.id, student_id=student.id, status=AttemptStatus.IN_PROGRESS,
+        exam_id=exam.id, student_id=student.id, status=AttemptStatus.IN_PROGRESS, set_id=set_id,
         started_at=now, deadline_at=deadline, item_order=order, option_order=option_order,
-        session_nonce=secrets.token_urlsafe(24), max_score=exam_max_score(exam),
+        session_nonce=secrets.token_urlsafe(24), max_score=round(sum(i.effective_marks for i in items), 2),
         last_heartbeat_at=now, ip_address=ip, user_agent=(ua or "")[:500],
     )
     db.add(attempt)
@@ -106,19 +145,19 @@ def is_expired(attempt: Attempt) -> bool:
     return utcnow() >= as_utc(attempt.deadline_at)
 
 
-async def finalize_if_expired(db: Session, attempt: Attempt) -> bool:
+def finalize_if_expired(db: Session, attempt: Attempt) -> bool:
     """Auto-submit an in-progress attempt whose time is up. Returns True if it was finalized."""
     if attempt.status == AttemptStatus.IN_PROGRESS and is_expired(attempt):
-        await finalize_attempt(db, attempt, AttemptStatus.AUTO_SUBMITTED, "time_up")
+        finalize_attempt(db, attempt, AttemptStatus.AUTO_SUBMITTED, "time_up")
         return True
     return False
 
 
-async def require_active_attempt(db: Session, attempt: Attempt, nonce: Optional[str]) -> None:
+def require_active_attempt(db: Session, attempt: Attempt, nonce: Optional[str]) -> None:
     """Guard for every student write during an exam."""
     if attempt.status != AttemptStatus.IN_PROGRESS:
         raise HTTPException(status.HTTP_409_CONFLICT, "This exam has already been submitted")
-    if await finalize_if_expired(db, attempt):
+    if finalize_if_expired(db, attempt):
         raise HTTPException(status.HTTP_409_CONFLICT, "Time is up. Your exam was submitted automatically")
     if not nonce or not secrets.compare_digest(nonce, attempt.session_nonce):
         raise HTTPException(status.HTTP_409_CONFLICT,
@@ -133,7 +172,7 @@ def record_event(db: Session, attempt: Attempt, event_type: str, details: Option
     return event
 
 
-async def finalize_attempt(db: Session, attempt: Attempt, final_status: AttemptStatus, reason: str) -> Attempt:
+def finalize_attempt(db: Session, attempt: Attempt, final_status: AttemptStatus, reason: str) -> Attempt:
     if attempt.status != AttemptStatus.IN_PROGRESS:
         return attempt
     # Grade any code that was written but never explicitly submitted (or changed since)
@@ -141,7 +180,7 @@ async def finalize_attempt(db: Session, attempt: Attempt, final_status: AttemptS
     for answer in attempt.code_answers:
         item = items.get(answer.item_id)
         if item and answer.code.strip() and answer.graded_code_hash != code_hash(answer.code, answer.language):
-            await grade_code_answer(answer, item)
+            grade_code_answer(answer, item)
 
     mcq_score = sum(a.marks_awarded for a in attempt.mcq_answers)
     coding_score = sum(a.marks_awarded for a in attempt.code_answers)
@@ -155,6 +194,24 @@ async def finalize_attempt(db: Session, attempt: Attempt, final_status: AttemptS
     record_event(db, attempt, "submitted", reason)
     db.commit()
     return attempt
+
+
+# ── Ranking ───────────────────────────────────────────────────────────────
+
+def percentage(attempt: Attempt) -> float:
+    return round(attempt.total_score / attempt.max_score * 100, 1) if attempt.max_score else 0.0
+
+
+def time_taken_seconds(attempt: Attempt) -> Optional[int]:
+    if not attempt.submitted_at:
+        return None
+    return int((as_utc(attempt.submitted_at) - as_utc(attempt.started_at)).total_seconds())
+
+
+def rank_attempts(attempts: List[Attempt]) -> List[Attempt]:
+    """Finished attempts, best first. Percentage, not raw score, so different sets compare fairly."""
+    finished = [a for a in attempts if a.status != AttemptStatus.IN_PROGRESS]
+    return sorted(finished, key=lambda a: (-percentage(a), time_taken_seconds(a) or 0, a.id))
 
 
 # ── MCQ scoring ───────────────────────────────────────────────────────────
@@ -174,13 +231,12 @@ def code_hash(code: str, language: str) -> str:
     return hashlib.sha256(f"{language}\n{code}".encode("utf-8")).hexdigest()
 
 
-async def run_tests(code: str, language: str, tests: List[dict], time_limit: int) -> List[dict]:
+def run_tests(code: str, language: str, tests: List[dict], time_limit: int) -> List[dict]:
     """Compile once and run against each test. Returns per-test results."""
     tests = tests[:MAX_TESTS_PER_RUN]
     if not tests:
         return []
-    raw = await asyncio.to_thread(
-        CodeCompilerTester.execute_multi_test_cases,
+    raw = CodeCompilerTester.execute_multi_test_cases(
         code=code, language=language,
         test_inputs=[t.get("input", "") for t in tests],
         timeout_seconds=time_limit,
@@ -198,9 +254,9 @@ async def run_tests(code: str, language: str, tests: List[dict], time_limit: int
     return results
 
 
-async def run_custom(code: str, language: str, stdin: str, time_limit: int) -> dict:
-    res = await asyncio.to_thread(
-        CodeCompilerTester.execute_code, code=code, language=language,
+def run_custom(code: str, language: str, stdin: str, time_limit: int) -> dict:
+    res = CodeCompilerTester.execute_code(
+        code=code, language=language,
         stdin=stdin, timeout_seconds=time_limit,
     )
     return {
@@ -211,10 +267,10 @@ async def run_custom(code: str, language: str, stdin: str, time_limit: int) -> d
     }
 
 
-async def grade_code_answer(answer: CodeAnswer, item: ExamItem) -> CodeAnswer:
+def grade_code_answer(answer: CodeAnswer, item: ExamItem) -> CodeAnswer:
     problem = item.problem
     tests = problem.hidden_tests or problem.sample_tests or []
-    results = await run_tests(answer.code, answer.language, tests, problem.time_limit_seconds)
+    results = run_tests(answer.code, answer.language, tests, problem.time_limit_seconds)
     passed = sum(1 for r in results if r["passed"])
     total = len(results)
     answer.passed_tests = passed

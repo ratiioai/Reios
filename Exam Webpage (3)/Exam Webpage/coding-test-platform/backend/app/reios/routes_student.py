@@ -61,11 +61,12 @@ def get_own_attempt(db: Session, student: User, attempt_id: int) -> Attempt:
     return attempt
 
 
-def get_item(attempt: Attempt, item_id: int, item_type: ItemType) -> ExamItem:
-    for item in attempt.exam.items:
-        if item.id == item_id and item.item_type == item_type:
-            return item
-    raise HTTPException(status.HTTP_404_NOT_FOUND, "Question not found in this exam")
+def get_item(db: Session, attempt: Attempt, item_id: int, item_type: ItemType) -> ExamItem:
+    """Only questions in this student's own paper (their set) can be answered."""
+    item = db.get(ExamItem, item_id) if item_id in (attempt.item_order or []) else None
+    if not item or item.exam_id != attempt.exam_id or item.item_type != item_type:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Question not found in this exam")
+    return item
 
 
 def check_language(exam: Exam, language: str) -> None:
@@ -126,6 +127,7 @@ def build_paper(attempt: Attempt) -> dict:
             "require_fullscreen": exam.require_fullscreen, "block_copy_paste": exam.block_copy_paste,
             "max_violations": exam.max_violations, "negative_marking": exam.negative_marking,
             "allowed_languages": exam.allowed_languages or LANGUAGES, "duration_minutes": exam.duration_minutes,
+            "exam_type": exam.exam_type,
         },
         "deadline_at": as_utc(attempt.deadline_at),
         "seconds_left": seconds_left(attempt),
@@ -143,12 +145,12 @@ def can_view_result(attempt: Attempt) -> bool:
 # ── Dashboard ─────────────────────────────────────────────────────────────
 
 @router.get("/dashboard")
-async def dashboard(student: User = Depends(require_student), db: Session = Depends(get_db)):
+def dashboard(student: User = Depends(require_student), db: Session = Depends(get_db)):
     exams = db.query(Exam).filter(Exam.college_id == student.college_id, Exam.is_published.is_(True)) \
         .order_by(Exam.start_at).all()
     attempts = {a.exam_id: a for a in db.query(Attempt).filter(Attempt.student_id == student.id).all()}
     for attempt in attempts.values():
-        await engine.finalize_if_expired(db, attempt)
+        engine.finalize_if_expired(db, attempt)
 
     rows = []
     for exam in exams:
@@ -156,6 +158,8 @@ async def dashboard(student: User = Depends(require_student), db: Session = Depe
         if not engine.student_is_eligible(exam, student) and not attempt:
             continue
         window = engine.exam_window(exam)
+        set_id = attempt.set_id if attempt else engine.assigned_set_id(db, exam, student)
+        paper = engine.paper_items(exam, set_id)
         if attempt and attempt.status == AttemptStatus.IN_PROGRESS:
             state = "in_progress"
         elif attempt:
@@ -167,9 +171,10 @@ async def dashboard(student: User = Depends(require_student), db: Session = Depe
         rows.append({
             "id": exam.id, "title": exam.title, "description": exam.description,
             "start_at": as_utc(exam.start_at), "end_at": as_utc(exam.end_at),
-            "duration_minutes": exam.duration_minutes, "question_count": len(exam.items),
-            "max_score": engine.exam_max_score(exam), "state": state,
-            "sections": sorted({i.section for i in exam.items}),
+            "duration_minutes": exam.duration_minutes, "question_count": len(paper),
+            "max_score": attempt.max_score if attempt else engine.exam_max_score(exam, set_id), "state": state,
+            "sections": sorted({i.section for i in paper}), "exam_type": exam.exam_type,
+            "leaderboard_available": bool(attempt and can_view_result(attempt) and exam.show_leaderboard),
             "attempt_id": attempt.id if attempt else None,
             "score": attempt.total_score if attempt and can_view_result(attempt) else None,
             "result_available": bool(attempt and can_view_result(attempt)),
@@ -196,23 +201,26 @@ async def dashboard(student: User = Depends(require_student), db: Session = Depe
 # ── Taking the exam ───────────────────────────────────────────────────────
 
 @router.get("/exams/{exam_id}")
-async def exam_info(exam_id: int, student: User = Depends(require_student), db: Session = Depends(get_db)):
+def exam_info(exam_id: int, student: User = Depends(require_student), db: Session = Depends(get_db)):
     """Pre-start screen: rules and instructions, without any questions."""
     exam = db.get(Exam, exam_id)
     if not exam or not engine.student_is_eligible(exam, student):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Exam not found")
     attempt = db.query(Attempt).filter(Attempt.exam_id == exam.id, Attempt.student_id == student.id).first()
     if attempt:
-        await engine.finalize_if_expired(db, attempt)
+        engine.finalize_if_expired(db, attempt)
+    set_id = attempt.set_id if attempt else engine.assigned_set_id(db, exam, student)
+    paper = engine.paper_items(exam, set_id)
     sections: Dict[str, dict] = {}
-    for item in exam.items:
+    for item in paper:
         sec = sections.setdefault(item.section, {"section": item.section, "questions": 0, "marks": 0.0})
         sec["questions"] += 1
         sec["marks"] = round(sec["marks"] + item.effective_marks, 2)
     return {
         "id": exam.id, "title": exam.title, "description": exam.description, "instructions": exam.instructions,
         "start_at": as_utc(exam.start_at), "end_at": as_utc(exam.end_at), "duration_minutes": exam.duration_minutes,
-        "window": engine.exam_window(exam), "max_score": engine.exam_max_score(exam),
+        "window": engine.exam_window(exam), "max_score": round(sum(i.effective_marks for i in paper), 2),
+        "exam_type": exam.exam_type, "has_coding": any(i.item_type == ItemType.CODING for i in paper),
         "sections": list(sections.values()), "negative_marking": exam.negative_marking,
         "require_fullscreen": exam.require_fullscreen, "block_copy_paste": exam.block_copy_paste,
         "max_violations": exam.max_violations, "allowed_languages": exam.allowed_languages or LANGUAGES,
@@ -223,7 +231,7 @@ async def exam_info(exam_id: int, student: User = Depends(require_student), db: 
 
 
 @router.post("/exams/{exam_id}/start")
-async def start_exam(exam_id: int, request: Request, student: User = Depends(require_student),
+def start_exam(exam_id: int, request: Request, student: User = Depends(require_student),
                      db: Session = Depends(get_db)):
     exam = db.get(Exam, exam_id)
     if not exam or not engine.student_is_eligible(exam, student):
@@ -234,7 +242,7 @@ async def start_exam(exam_id: int, request: Request, student: User = Depends(req
     attempt = db.query(Attempt).filter(Attempt.exam_id == exam.id, Attempt.student_id == student.id).first()
     ip = request.client.host if request.client else None
     if attempt:
-        await engine.finalize_if_expired(db, attempt)
+        engine.finalize_if_expired(db, attempt)
         if attempt.status != AttemptStatus.IN_PROGRESS:
             raise HTTPException(status.HTTP_409_CONFLICT, "You have already submitted this exam")
         # Resume: take over the session (any other open tab stops working)
@@ -255,19 +263,19 @@ async def start_exam(exam_id: int, request: Request, student: User = Depends(req
 
 
 @router.get("/attempts/{attempt_id}/paper")
-async def get_paper(attempt_id: int, x_exam_session: Optional[str] = Header(None),
+def get_paper(attempt_id: int, x_exam_session: Optional[str] = Header(None),
                     student: User = Depends(require_student), db: Session = Depends(get_db)):
     attempt = get_own_attempt(db, student, attempt_id)
-    await engine.require_active_attempt(db, attempt, x_exam_session)
+    engine.require_active_attempt(db, attempt, x_exam_session)
     return build_paper(attempt)
 
 
 @router.put("/attempts/{attempt_id}/mcq/{item_id}")
-async def answer_mcq(attempt_id: int, item_id: int, body: MCQAnswerIn, x_exam_session: Optional[str] = Header(None),
+def answer_mcq(attempt_id: int, item_id: int, body: MCQAnswerIn, x_exam_session: Optional[str] = Header(None),
                      student: User = Depends(require_student), db: Session = Depends(get_db)):
     attempt = get_own_attempt(db, student, attempt_id)
-    await engine.require_active_attempt(db, attempt, x_exam_session)
-    item = get_item(attempt, item_id, ItemType.MCQ)
+    engine.require_active_attempt(db, attempt, x_exam_session)
+    item = get_item(db, attempt, item_id, ItemType.MCQ)
     selected = sorted(set(body.selected))
     if any(i < 0 or i >= len(item.mcq.options) for i in selected):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Invalid option")
@@ -301,11 +309,11 @@ def _upsert_code(db: Session, attempt: Attempt, item: ExamItem, body: CodeIn) ->
 
 
 @router.put("/attempts/{attempt_id}/code/{item_id}")
-async def save_code(attempt_id: int, item_id: int, body: CodeIn, x_exam_session: Optional[str] = Header(None),
+def save_code(attempt_id: int, item_id: int, body: CodeIn, x_exam_session: Optional[str] = Header(None),
                     student: User = Depends(require_student), db: Session = Depends(get_db)):
     attempt = get_own_attempt(db, student, attempt_id)
-    await engine.require_active_attempt(db, attempt, x_exam_session)
-    item = get_item(attempt, item_id, ItemType.CODING)
+    engine.require_active_attempt(db, attempt, x_exam_session)
+    item = get_item(db, attempt, item_id, ItemType.CODING)
     _upsert_code(db, attempt, item, body)
     db.commit()
     return {"saved": True}
@@ -323,12 +331,12 @@ def _check_cooldown(attempt_id: int, item_id: int) -> None:
 
 
 @router.post("/attempts/{attempt_id}/code/{item_id}/run")
-async def run_code(attempt_id: int, item_id: int, body: RunIn, x_exam_session: Optional[str] = Header(None),
+def run_code(attempt_id: int, item_id: int, body: RunIn, x_exam_session: Optional[str] = Header(None),
                    student: User = Depends(require_student), db: Session = Depends(get_db)):
     """Run against the sample tests, or against custom input when given. Never affects the score."""
     attempt = get_own_attempt(db, student, attempt_id)
-    await engine.require_active_attempt(db, attempt, x_exam_session)
-    item = get_item(attempt, item_id, ItemType.CODING)
+    engine.require_active_attempt(db, attempt, x_exam_session)
+    item = get_item(db, attempt, item_id, ItemType.CODING)
     if not body.code.strip():
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Write some code first")
     _check_cooldown(attempt.id, item.id)
@@ -338,10 +346,10 @@ async def run_code(attempt_id: int, item_id: int, body: RunIn, x_exam_session: O
 
     problem = item.problem
     if body.custom_input is not None:
-        result = await engine.run_custom(body.code, body.language, body.custom_input, problem.time_limit_seconds)
+        result = engine.run_custom(body.code, body.language, body.custom_input, problem.time_limit_seconds)
         return {"mode": "custom", **result}
     samples = problem.sample_tests or []
-    results = await engine.run_tests(body.code, body.language, samples, problem.time_limit_seconds)
+    results = engine.run_tests(body.code, body.language, samples, problem.time_limit_seconds)
     return {
         "mode": "samples",
         "passed": sum(r["passed"] for r in results), "total": len(results),
@@ -352,27 +360,27 @@ async def run_code(attempt_id: int, item_id: int, body: RunIn, x_exam_session: O
 
 
 @router.post("/attempts/{attempt_id}/code/{item_id}/submit")
-async def submit_code(attempt_id: int, item_id: int, body: CodeIn, x_exam_session: Optional[str] = Header(None),
+def submit_code(attempt_id: int, item_id: int, body: CodeIn, x_exam_session: Optional[str] = Header(None),
                       student: User = Depends(require_student), db: Session = Depends(get_db)):
     """Grade against the hidden tests. Only pass counts are revealed, never the test data."""
     attempt = get_own_attempt(db, student, attempt_id)
-    await engine.require_active_attempt(db, attempt, x_exam_session)
-    item = get_item(attempt, item_id, ItemType.CODING)
+    engine.require_active_attempt(db, attempt, x_exam_session)
+    item = get_item(db, attempt, item_id, ItemType.CODING)
     if not body.code.strip():
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Write some code first")
     _check_cooldown(attempt.id, item.id)
     answer = _upsert_code(db, attempt, item, body)
-    await engine.grade_code_answer(answer, item)
+    engine.grade_code_answer(answer, item)
     db.commit()
     return {"passed_tests": answer.passed_tests, "total_tests": answer.total_tests,
             "all_passed": answer.total_tests > 0 and answer.passed_tests == answer.total_tests}
 
 
 @router.post("/attempts/{attempt_id}/violation")
-async def report_violation(attempt_id: int, body: ViolationIn, x_exam_session: Optional[str] = Header(None),
+def report_violation(attempt_id: int, body: ViolationIn, x_exam_session: Optional[str] = Header(None),
                            student: User = Depends(require_student), db: Session = Depends(get_db)):
     attempt = get_own_attempt(db, student, attempt_id)
-    await engine.require_active_attempt(db, attempt, x_exam_session)
+    engine.require_active_attempt(db, attempt, x_exam_session)
     event_type = body.type if body.type in LOGGED_EVENTS else "other"
     counted = event_type in COUNTED_VIOLATIONS
     if counted:
@@ -387,18 +395,18 @@ async def report_violation(attempt_id: int, body: ViolationIn, x_exam_session: O
 
     auto_submitted = False
     if attempt.violation_count >= attempt.exam.max_violations:
-        await engine.finalize_attempt(db, attempt, AttemptStatus.AUTO_SUBMITTED, "max_violations")
+        engine.finalize_attempt(db, attempt, AttemptStatus.AUTO_SUBMITTED, "max_violations")
         auto_submitted = True
     return {"violations": attempt.violation_count, "max_violations": attempt.exam.max_violations,
             "counted": counted, "auto_submitted": auto_submitted}
 
 
 @router.post("/attempts/{attempt_id}/heartbeat")
-async def heartbeat(attempt_id: int, x_exam_session: Optional[str] = Header(None),
+def heartbeat(attempt_id: int, x_exam_session: Optional[str] = Header(None),
                     student: User = Depends(require_student), db: Session = Depends(get_db)):
     """Called every ~20s. Lets the client pick up time extensions, force-submits and session takeovers."""
     attempt = get_own_attempt(db, student, attempt_id)
-    await engine.finalize_if_expired(db, attempt)
+    engine.finalize_if_expired(db, attempt)
     if attempt.status != AttemptStatus.IN_PROGRESS:
         return {"status": attempt.status.value, "seconds_left": 0, "violations": attempt.violation_count,
                 "session_valid": True}
@@ -412,20 +420,20 @@ async def heartbeat(attempt_id: int, x_exam_session: Optional[str] = Header(None
 
 
 @router.post("/attempts/{attempt_id}/submit")
-async def submit_exam(attempt_id: int, x_exam_session: Optional[str] = Header(None),
+def submit_exam(attempt_id: int, x_exam_session: Optional[str] = Header(None),
                       student: User = Depends(require_student), db: Session = Depends(get_db)):
     attempt = get_own_attempt(db, student, attempt_id)
-    await engine.require_active_attempt(db, attempt, x_exam_session)
-    await engine.finalize_attempt(db, attempt, AttemptStatus.SUBMITTED, "student_submitted")
+    engine.require_active_attempt(db, attempt, x_exam_session)
+    engine.finalize_attempt(db, attempt, AttemptStatus.SUBMITTED, "student_submitted")
     return {"status": attempt.status.value, "result_available": can_view_result(attempt)}
 
 
 # ── Results ───────────────────────────────────────────────────────────────
 
 @router.get("/attempts/{attempt_id}/result")
-async def get_result(attempt_id: int, student: User = Depends(require_student), db: Session = Depends(get_db)):
+def get_result(attempt_id: int, student: User = Depends(require_student), db: Session = Depends(get_db)):
     attempt = get_own_attempt(db, student, attempt_id)
-    await engine.finalize_if_expired(db, attempt)
+    engine.finalize_if_expired(db, attempt)
     if not can_view_result(attempt):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Results for this exam are not published")
     exam = attempt.exam
@@ -475,8 +483,8 @@ async def get_result(attempt_id: int, student: User = Depends(require_student), 
         sec["score"] = round(sec["score"], 2)
         sec["max"] = round(sec["max"], 2)
 
-    finished = db.query(Attempt).filter(Attempt.exam_id == exam.id, Attempt.status != AttemptStatus.IN_PROGRESS).all()
-    rank = 1 + sum(1 for a in finished if a.total_score > attempt.total_score)
+    finished = engine.rank_attempts(db.query(Attempt).filter(Attempt.exam_id == exam.id).all())
+    rank = next((i + 1 for i, a in enumerate(finished) if a.id == attempt.id), len(finished))
     pct = round(attempt.total_score / attempt.max_score * 100, 1) if attempt.max_score else 0
     return {
         "exam": {"id": exam.id, "title": exam.title, "pass_percentage": exam.pass_percentage},
@@ -486,4 +494,25 @@ async def get_result(attempt_id: int, student: User = Depends(require_student), 
         "passed": pct >= exam.pass_percentage, "rank": rank, "participants": len(finished),
         "violations": attempt.violation_count,
         "sections": list(sections.values()), "review": review, "answers_visible": exam.show_answers,
+        "leaderboard_available": exam.show_leaderboard,
     }
+
+
+@router.get("/exams/{exam_id}/leaderboard")
+def exam_leaderboard(exam_id: int, student: User = Depends(require_student), db: Session = Depends(get_db)):
+    """Top 10 plus the student's own row; only after they've finished and if the college turned it on."""
+    exam = db.get(Exam, exam_id)
+    own = db.query(Attempt).filter(Attempt.exam_id == exam_id, Attempt.student_id == student.id).first()         if exam and exam.college_id == student.college_id else None
+    if not own or not can_view_result(own) or not exam.show_leaderboard:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Leaderboard not available")
+    ranked = engine.rank_attempts(db.query(Attempt).filter(Attempt.exam_id == exam.id).all())
+
+    def row(rank: int, a: Attempt) -> dict:
+        return {"rank": rank, "name": a.student.name, "branch": a.student.branch, "is_me": a.id == own.id,
+                "percentage": engine.percentage(a), "total_score": a.total_score, "max_score": a.max_score,
+                "time_taken_seconds": engine.time_taken_seconds(a)}
+
+    rows = [row(i + 1, a) for i, a in enumerate(ranked[:10])]
+    my_rank = next((i + 1 for i, a in enumerate(ranked) if a.id == own.id), None)
+    return {"exam": {"id": exam.id, "title": exam.title}, "participants": len(ranked), "top": rows,
+            "me": row(my_rank, own) if my_rank else None}

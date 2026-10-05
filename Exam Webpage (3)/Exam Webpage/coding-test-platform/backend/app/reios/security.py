@@ -8,9 +8,10 @@ from typing import Optional
 
 from fastapi import Depends, HTTPException, Query, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.auth import create_access_token, decode_token, hash_password, verify_password
+from app.auth import create_access_token, decode_token, hash_password, needs_rehash, verify_password
 from app.config import settings
 from app.database import get_db
 from app.reios.models import College, Role, User
@@ -64,6 +65,8 @@ def check_login(db: Session, user: Optional[User], password: str) -> User:
     if locked_until and locked_until > utcnow():
         raise HTTPException(status.HTTP_423_LOCKED,
                             f"Too many failed attempts. Try again after {locked_until.strftime('%H:%M UTC')}")
+    if settings.FIREBASE_PROJECT_ID and user.role == Role.SUPER_ADMIN:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Super admins sign in with Firebase")
     if not verify_password(password, user.hashed_password):
         register_failed_login(db, user)
         raise invalid
@@ -74,6 +77,8 @@ def check_login(db: Session, user: Optional[User], password: str) -> User:
     user.failed_login_attempts = 0
     user.locked_until = None
     user.last_login_at = utcnow()
+    if needs_rehash(user.hashed_password):
+        user.hashed_password = hash_password(password)
     db.commit()
     return user
 
@@ -150,6 +155,19 @@ def ensure_super_admin(db: Session) -> None:
     import logging
     import os
     logger = logging.getLogger("reios")
+    if settings.FIREBASE_PROJECT_ID:
+        # Firebase mode: every address in SUPER_ADMIN_EMAIL (comma-separated) is a super admin.
+        # Firebase checks the password, so the local one is random and never used.
+        for email in {e.strip().lower() for e in os.getenv("SUPER_ADMIN_EMAIL", "").split(",") if e.strip()}:
+            existing = db.query(User).filter(func.lower(User.email) == email).first()
+            if existing is None:
+                db.add(User(role=Role.SUPER_ADMIN, name="Super Admin", email=email,
+                            hashed_password=hash_password(secrets.token_urlsafe(32)), must_change_password=False))
+                logger.info(f"Reios super admin added for Firebase sign-in: {email}")
+            elif existing.role != Role.SUPER_ADMIN:
+                logger.error(f"{email} is in SUPER_ADMIN_EMAIL but already belongs to a {existing.role.value}")
+        db.commit()
+        return
     if db.query(User).filter(User.role == Role.SUPER_ADMIN).first():
         return
     email = os.getenv("SUPER_ADMIN_EMAIL", "").strip().lower()

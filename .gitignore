@@ -25,3 +25,9 @@ __pycache__/
 *.pyc
 node_modules/
 round-1-/
+
+# React build output (rebuilt by `npm run build`)
+**/web/dist/
+
+# Generated signing key when SECRET_KEY is not set in .env
+.secret_key

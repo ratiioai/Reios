@@ -17,9 +17,10 @@ from app.auth import hash_password
 from app.database import get_db
 from app.reios import engine
 from app.reios.models import (
-    DIFFICULTIES, LANGUAGES, SECTIONS, Announcement, Attempt, AttemptStatus, CodingProblem,
-    College, Exam, ExamItem, ItemType, MCQQuestion, ProctorEvent, Role, User,
+    DIFFICULTIES, EXAM_TYPES, LANGUAGES, SECTIONS, Announcement, Attempt, AttemptStatus, CodingProblem,
+    College, Exam, ExamItem, ItemType, MCQQuestion, ProctorEvent, QuestionSet, Role, SetAssignment, User,
 )
+from app.reios.parsers import ParseError, student_rows
 from app.reios.security import (
     as_utc, bank_scope, generate_password, require_admin, scoped_college_id, utcnow,
 )
@@ -148,6 +149,15 @@ class ExamIn(BaseModel):
     show_results: bool = True
     show_answers: bool = False
     pass_percentage: float = Field(40.0, ge=0, le=100)
+    show_leaderboard: bool = False
+    exam_type: str = "mixed"
+
+    @field_validator("exam_type")
+    @classmethod
+    def check_exam_type(cls, v):
+        if v not in EXAM_TYPES:
+            raise ValueError(f"exam_type must be one of {EXAM_TYPES}")
+        return v
 
     @field_validator("allowed_languages")
     @classmethod
@@ -232,6 +242,7 @@ def exam_payload(exam: Exam, db: Session, with_items: bool = False) -> dict:
         db.query(Attempt.status, func.count(Attempt.id)).filter(Attempt.exam_id == exam.id)
         .group_by(Attempt.status).all()
     )
+    paper = engine.paper_items(exam, None)
     data = {
         "id": exam.id, "college_id": exam.college_id, "title": exam.title,
         "description": exam.description, "instructions": exam.instructions,
@@ -244,9 +255,11 @@ def exam_payload(exam: Exam, db: Session, with_items: bool = False) -> dict:
         "block_copy_paste": exam.block_copy_paste, "max_violations": exam.max_violations,
         "show_results": exam.show_results, "show_answers": exam.show_answers,
         "pass_percentage": exam.pass_percentage, "window": engine.exam_window(exam),
-        "question_count": len(exam.items), "max_score": engine.exam_max_score(exam),
-        "mcq_count": sum(1 for i in exam.items if i.item_type == ItemType.MCQ),
-        "coding_count": sum(1 for i in exam.items if i.item_type == ItemType.CODING),
+        "exam_type": exam.exam_type, "show_leaderboard": exam.show_leaderboard,
+        "set_count": len(exam.sets), "auto_assign_sets": exam.auto_assign_sets,
+        "question_count": len(paper), "max_score": engine.exam_max_score(exam),
+        "mcq_count": sum(1 for i in paper if i.item_type == ItemType.MCQ),
+        "coding_count": sum(1 for i in paper if i.item_type == ItemType.CODING),
         "attempts": {
             "in_progress": counts.get(AttemptStatus.IN_PROGRESS, 0),
             "submitted": counts.get(AttemptStatus.SUBMITTED, 0) + counts.get(AttemptStatus.AUTO_SUBMITTED, 0),
@@ -261,7 +274,7 @@ def exam_payload(exam: Exam, db: Session, with_items: bool = False) -> dict:
             "title": (item.mcq.question_text[:140] if item.mcq else "") if item.item_type == ItemType.MCQ
             else (item.problem.title if item.problem else ""),
             "difficulty": (item.mcq or item.problem).difficulty if (item.mcq or item.problem) else None,
-        } for item in exam.items]
+        } for item in exam.items if item.set_id is None]
     return data
 
 
@@ -447,15 +460,18 @@ def create_student(body: StudentIn, college_id: int = Depends(scoped_college_id)
 
 
 @router.post("/students/import")
-async def import_students(file: UploadFile = File(...), college_id: int = Depends(scoped_college_id),
+def import_students(file: UploadFile = File(...), college_id: int = Depends(scoped_college_id),
                           db: Session = Depends(get_db)):
     """
     CSV columns: roll_no, name, email, phone, branch, section, batch_year, password
     Only roll_no and name are required. Blank passwords get a generated one.
     """
-    rows = csv_rows(await file.read())
-    if rows and ("roll_no" not in rows[0] or "name" not in rows[0]):
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "CSV must have roll_no and name columns")
+    try:
+        rows = student_rows(file.file.read(), file.filename or "students.csv")
+    except ParseError as exc:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc))
+    if len(rows) > MAX_IMPORT_ROWS:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"At most {MAX_IMPORT_ROWS} rows per import")
     check_capacity(db, college_id, len(rows))
     created, errors = [], []
     for line, row in enumerate(rows, start=2):
@@ -639,13 +655,13 @@ LETTERS = "ABCDEFGH"
 
 
 @router.post("/mcqs/import")
-async def import_mcqs(file: UploadFile = File(...), scope: Optional[int] = Depends(bank_scope),
+def import_mcqs(file: UploadFile = File(...), scope: Optional[int] = Depends(bank_scope),
                       user: User = Depends(require_admin), db: Session = Depends(get_db)):
     """
     CSV columns: section, topic, difficulty, question, option_a, option_b, option_c, option_d,
     (option_e..option_h optional), correct (e.g. "B" or "A,C"), marks, negative_marks, explanation
     """
-    rows = csv_rows(await file.read())
+    rows = csv_rows(file.file.read())
     created, errors = 0, []
     for line, row in enumerate(rows, start=2):
         try:
@@ -749,7 +765,7 @@ class RunReferenceIn(BaseModel):
 
 
 @router.post("/problems/{problem_id}/verify")
-async def verify_problem(problem_id: int, body: RunReferenceIn, scope: Optional[int] = Depends(bank_scope),
+def verify_problem(problem_id: int, body: RunReferenceIn, scope: Optional[int] = Depends(bank_scope),
                          db: Session = Depends(get_db)):
     """Run a reference solution against every sample and hidden test to check the test data."""
     p = db.get(CodingProblem, problem_id)
@@ -759,7 +775,7 @@ async def verify_problem(problem_id: int, body: RunReferenceIn, scope: Optional[
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Unsupported language")
     tests = [{**t, "kind": "sample"} for t in p.sample_tests or []] + \
             [{**t, "kind": "hidden"} for t in p.hidden_tests or []]
-    results = await engine.run_tests(body.code, body.language, tests, p.time_limit_seconds)
+    results = engine.run_tests(body.code, body.language, tests, p.time_limit_seconds)
     return {
         "passed": sum(r["passed"] for r in results), "total": len(results),
         "results": [{"kind": t["kind"], "passed": r["passed"], "expected": t.get("output", ""),
@@ -797,6 +813,7 @@ def get_exam_detail(exam_id: int, college_id: int = Depends(scoped_college_id), 
 def update_exam(exam_id: int, body: ExamUpdate, college_id: int = Depends(scoped_college_id),
                 db: Session = Depends(get_db)):
     exam = get_exam(db, college_id, exam_id)
+    check_items_fit_type(body.exam_type, [i.item_type for i in exam.items])
     for field, value in body.model_dump().items():
         setattr(exam, field, value)
     db.commit()
@@ -829,12 +846,25 @@ def set_exam_items(exam_id: int, body: ExamItemsIn, college_id: int = Depends(sc
                 raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Coding problem {item.question_id} not found")
             new_items.append(ExamItem(item_type=ItemType.CODING, problem_id=p.id, section=item.section or "Coding",
                                       marks=item.marks, order=order))
-    exam.items.clear()
+    check_items_fit_type(exam.exam_type, [i.item_type for i in new_items]
+                         + [i.item_type for i in exam.items if i.set_id is not None])
+    for old in [i for i in exam.items if i.set_id is None]:
+        exam.items.remove(old)
     db.flush()
     exam.items.extend(new_items)
     db.commit()
     db.refresh(exam)
     return exam_payload(exam, db, with_items=True)
+
+
+def check_items_fit_type(exam_type: str, item_types) -> None:
+    kinds = set(item_types)
+    if exam_type == "mcq" and ItemType.CODING in kinds:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST,
+                            "This is an MCQ-only exam. Remove the coding questions or change the exam type to Mixed")
+    if exam_type == "coding" and ItemType.MCQ in kinds:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST,
+                            "This is a coding-only exam. Remove the MCQs or change the exam type to Mixed")
 
 
 class AutoPickIn(BaseModel):
@@ -872,7 +902,15 @@ def delete_exam(exam_id: int, college_id: int = Depends(scoped_college_id), db: 
     exam = get_exam(db, college_id, exam_id)
     if db.query(Attempt).filter(Attempt.exam_id == exam.id).first():
         raise HTTPException(status.HTTP_409_CONFLICT, "Exam has attempts and can't be deleted. Unpublish it instead")
+    # Set questions live only inside this exam; bank questions (active) are left alone
+    set_mcq_ids = [i.mcq_id for i in exam.items if i.set_id is not None and i.mcq_id]
+    db.query(SetAssignment).filter(SetAssignment.exam_id == exam.id).delete()
     db.delete(exam)
+    db.flush()
+    if set_mcq_ids:
+        still_used = {m for (m,) in db.query(ExamItem.mcq_id).filter(ExamItem.mcq_id.in_(set_mcq_ids)).all()}
+        db.query(MCQQuestion).filter(MCQQuestion.id.in_([m for m in set_mcq_ids if m not in still_used]),
+                                     MCQQuestion.is_active.is_(False)).delete(synchronize_session=False)
     db.commit()
     return {"deleted": exam_id}
 
@@ -886,10 +924,17 @@ def duplicate_exam(exam_id: int, college_id: int = Depends(scoped_college_id), u
                     "description", "instructions", "start_at", "end_at", "duration_minutes", "branch_filter",
                     "batch_filter", "section_filter", "shuffle_questions", "shuffle_options",
                     "negative_marking", "allowed_languages", "require_fullscreen", "block_copy_paste",
-                    "max_violations", "show_results", "show_answers", "pass_percentage")})
+                    "max_violations", "show_results", "show_answers", "pass_percentage",
+                    "show_leaderboard", "exam_type", "auto_assign_sets")})
+    src_items = list(src.items)
+    copy.sets = [QuestionSet(name=qs.name, source_filename=qs.source_filename) for qs in src.sets]
     copy.items = [ExamItem(item_type=i.item_type, mcq_id=i.mcq_id, problem_id=i.problem_id, section=i.section,
-                           marks=i.marks, order=i.order) for i in src.items]
+                           marks=i.marks, order=i.order) for i in src_items]
     db.add(copy)
+    db.flush()
+    set_map = {old.id: new.id for old, new in zip(src.sets, copy.sets)}
+    for new_item, old_item in zip(copy.items, src_items):
+        new_item.set_id = set_map.get(old_item.set_id)
     db.commit()
     db.refresh(copy)
     return exam_payload(copy, db, with_items=True)
@@ -899,15 +944,15 @@ def duplicate_exam(exam_id: int, college_id: int = Depends(scoped_college_id), u
 # Results, monitoring and proctoring
 # ══════════════════════════════════════════════════════════════════════════
 
-async def _finalize_expired(db: Session, exam: Exam) -> None:
+def _finalize_expired(db: Session, exam: Exam) -> None:
     for attempt in db.query(Attempt).filter(Attempt.exam_id == exam.id,
                                             Attempt.status == AttemptStatus.IN_PROGRESS).all():
-        await engine.finalize_if_expired(db, attempt)
+        engine.finalize_if_expired(db, attempt)
 
 
 def _section_scores(attempt: Attempt) -> dict:
     items = {i.id: i for i in attempt.exam.items}
-    scores = {item.section: 0.0 for item in items.values()}
+    scores = {items[i].section: 0.0 for i in attempt.item_order if i in items}
     for answer in list(attempt.mcq_answers) + list(attempt.code_answers):
         item = items.get(answer.item_id)
         if item:
@@ -916,13 +961,13 @@ def _section_scores(attempt: Attempt) -> dict:
 
 
 @router.get("/exams/{exam_id}/results")
-async def exam_results(exam_id: int, college_id: int = Depends(scoped_college_id), db: Session = Depends(get_db)):
+def exam_results(exam_id: int, college_id: int = Depends(scoped_college_id), db: Session = Depends(get_db)):
     exam = get_exam(db, college_id, exam_id)
-    await _finalize_expired(db, exam)
+    _finalize_expired(db, exam)
     attempts = db.query(Attempt).filter(Attempt.exam_id == exam.id).all()
-    finished = sorted([a for a in attempts if a.status != AttemptStatus.IN_PROGRESS],
-                      key=lambda a: (-a.total_score, (as_utc(a.submitted_at) - as_utc(a.started_at)).total_seconds()))
+    finished = engine.rank_attempts(attempts)
     ranks = {a.id: idx + 1 for idx, a in enumerate(finished)}
+    set_names = {qs.id: qs.name for qs in exam.sets}
 
     eligible = [s for s in db.query(User).filter(User.college_id == college_id, User.role == Role.STUDENT,
                                                  User.is_active.is_(True)).all()
@@ -940,6 +985,7 @@ async def exam_results(exam_id: int, college_id: int = Depends(scoped_college_id
             "mcq_score": a.mcq_score, "coding_score": a.coding_score, "total_score": a.total_score,
             "max_score": a.max_score, "percentage": pct, "passed": pct >= exam.pass_percentage,
             "violations": a.violation_count, "section_scores": _section_scores(a),
+            "set_name": set_names.get(a.set_id),
             "time_taken_seconds": int((as_utc(a.submitted_at) - as_utc(a.started_at)).total_seconds())
             if a.submitted_at else None,
         })
@@ -963,8 +1009,8 @@ async def exam_results(exam_id: int, college_id: int = Depends(scoped_college_id
 
 
 @router.get("/exams/{exam_id}/export")
-async def export_results(exam_id: int, college_id: int = Depends(scoped_college_id), db: Session = Depends(get_db)):
-    data = await exam_results(exam_id, college_id, db)
+def export_results(exam_id: int, college_id: int = Depends(scoped_college_id), db: Session = Depends(get_db)):
+    data = exam_results(exam_id, college_id, db)
     sections = sorted({s for r in data["results"] for s in r["section_scores"]})
     header = ["Rank", "Roll No", "Name", "Branch", "Section", "Status"] + sections + \
              ["MCQ Score", "Coding Score", "Total", "Max", "Percentage", "Result", "Violations",
@@ -984,12 +1030,11 @@ async def export_results(exam_id: int, college_id: int = Depends(scoped_college_
 
 
 @router.get("/exams/{exam_id}/live")
-async def live_monitor(exam_id: int, college_id: int = Depends(scoped_college_id), db: Session = Depends(get_db)):
+def live_monitor(exam_id: int, college_id: int = Depends(scoped_college_id), db: Session = Depends(get_db)):
     exam = get_exam(db, college_id, exam_id)
-    await _finalize_expired(db, exam)
+    _finalize_expired(db, exam)
     now = utcnow()
     attempts = db.query(Attempt).filter(Attempt.exam_id == exam.id).all()
-    total_items = len(exam.items)
     rows = []
     for a in attempts:
         answered = sum(1 for m in a.mcq_answers if m.selected) + sum(1 for c in a.code_answers if c.code.strip())
@@ -997,7 +1042,7 @@ async def live_monitor(exam_id: int, college_id: int = Depends(scoped_college_id
         last_event = a.events[-1] if a.events else None
         rows.append({
             "attempt_id": a.id, "roll_no": a.student.roll_no, "name": a.student.name,
-            "status": a.status.value, "answered": answered, "total": total_items,
+            "status": a.status.value, "answered": answered, "total": len(a.item_order or []),
             "violations": a.violation_count, "max_violations": exam.max_violations,
             "online": bool(heartbeat and (now - heartbeat).total_seconds() < 45)
             and a.status == AttemptStatus.IN_PROGRESS,
@@ -1066,11 +1111,11 @@ def attempt_detail(attempt_id: int, college_id: int = Depends(scoped_college_id)
 
 
 @router.post("/attempts/{attempt_id}/force-submit")
-async def force_submit(attempt_id: int, college_id: int = Depends(scoped_college_id), db: Session = Depends(get_db)):
+def force_submit(attempt_id: int, college_id: int = Depends(scoped_college_id), db: Session = Depends(get_db)):
     a = get_attempt(db, college_id, attempt_id)
     if a.status != AttemptStatus.IN_PROGRESS:
         raise HTTPException(status.HTTP_409_CONFLICT, "Attempt is already submitted")
-    await engine.finalize_attempt(db, a, AttemptStatus.AUTO_SUBMITTED, "admin_force_submit")
+    engine.finalize_attempt(db, a, AttemptStatus.AUTO_SUBMITTED, "admin_force_submit")
     return {"attempt_id": a.id, "status": a.status.value, "total_score": a.total_score}
 
 

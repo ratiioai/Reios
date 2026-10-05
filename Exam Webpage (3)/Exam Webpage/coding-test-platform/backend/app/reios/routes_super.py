@@ -4,15 +4,16 @@ Super admin endpoints: colleges, college admins and platform-wide stats.
 import re
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, EmailStr, Field
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.auth import hash_password
 from app.database import get_db
 from app.reios.models import (
-    Attempt, AttemptStatus, CodingProblem, College, Exam, MCQQuestion, Role, User,
+    Announcement, Attempt, AttemptStatus, CodeAnswer, CodingProblem, College, Exam, ExamItem, MCQAnswer,
+    MCQQuestion, ProctorEvent, QuestionSet, Role, SetAssignment, User,
 )
 from app.reios.security import generate_password, require_super_admin
 
@@ -127,6 +128,48 @@ def update_college(college_id: int, body: CollegeUpdate, db: Session = Depends(g
         setattr(college, field, value)
     db.commit()
     return college_payload(college, db)
+
+
+@router.delete("/colleges/{college_id}")
+def delete_college(college_id: int, confirm: str = Query(..., description="The college's code, typed to confirm"),
+                   db: Session = Depends(get_db), _=Depends(require_super_admin)):
+    """
+    Permanently remove a college and everything it owns: admins, students, exams, sets, attempts,
+    answers, proctoring logs, announcements and its own question bank. Global questions are kept.
+    """
+    college = get_college_or_404(db, college_id)
+    if confirm.strip().upper() != college.code.upper():
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, f"Type the college code ({college.code}) to confirm")
+    exam_ids = select(Exam.id).where(Exam.college_id == college.id)
+    writing = db.query(Attempt).filter(Attempt.exam_id.in_(exam_ids),
+                                       Attempt.status == AttemptStatus.IN_PROGRESS).count()
+    if writing:
+        raise HTTPException(status.HTTP_409_CONFLICT,
+                            f"{writing} students are writing an exam right now. Wait until it ends")
+
+    attempt_ids = select(Attempt.id).where(Attempt.exam_id.in_(exam_ids))
+    counts = {
+        "deleted": college.code,
+        "students": db.query(User).filter(User.college_id == college.id, User.role == Role.STUDENT).count(),
+        "exams": db.query(Exam).filter(Exam.college_id == college.id).count(),
+        "attempts": db.query(Attempt).filter(Attempt.exam_id.in_(exam_ids)).count(),
+    }
+    gone = dict(synchronize_session=False)
+    for model in (MCQAnswer, CodeAnswer, ProctorEvent):
+        db.query(model).filter(model.attempt_id.in_(attempt_ids)).delete(**gone)
+    db.query(Attempt).filter(Attempt.exam_id.in_(exam_ids)).delete(**gone)
+    db.query(SetAssignment).filter(SetAssignment.exam_id.in_(exam_ids)).delete(**gone)
+    db.query(ExamItem).filter(ExamItem.exam_id.in_(exam_ids)).delete(**gone)
+    db.query(QuestionSet).filter(QuestionSet.exam_id.in_(exam_ids)).delete(**gone)
+    db.query(Exam).filter(Exam.college_id == college.id).delete(**gone)
+    # The college's own bank, which includes every question uploaded in its sets
+    db.query(MCQQuestion).filter(MCQQuestion.college_id == college.id).delete(**gone)
+    db.query(CodingProblem).filter(CodingProblem.college_id == college.id).delete(**gone)
+    db.query(Announcement).filter(Announcement.college_id == college.id).delete(**gone)
+    db.query(User).filter(User.college_id == college.id).delete(**gone)
+    db.query(College).filter(College.id == college.id).delete(**gone)
+    db.commit()
+    return counts
 
 
 @router.get("/colleges/{college_id}/admins")

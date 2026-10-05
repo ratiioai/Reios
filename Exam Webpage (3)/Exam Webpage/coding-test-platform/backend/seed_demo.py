@@ -13,7 +13,7 @@ from datetime import timedelta
 from app.auth import hash_password
 from app.database import SessionLocal, create_tables
 from app.reios.models import (
-    CodingProblem, College, Exam, ExamItem, ItemType, MCQQuestion, Role, User,
+    CodingProblem, College, Exam, ExamItem, ItemType, MCQQuestion, QuestionSet, Role, SetAssignment, User,
 )
 from app.reios.security import utcnow
 
@@ -74,6 +74,55 @@ STUDENTS = [
 ]
 
 
+GK_SETS = {
+    "Set A": [
+        ("Which planet is known as the Red Planet?", ["Venus", "Mars", "Jupiter", "Saturn"], 1),
+        ("Who wrote the Indian national anthem?", ["Bankim Chandra", "Rabindranath Tagore", "Sarojini Naidu", "Premchand"], 1),
+        ("What is the capital of Australia?", ["Sydney", "Melbourne", "Canberra", "Perth"], 2),
+    ],
+    "Set B": [
+        ("Which is the largest ocean?", ["Atlantic", "Indian", "Arctic", "Pacific"], 3),
+        ("How many states does India have?", ["26", "28", "29", "30"], 1),
+        ("Which gas do plants absorb for photosynthesis?", ["Oxygen", "Nitrogen", "Carbon dioxide", "Hydrogen"], 2),
+    ],
+}
+
+
+def seed_set_exam(db, college):
+    """An MCQ-only exam with one common question and two sets, rotated across the demo students."""
+    now = utcnow()
+    exam = Exam(college_id=college.id, title="GK Quiz (2 sets)", exam_type="mcq", show_leaderboard=True,
+                description="General knowledge. Half the class gets Set A, half gets Set B.",
+                start_at=now - timedelta(minutes=5), end_at=now + timedelta(days=7), duration_minutes=15,
+                is_published=True, show_answers=True)
+    db.add(exam)
+    db.flush()
+    common = MCQQuestion(college_id=college.id, section="General Knowledge", topic="Common", difficulty="easy",
+                         question_text="What is the national animal of India?", options=["Lion", "Tiger", "Elephant", "Peacock"],
+                         correct_options=[1], marks=1.0, is_active=False)
+    db.add(common)
+    db.flush()
+    exam.items.append(ExamItem(item_type=ItemType.MCQ, mcq_id=common.id, section="General Knowledge", order=0))
+    order = 1
+    sets = []
+    for name, questions in GK_SETS.items():
+        qset = QuestionSet(exam_id=exam.id, name=name, source_filename="demo")
+        db.add(qset)
+        db.flush()
+        sets.append(qset)
+        for text, options, correct in questions:
+            q = MCQQuestion(college_id=college.id, section="General Knowledge", topic=name, difficulty="easy",
+                            question_text=text, options=options, correct_options=[correct], marks=1.0, is_active=False)
+            db.add(q)
+            db.flush()
+            exam.items.append(ExamItem(item_type=ItemType.MCQ, mcq_id=q.id, section="General Knowledge",
+                                       order=order, set_id=qset.id))
+            order += 1
+    students = db.query(User).filter(User.college_id == college.id, User.role == Role.STUDENT).order_by(User.roll_no).all()
+    for i, student in enumerate(students):
+        db.add(SetAssignment(exam_id=exam.id, student_id=student.id, set_id=sets[i % len(sets)].id))
+
+
 def main():
     create_tables()
     db = SessionLocal()
@@ -131,12 +180,16 @@ def main():
                 order += 1
             db.add(exam)
 
+        if not db.query(Exam).filter(Exam.college_id == college.id, Exam.title == "GK Quiz (2 sets)").first():
+            seed_set_exam(db, college)
+
         db.commit()
         print("Demo data ready.\n")
         print("  College code : DEMO")
         print("  College admin: tpo@demo.edu / DemoAdmin@123")
         print("  Students     : 21DEMO001 to 21DEMO004 / Student@123 (college code DEMO)")
-        print("  Exam         : 'Reios Mock Test 1' (open for 7 days)")
+        print("  Exams        : 'Reios Mock Test 1' (MCQ + coding)")
+        print("                 'GK Quiz (2 sets)' (MCQ only, Set A / Set B rotated across students)")
     finally:
         db.close()
 
