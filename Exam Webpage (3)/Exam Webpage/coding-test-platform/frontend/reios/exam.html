@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Reios — Exam</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material-darker.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <link rel="stylesheet" href="reios.css">
+  <script src="../config.js"></script>
+  <script src="reios.js"></script>
+  <style>
+    body.exam-mode { overflow: hidden; }
+    body.no-select { -webkit-user-select: none; user-select: none; }
+    body.no-select .CodeMirror, body.no-select input, body.no-select textarea { -webkit-user-select: text; user-select: text; }
+
+    .exam-shell { display: grid; grid-template-rows: auto 1fr; height: 100vh; }
+    .exam-head {
+      display: flex; align-items: center; gap: 13px; padding: 9px 18px;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+      flex-wrap: wrap; box-shadow: var(--sh-xs); z-index: 10;
+    }
+    .exam-head .title { font-weight: 700; flex: 1; min-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: -.015em; }
+    .timer {
+      font: 700 19px var(--mono); padding: 5px 14px; border-radius: var(--r);
+      background: var(--surface-2); border: 1px solid var(--border-strong);
+      font-variant-numeric: tabular-nums; letter-spacing: -.01em;
+    }
+    .timer.warn { background: var(--warning-soft); color: var(--warning); border-color: transparent; }
+    .timer.low { background: var(--danger-soft); color: var(--danger); border-color: transparent; animation: pulse 1s infinite; }
+    @keyframes pulse { 50% { opacity: .55; } }
+
+    .exam-body { display: grid; grid-template-columns: 262px 1fr; min-height: 0; }
+    .palette { border-right: 1px solid var(--border); background: var(--surface); overflow-y: auto; padding: 14px; }
+    .palette h4 {
+      font-size: 10.5px; color: var(--faint); text-transform: uppercase;
+      margin: 15px 0 7px; letter-spacing: .07em; font-weight: 700;
+    }
+    .palette h4:first-child { margin-top: 0; }
+    .pal-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+    .pal-btn {
+      height: 36px; border-radius: var(--r-sm); border: 1px solid var(--border-strong);
+      background: var(--surface-2); font: 650 13px var(--font); cursor: pointer; color: var(--text-soft);
+      transition: transform var(--t), box-shadow var(--t), background var(--t);
+      font-variant-numeric: tabular-nums;
+    }
+    .pal-btn:hover { transform: translateY(-1px); box-shadow: var(--sh-sm); }
+    .pal-btn.visited { background: var(--danger-soft); color: var(--danger); border-color: transparent; }
+    .pal-btn.answered { background: var(--success); color: #fff; border-color: transparent; }
+    .pal-btn.review { background: var(--violet); color: #fff; border-color: transparent; }
+    .pal-btn.answered.review { box-shadow: inset 0 -4px 0 var(--success); }
+    .pal-btn.current { outline: 2px solid var(--primary); outline-offset: 2px; }
+    .legend { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 9px; font-size: 11px; color: var(--muted); margin-top: 16px; font-weight: 550; }
+    .legend span::before {
+      content: ""; display: inline-block; width: 10px; height: 10px;
+      border-radius: 3px; margin-right: 6px; vertical-align: -1px; background: var(--c);
+    }
+
+    .content { overflow-y: auto; padding: 20px 26px 96px; min-width: 0; }
+    .q-wrap { max-width: 920px; }
+    .coding .q-wrap { max-width: none; }
+    .q-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+    .q-num { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+
+    .options { list-style: none; padding: 0; margin: 16px 0; }
+    .options li label {
+      display: flex; gap: 12px; align-items: flex-start; padding: 13px 15px;
+      border: 1px solid var(--border-strong); border-radius: var(--r-md); margin-bottom: 9px;
+      cursor: pointer; font: 500 14px/1.5 var(--font); color: var(--text); background: var(--surface);
+      transition: border-color var(--t), background var(--t), box-shadow var(--t);
+    }
+    .options li label:hover { border-color: var(--primary); background: var(--surface-2); }
+    .options li label.chosen {
+      border-color: var(--primary); background: var(--primary-soft);
+      box-shadow: 0 0 0 3px var(--primary-ring); font-weight: 600;
+    }
+    .options li input { margin-top: 2px; }
+
+    .q-actions {
+      position: fixed; bottom: 0; right: 0; left: 262px;
+      background: var(--surface); border-top: 1px solid var(--border);
+      padding: 11px 26px; display: flex; gap: 9px; justify-content: space-between;
+      flex-wrap: wrap; z-index: 5; box-shadow: 0 -2px 10px rgba(17, 23, 41, .05);
+    }
+    .coding { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); gap: 18px; }
+    .coding .CodeMirror {
+      height: 430px; border: 1px solid var(--border-strong);
+      border-radius: var(--r); font: 13.5px/1.6 var(--mono);
+    }
+    .coding .CodeMirror-focused { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-ring); }
+    .run-out { margin-top: 12px; }
+
+    .overlay {
+      position: fixed; inset: 0; z-index: 300;
+      background: rgba(8, 12, 24, .93); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+      color: #fff; display: grid; place-items: center; padding: 22px; text-align: center;
+    }
+    .overlay .box { max-width: 520px; }
+    .overlay h2 { font-size: 23px; color: #fff; }
+    .overlay p { color: rgba(255, 255, 255, .78); }
+    .watermark {
+      position: fixed; inset: 0; pointer-events: none; z-index: 4; opacity: .035;
+      font: 700 22px var(--font); color: var(--text);
+      display: flex; flex-wrap: wrap; align-content: space-around; justify-content: space-around;
+      transform: rotate(-20deg) scale(1.3); overflow: hidden;
+    }
+    .pre-start { max-width: 840px; margin: 0 auto; padding: 28px 16px 64px; }
+    .pre-start .brand { justify-content: center; padding: 0 0 20px; }
+
+    @media (max-width: 900px) {
+      .exam-body { grid-template-columns: 1fr; }
+      .palette { display: none; }
+      .palette.open { display: block; position: fixed; z-index: 50; top: 53px; bottom: 0; left: 0; width: 268px; box-shadow: var(--sh-lg); }
+      .q-actions { left: 0; padding: 10px 16px; }
+      .content { padding: 16px 16px 100px; }
+      .coding { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div id="app"><div class="pre-start"><div class="loading"><span class="spinner lg"></span> Loading…</div></div></div>
+  <script src="exam.js"></script>
+</body>
+</html>

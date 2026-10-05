@@ -56,6 +56,7 @@ def get_db():
 def create_tables():
     """Create all tables in the database"""
     from app.models import Base
+    import app.reios.models  # noqa: F401  registers the reios_* tables
     # Import GradingQueueItem only if the module exists
     try:
         from app.grading_queue import GradingQueueItem

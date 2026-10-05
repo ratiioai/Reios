@@ -56,6 +56,16 @@ async def lifespan(app: FastAPI):
         logger.error(f"Admin account setup error: {e}")
     finally:
         db.close()
+
+    # Reios module: create the first super admin from SUPER_ADMIN_EMAIL / SUPER_ADMIN_PASSWORD
+    from app.reios.security import ensure_super_admin
+    db = SessionLocal()
+    try:
+        ensure_super_admin(db)
+    except Exception as e:
+        logger.error(f"Reios super admin setup error: {e}")
+    finally:
+        db.close()
     
     logger.info("=" * 60)
     logger.info("Coding Test Platform Ready")
@@ -133,3 +143,22 @@ from app.routes import auth, admin, teams
 app.include_router(auth.router)
 app.include_router(admin.router)
 app.include_router(teams.router)
+
+# Reios multi-college exam module
+from app.reios import (
+    routes_admin as reios_admin, routes_auth as reios_auth, routes_student as reios_student,
+    routes_super as reios_super,
+)
+
+app.include_router(reios_auth.router)
+app.include_router(reios_super.router)
+app.include_router(reios_admin.router)
+app.include_router(reios_student.router)
+
+# Serve the frontend from the same server, e.g. http://localhost:8000/app/reios/
+from pathlib import Path
+from fastapi.staticfiles import StaticFiles
+
+FRONTEND_DIR = Path(__file__).resolve().parents[2] / "frontend"
+if FRONTEND_DIR.is_dir():
+    app.mount("/app", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")

@@ -1,0 +1,181 @@
+"""
+Super admin endpoints: colleges, college admins and platform-wide stats.
+"""
+import re
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel, EmailStr, Field
+from sqlalchemy import func
+from sqlalchemy.orm import Session
+
+from app.auth import hash_password
+from app.database import get_db
+from app.reios.models import (
+    Attempt, AttemptStatus, CodingProblem, College, Exam, MCQQuestion, Role, User,
+)
+from app.reios.security import generate_password, require_super_admin
+
+router = APIRouter(prefix="/api/reios/super", tags=["Reios Super Admin"])
+
+CODE_RE = re.compile(r"^[A-Za-z0-9_-]{2,32}$")
+
+
+class CollegeIn(BaseModel):
+    name: str = Field(..., min_length=2, max_length=255)
+    code: str = Field(..., min_length=2, max_length=32)
+    city: Optional[str] = Field(None, max_length=120)
+    contact_email: Optional[str] = Field(None, max_length=255)
+    contact_phone: Optional[str] = Field(None, max_length=32)
+    max_students: Optional[int] = Field(None, ge=1)
+
+
+class CollegeUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=255)
+    city: Optional[str] = Field(None, max_length=120)
+    contact_email: Optional[str] = Field(None, max_length=255)
+    contact_phone: Optional[str] = Field(None, max_length=32)
+    max_students: Optional[int] = Field(None, ge=1)
+    is_active: Optional[bool] = None
+
+
+class CollegeAdminIn(BaseModel):
+    name: str = Field(..., min_length=2, max_length=255)
+    email: EmailStr
+    phone: Optional[str] = Field(None, max_length=32)
+    password: Optional[str] = Field(None, min_length=8, max_length=128)
+
+
+class CollegeAdminUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=2, max_length=255)
+    phone: Optional[str] = Field(None, max_length=32)
+    is_active: Optional[bool] = None
+
+
+def college_payload(college: College, db: Session) -> dict:
+    student_count = db.query(func.count(User.id)).filter(
+        User.college_id == college.id, User.role == Role.STUDENT).scalar()
+    admin_count = db.query(func.count(User.id)).filter(
+        User.college_id == college.id, User.role == Role.COLLEGE_ADMIN).scalar()
+    exam_count = db.query(func.count(Exam.id)).filter(Exam.college_id == college.id).scalar()
+    return {
+        "id": college.id, "name": college.name, "code": college.code, "city": college.city,
+        "contact_email": college.contact_email, "contact_phone": college.contact_phone,
+        "max_students": college.max_students, "is_active": college.is_active,
+        "created_at": college.created_at,
+        "student_count": student_count, "admin_count": admin_count, "exam_count": exam_count,
+    }
+
+
+def admin_payload(user: User) -> dict:
+    return {"id": user.id, "name": user.name, "email": user.email, "phone": user.phone,
+            "is_active": user.is_active, "last_login_at": user.last_login_at,
+            "must_change_password": user.must_change_password, "created_at": user.created_at}
+
+
+def get_college_or_404(db: Session, college_id: int) -> College:
+    college = db.get(College, college_id)
+    if not college:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "College not found")
+    return college
+
+
+@router.get("/stats")
+def platform_stats(db: Session = Depends(get_db), _=Depends(require_super_admin)):
+    def count(model, *filters):
+        return db.query(func.count(model.id)).filter(*filters).scalar()
+    return {
+        "colleges": count(College),
+        "active_colleges": count(College, College.is_active.is_(True)),
+        "college_admins": count(User, User.role == Role.COLLEGE_ADMIN),
+        "students": count(User, User.role == Role.STUDENT),
+        "exams": count(Exam),
+        "attempts": count(Attempt),
+        "live_attempts": count(Attempt, Attempt.status == AttemptStatus.IN_PROGRESS),
+        "global_mcqs": count(MCQQuestion, MCQQuestion.college_id.is_(None), MCQQuestion.is_active.is_(True)),
+        "global_problems": count(CodingProblem, CodingProblem.college_id.is_(None),
+                                 CodingProblem.is_active.is_(True)),
+    }
+
+
+@router.get("/colleges")
+def list_colleges(db: Session = Depends(get_db), _=Depends(require_super_admin)):
+    colleges = db.query(College).order_by(College.name).all()
+    return [college_payload(c, db) for c in colleges]
+
+
+@router.post("/colleges", status_code=status.HTTP_201_CREATED)
+def create_college(body: CollegeIn, db: Session = Depends(get_db), _=Depends(require_super_admin)):
+    code = body.code.strip().upper()
+    if not CODE_RE.match(code):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "College code may only contain letters, digits, - and _")
+    if db.query(College).filter(func.upper(College.code) == code).first():
+        raise HTTPException(status.HTTP_409_CONFLICT, f"College code {code} is already in use")
+    college = College(name=body.name.strip(), code=code, city=body.city, contact_email=body.contact_email,
+                      contact_phone=body.contact_phone, max_students=body.max_students)
+    db.add(college)
+    db.commit()
+    db.refresh(college)
+    return college_payload(college, db)
+
+
+@router.patch("/colleges/{college_id}")
+def update_college(college_id: int, body: CollegeUpdate, db: Session = Depends(get_db),
+                   _=Depends(require_super_admin)):
+    college = get_college_or_404(db, college_id)
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(college, field, value)
+    db.commit()
+    return college_payload(college, db)
+
+
+@router.get("/colleges/{college_id}/admins")
+def list_college_admins(college_id: int, db: Session = Depends(get_db), _=Depends(require_super_admin)):
+    get_college_or_404(db, college_id)
+    admins = db.query(User).filter(User.college_id == college_id, User.role == Role.COLLEGE_ADMIN) \
+        .order_by(User.name).all()
+    return [admin_payload(a) for a in admins]
+
+
+@router.post("/colleges/{college_id}/admins", status_code=status.HTTP_201_CREATED)
+def create_college_admin(college_id: int, body: CollegeAdminIn, db: Session = Depends(get_db),
+                         _=Depends(require_super_admin)):
+    get_college_or_404(db, college_id)
+    email = body.email.lower()
+    if db.query(User).filter(func.lower(User.email) == email).first():
+        raise HTTPException(status.HTTP_409_CONFLICT, "A user with this email already exists")
+    password = body.password or generate_password()
+    admin = User(role=Role.COLLEGE_ADMIN, college_id=college_id, name=body.name.strip(), email=email,
+                 phone=body.phone, hashed_password=hash_password(password), must_change_password=True)
+    db.add(admin)
+    db.commit()
+    db.refresh(admin)
+    return {**admin_payload(admin), "temporary_password": password}
+
+
+@router.patch("/admins/{admin_id}")
+def update_college_admin(admin_id: int, body: CollegeAdminUpdate, db: Session = Depends(get_db),
+                         _=Depends(require_super_admin)):
+    admin = db.get(User, admin_id)
+    if not admin or admin.role != Role.COLLEGE_ADMIN:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "College admin not found")
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(admin, field, value)
+    if body.is_active is False:
+        admin.token_version += 1
+    db.commit()
+    return admin_payload(admin)
+
+
+@router.post("/admins/{admin_id}/reset-password")
+def reset_college_admin_password(admin_id: int, db: Session = Depends(get_db), _=Depends(require_super_admin)):
+    admin = db.get(User, admin_id)
+    if not admin or admin.role != Role.COLLEGE_ADMIN:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "College admin not found")
+    password = generate_password()
+    admin.hashed_password = hash_password(password)
+    admin.must_change_password = True
+    admin.token_version += 1
+    admin.locked_until = None
+    db.commit()
+    return {"id": admin.id, "temporary_password": password}
