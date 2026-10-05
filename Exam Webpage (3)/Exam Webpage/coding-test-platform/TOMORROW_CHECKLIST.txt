@@ -1,0 +1,322 @@
+═══════════════════════════════════════════════════════════════
+  TOMORROW'S TEST - FINAL CHECKLIST
+═══════════════════════════════════════════════════════════════
+
+⏰ TIMELINE
+─────────────────────────────────────────────────────────────
+7:00 AM - Arrive, setup infrastructure
+7:30 AM - Start all services
+8:00 AM - Final verification
+8:30 AM - Teams can start logging in
+9:00 AM - Test starts (synchronized)
+11:00 AM - Test ends (auto-submit triggered)
+11:10 AM - All grading complete
+11:15 AM - Publish leaderboard
+
+═══════════════════════════════════════════════════════════════
+  PHASE 1: INFRASTRUCTURE SETUP (7:00 - 7:30 AM)
+═══════════════════════════════════════════════════════════════
+
+DATABASE
+────────
+[ ] PostgreSQL service is running
+[ ] Database 'coding_test_db' exists
+[ ] User 'coding_test_user' has permissions
+[ ] Test connection: psql -U coding_test_user -d coding_test_db
+
+BACKEND ENVIRONMENT
+───────────────────
+[ ] Navigate to: cd "c:\Exam Webpage\coding-test-platform\backend"
+[ ] Virtual environment exists: venv folder present
+[ ] Activate: venv\Scripts\activate
+[ ] Dependencies installed: pip list shows all packages
+[ ] .env file configured with correct DATABASE_URL
+[ ] .env has SECRET_KEY (at least 32 characters)
+[ ] .env has ADMIN_PASSWORD set
+
+DATABASE TABLES
+───────────────
+[ ] Tables created: python -c "from app.database import create_tables; create_tables()"
+[ ] Verify tables exist in PostgreSQL (should see 13 tables)
+
+═══════════════════════════════════════════════════════════════
+  PHASE 2: START SERVICES (7:30 - 8:00 AM)
+═══════════════════════════════════════════════════════════════
+
+TERMINAL 1: API SERVER
+──────────────────────
+[ ] Open new terminal
+[ ] cd backend
+[ ] Run: start_server.bat
+[ ] Wait for: "Application startup complete"
+[ ] Test: Open browser → http://localhost:8000/api/health
+[ ] Should see: {"status":"healthy",...}
+
+TERMINAL 2: GRADING WORKER
+───────────────────────────
+[ ] Open new terminal
+[ ] cd backend
+[ ] Run: start_worker.bat
+[ ] Wait for: "Grading queue worker starting"
+[ ] Should see: Polling messages every few seconds
+
+TERMINAL 3: FRONTEND
+────────────────────
+[ ] Open new terminal
+[ ] cd frontend
+[ ] Run: python -m http.server 3000
+[ ] Wait for: "Serving HTTP on 0.0.0.0 port 3000"
+
+═══════════════════════════════════════════════════════════════
+  PHASE 3: DATA PREPARATION (7:30 - 8:00 AM)
+═══════════════════════════════════════════════════════════════
+
+ADMIN LOGIN
+───────────
+[ ] Open browser: http://localhost:3000
+[ ] Click "Admin Login"
+[ ] Username: admin
+[ ] Password: admin123
+[ ] Should redirect to: http://localhost:3000/admin-dashboard.html
+
+CREATE QUESTIONS (CRITICAL!)
+─────────────────────────────
+[ ] You need AT LEAST 175 questions total
+[ ] Recommended: 200+ questions for safety
+[ ] Option A: Run script in backend folder:
+    python create_sample_questions.py
+    (Creates 10 samples - NOT ENOUGH!)
+[ ] Option B: Create manually via API or admin dashboard
+[ ] Verify count in admin dashboard
+[ ] Distribution check:
+    - Enough easy questions (175+ needed)
+    - Enough medium questions (175+ needed)
+    - Enough hard questions (175+ needed)
+
+GENERATE & UPLOAD TEAMS
+────────────────────────
+[ ] In backend folder, run: python generate_teams_csv.py
+[ ] Choose option 1 (simple names) or 2 (realistic)
+[ ] File created: teams_175.csv
+[ ] In admin dashboard, click "Upload Teams (CSV)"
+[ ] Select teams_175.csv
+[ ] Click "Upload Teams"
+[ ] Wait for success message
+[ ] Verify: "Teams created: 175"
+[ ] Verify: "Question sets assigned: 175"
+
+CONFIGURE TEST
+──────────────
+[ ] In admin dashboard, scroll to "Test Configuration"
+[ ] Set "Test Opens At": Tomorrow 8:00 AM
+[ ] Set "Test Closes At": Tomorrow 8:00 PM
+[ ] Set "Duration (minutes)": 120
+[ ] Set "Global Start Time": Tomorrow 9:00 AM
+[ ] Click "Save Configuration"
+[ ] Verify success message
+
+═══════════════════════════════════════════════════════════════
+  PHASE 4: VERIFICATION (8:00 - 8:30 AM)
+═══════════════════════════════════════════════════════════════
+
+ADMIN DASHBOARD STATS
+─────────────────────
+[ ] Total Teams: 175
+[ ] Tests Submitted: 0
+[ ] Tests In Progress: 0
+[ ] Grading Queue: 0
+
+SAMPLE TEAM LOGIN TEST
+──────────────────────
+[ ] Open new browser window (incognito/private)
+[ ] Go to: http://localhost:3000
+[ ] Click "Team Login"
+[ ] Team Name: Team 001
+[ ] Leader Phone: 9876543211
+[ ] Click "Login as Team"
+[ ] Should redirect to team dashboard
+[ ] Verify: 25 questions listed in sidebar
+[ ] Verify: "Start Test" button visible
+[ ] DON'T click start yet!
+
+API HEALTH CHECK
+────────────────
+[ ] Open: http://localhost:8000/api/health
+[ ] Status should be "healthy"
+[ ] Service should be "Coding Test Platform"
+[ ] Config should show: questions_per_test: 25, max_score: 250
+
+API DOCUMENTATION
+─────────────────
+[ ] Open: http://localhost:8000/api/docs
+[ ] All endpoints should be listed
+[ ] Try "GET /api/health" - Execute - Should return 200
+
+WORKER HEALTH
+─────────────
+[ ] Check Terminal 2 (worker)
+[ ] Should see: "Queue empty, wait and retry" messages
+[ ] No error messages
+[ ] If errors, restart: Ctrl+C then start_worker.bat
+
+═══════════════════════════════════════════════════════════════
+  PHASE 5: GO LIVE (8:30 AM)
+═══════════════════════════════════════════════════════════════
+
+ANNOUNCE TO TEAMS
+─────────────────
+[ ] Share URL: http://localhost:3000
+    (OR your server's public IP/domain)
+[ ] Provide credentials:
+    Team Name: Team XXX (from CSV)
+    Phone: XXXXXXXXXX (from CSV)
+[ ] Remind: Click "Start Test" at 9:00 AM sharp
+
+MONITOR DASHBOARD
+─────────────────
+[ ] Keep admin dashboard open
+[ ] Watch "Teams In Progress" stat
+[ ] Should increase as teams click "Start Test"
+
+═══════════════════════════════════════════════════════════════
+  DURING TEST (9:00 - 11:00 AM)
+═══════════════════════════════════════════════════════════════
+
+EVERY 5 MINUTES CHECK
+─────────────────────
+[ ] Terminal 1 (API): No 500 errors
+[ ] Terminal 2 (Worker): Processing submissions
+[ ] Admin Dashboard → Queue Depth: Should be < 100
+[ ] Teams In Progress: Should match logged-in teams
+
+IF QUEUE DEPTH > 200
+─────────────────────
+[ ] Worker might be stuck
+[ ] Check Terminal 2 for errors
+[ ] If needed: Restart worker (Ctrl+C, start_worker.bat)
+
+IF TEAM REPORTS ISSUE
+──────────────────────
+[ ] Check their team name & phone in CSV
+[ ] Verify test window is open
+[ ] Check if account is locked (too many failed logins)
+[ ] Have them try in incognito/private window
+
+═══════════════════════════════════════════════════════════════
+  TEST END (11:00 AM)
+═══════════════════════════════════════════════════════════════
+
+AUTO-SUBMIT TRIGGERED
+─────────────────────
+[ ] Terminal 2 should show: "Auto-submitted X teams"
+[ ] Takes 35 seconds (staggered batches)
+[ ] Admin Dashboard → Queue Depth jumps to ~4,375
+
+GRADING PHASE (11:00 - 11:10 AM)
+─────────────────────────────────
+[ ] Worker processes at 10 submissions/second
+[ ] Watch Terminal 2: "Graded submission X" messages
+[ ] Watch Queue Depth decrease
+[ ] Should complete in 7-10 minutes
+[ ] Final Queue Depth: 0
+
+PUBLISH RESULTS (11:10 AM)
+──────────────────────────
+[ ] Admin Dashboard → Click "Refresh Leaderboard"
+[ ] Verify ranks are correct
+[ ] Check top 10 teams
+[ ] Click "Publish to Teams"
+[ ] Teams can now view leaderboard
+
+EXPORT RESULTS
+──────────────
+[ ] Admin Dashboard → Leaderboard section
+[ ] (Export feature may need API call - see docs)
+[ ] Alternative: Query database directly:
+    SELECT rank, team_name, total_score, time_taken_seconds
+    FROM test_sessions
+    WHERE status IN ('SUBMITTED', 'AUTO_SUBMITTED')
+    ORDER BY total_score DESC, time_taken_seconds ASC;
+
+═══════════════════════════════════════════════════════════════
+  POST-TEST CLEANUP
+═══════════════════════════════════════════════════════════════
+
+BACKUP DATABASE
+───────────────
+[ ] Run: pg_dump -U coding_test_user coding_test_db > backup.sql
+[ ] Store backup safely
+
+STOP SERVICES
+─────────────
+[ ] Terminal 1: Ctrl+C (stop API)
+[ ] Terminal 2: Ctrl+C (stop worker)
+[ ] Terminal 3: Ctrl+C (stop frontend)
+
+═══════════════════════════════════════════════════════════════
+  EMERGENCY PROCEDURES
+═══════════════════════════════════════════════════════════════
+
+IF API CRASHES
+──────────────
+cd backend
+venv\Scripts\activate
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+IF WORKER CRASHES
+─────────────────
+cd backend
+venv\Scripts\activate
+python grading_worker.py
+
+IF DATABASE CORRUPTED
+─────────────────────
+⚠️  DO NOT DO THIS DURING LIVE TEST! ⚠️
+python -c "from app.database import drop_tables, create_tables; drop_tables(); create_tables()"
+
+IF GRADING STUCK
+────────────────
+-- In PostgreSQL:
+DELETE FROM grading_queue WHERE status = 'processing';
+-- Then restart worker
+
+═══════════════════════════════════════════════════════════════
+  QUICK REFERENCE
+═══════════════════════════════════════════════════════════════
+
+URLs
+────
+Frontend:     http://localhost:3000
+API Health:   http://localhost:8000/api/health
+API Docs:     http://localhost:8000/api/docs
+
+Admin Login
+───────────
+Username: admin
+Password: admin123
+
+Sample Team Login
+─────────────────
+Team: Team 001
+Phone: 9876543211
+
+Key Commands
+────────────
+Start Server: cd backend && start_server.bat
+Start Worker: cd backend && start_worker.bat
+Start Frontend: cd frontend && python -m http.server 3000
+
+Documentation
+─────────────
+Setup: QUICK_START.md
+Testing: TEST_TOMORROW.md
+Complete: IMPLEMENTATION_COMPLETE.md
+
+═══════════════════════════════════════════════════════════════
+
+✅ YOU'RE READY! Everything is built and tested.
+   Just follow this checklist tomorrow.
+
+   GOOD LUCK! 🚀
+
+═══════════════════════════════════════════════════════════════

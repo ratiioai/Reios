@@ -1,0 +1,2452 @@
+[
+  {
+    "id": 1,
+    "raw_title": "[SET1] Sum of Two Numbers",
+    "clean_title": "Sum of Two Numbers",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 2,
+    "raw_title": "[SET1] Even or Odd",
+    "clean_title": "Even or Odd",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 3,
+    "raw_title": "[SET1] Largest of Three Numbers",
+    "clean_title": "Largest of Three Numbers",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 4,
+    "raw_title": "[SET1] Positive, Negative or Zero",
+    "clean_title": "Positive, Negative or Zero",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 5,
+    "raw_title": "[SET1] Sum of First N Natural Numbers",
+    "clean_title": "Sum of First N Natural Numbers",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 6,
+    "raw_title": "[SET1] Multiplication Table",
+    "clean_title": "Multiplication Table",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 7,
+    "raw_title": "[SET1] Count Digits",
+    "clean_title": "Count Digits",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 8,
+    "raw_title": "[SET1] Reverse a Number",
+    "clean_title": "Reverse a Number",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 9,
+    "raw_title": "[SET1] Sum of Digits",
+    "clean_title": "Sum of Digits",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 10,
+    "raw_title": "[SET1] Vowel",
+    "clean_title": "Vowel",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 11,
+    "raw_title": "[SET1] Second Largest Element",
+    "clean_title": "Second Largest Element",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 12,
+    "raw_title": "[SET1] Remove Duplicates",
+    "clean_title": "Remove Duplicates",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 13,
+    "raw_title": "[SET1] Frequency of Elements",
+    "clean_title": "Frequency of Elements",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 14,
+    "raw_title": "[SET1] Reverse a String",
+    "clean_title": "Reverse a String",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 15,
+    "raw_title": "[SET1] Palindrome String",
+    "clean_title": "Palindrome String",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 16,
+    "raw_title": "[SET1] Sum of Even Elements",
+    "clean_title": "Sum of Even Elements",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 17,
+    "raw_title": "[SET1] Maximum Consecutive Ones",
+    "clean_title": "Maximum Consecutive Ones",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 18,
+    "raw_title": "[SET1] Matrix Diagonal Sum",
+    "clean_title": "Matrix Diagonal Sum",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 19,
+    "raw_title": "[SET1] Character Frequency",
+    "clean_title": "Character Frequency",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 20,
+    "raw_title": "[SET1] Rotate Array Right",
+    "clean_title": "Rotate Array Right",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 21,
+    "raw_title": "[SET1] Linear Search",
+    "clean_title": "Linear Search",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 22,
+    "raw_title": "[SET1] Binary Search",
+    "clean_title": "Binary Search",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 23,
+    "raw_title": "[SET1] First Occurrence Using Binary Search",
+    "clean_title": "First Occurrence Using Binary Search",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 24,
+    "raw_title": "[SET1] Selection Sort",
+    "clean_title": "Selection Sort",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 25,
+    "raw_title": "[SET1] Insertion Sort",
+    "clean_title": "Insertion Sort",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 26,
+    "raw_title": "[SET2] Difference of Two Numbers",
+    "clean_title": "Difference of Two Numbers",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 27,
+    "raw_title": "[SET2] Check Divisibility",
+    "clean_title": "Check Divisibility",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 28,
+    "raw_title": "[SET2] Smallest of Three Numbers",
+    "clean_title": "Smallest of Three Numbers",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 29,
+    "raw_title": "[SET2] Count Even Numbers",
+    "clean_title": "Count Even Numbers",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 30,
+    "raw_title": "[SET2] Product of Digits",
+    "clean_title": "Product of Digits",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 31,
+    "raw_title": "[SET2] Print Numbers in Reverse",
+    "clean_title": "Print Numbers in Reverse",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 32,
+    "raw_title": "[SET2] Count Multiples of 5",
+    "clean_title": "Count Multiples of 5",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 33,
+    "raw_title": "[SET2] Find the Last Digit",
+    "clean_title": "Find the Last Digit",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 34,
+    "raw_title": "[SET2] ASCII Value",
+    "clean_title": "ASCII Value",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 35,
+    "raw_title": "[SET2] Count Spaces",
+    "clean_title": "Count Spaces",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 36,
+    "raw_title": "[SET2] Largest Element in an Array",
+    "clean_title": "Largest Element in an Array",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 37,
+    "raw_title": "[SET2] Array Sum",
+    "clean_title": "Array Sum",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 38,
+    "raw_title": "[SET2] Count Positive and Negative Numbers",
+    "clean_title": "Count Positive and Negative Numbers",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 39,
+    "raw_title": "[SET2] Common Elements",
+    "clean_title": "Common Elements",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 40,
+    "raw_title": "[SET2] Move Zeros to the End",
+    "clean_title": "Move Zeros to the End",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 41,
+    "raw_title": "[SET2] String Length Without Built-in Function",
+    "clean_title": "String Length Without Built-in Function",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 42,
+    "raw_title": "[SET2] Count Words",
+    "clean_title": "Count Words",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 43,
+    "raw_title": "[SET2] Replace Character",
+    "clean_title": "Replace Character",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 44,
+    "raw_title": "[SET2] Matrix Row Sums",
+    "clean_title": "Matrix Row Sums",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 45,
+    "raw_title": "[SET2] Left Rotate Array",
+    "clean_title": "Left Rotate Array",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 46,
+    "raw_title": "[SET2] Linear Search \u2014 Last Occurrence",
+    "clean_title": "Linear Search \u2014 Last Occurrence",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 47,
+    "raw_title": "[SET2] Binary Search \u2014 Last Occurrence",
+    "clean_title": "Binary Search \u2014 Last Occurrence",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 48,
+    "raw_title": "[SET2] Bubble Sort",
+    "clean_title": "Bubble Sort",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 49,
+    "raw_title": "[SET2] Selection Sort \u2014 Descending Order",
+    "clean_title": "Selection Sort \u2014 Descending Order",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 50,
+    "raw_title": "[SET2] Insertion Sort \u2014",
+    "clean_title": "Insertion Sort \u2014",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 51,
+    "raw_title": "[SET3] Average of Three Numbers",
+    "clean_title": "Average of Three Numbers",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 52,
+    "raw_title": "[SET3] Check Leap Year",
+    "clean_title": "Check Leap Year",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 53,
+    "raw_title": "[SET3] Print Odd Numbers",
+    "clean_title": "Print Odd Numbers",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 54,
+    "raw_title": "[SET3] Count Odd Numbers",
+    "clean_title": "Count Odd Numbers",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 55,
+    "raw_title": "[SET3] Largest Digit",
+    "clean_title": "Largest Digit",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 56,
+    "raw_title": "[SET3] Smallest Digit",
+    "clean_title": "Smallest Digit",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 57,
+    "raw_title": "[SET3] Power of a Number",
+    "clean_title": "Power of a Number",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 58,
+    "raw_title": "[SET3] Factorial",
+    "clean_title": "Factorial",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 59,
+    "raw_title": "[SET3] Count a Character",
+    "clean_title": "Count a Character",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 60,
+    "raw_title": "[SET3] Toggle Case",
+    "clean_title": "Toggle Case",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 61,
+    "raw_title": "[SET3] Minimum Element in an Array",
+    "clean_title": "Minimum Element in an Array",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 62,
+    "raw_title": "[SET3] Difference Between Maximum and Minimum",
+    "clean_title": "Difference Between Maximum and Minimum",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 63,
+    "raw_title": "[SET3] Array Palindrome",
+    "clean_title": "Array Palindrome",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 64,
+    "raw_title": "[SET3] Separate Even and Odd",
+    "clean_title": "Separate Even and Odd",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 65,
+    "raw_title": "[SET3] Count Elements Greater Than X",
+    "clean_title": "Count Elements Greater Than X",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 66,
+    "raw_title": "[SET3] Remove a Character",
+    "clean_title": "Remove a Character",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 67,
+    "raw_title": "[SET3] Reverse Each Word",
+    "clean_title": "Reverse Each Word",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 68,
+    "raw_title": "[SET3] Sum of Main and Secondary Diagonals",
+    "clean_title": "Sum of Main and Secondary Diagonals",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 69,
+    "raw_title": "[SET3] Row With Maximum Sum",
+    "clean_title": "Row With Maximum Sum",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 70,
+    "raw_title": "[SET3] Check Anagram",
+    "clean_title": "Check Anagram",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 71,
+    "raw_title": "[SET3] Linear Search \u2014",
+    "clean_title": "Linear Search \u2014",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 72,
+    "raw_title": "[SET3] Binary Search \u2014 Search Position",
+    "clean_title": "Binary Search \u2014 Search Position",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 73,
+    "raw_title": "[SET3] Bubble Sort \u2014 Descending Order",
+    "clean_title": "Bubble Sort \u2014 Descending Order",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 74,
+    "raw_title": "[SET3] Selection Sort \u2014",
+    "clean_title": "Selection Sort \u2014",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 75,
+    "raw_title": "[SET3] Insertion Sort \u2014 Ascending Order",
+    "clean_title": "Insertion Sort \u2014 Ascending Order",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 76,
+    "raw_title": "[SET4] Sum of Odd Numbers",
+    "clean_title": "Sum of Odd Numbers",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 77,
+    "raw_title": "[SET4] Check Divisibility by 3 and 5",
+    "clean_title": "Check Divisibility by 3 and 5",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 78,
+    "raw_title": "[SET4] Number of Factors",
+    "clean_title": "Number of Factors",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 79,
+    "raw_title": "[SET4] First and Last Digit",
+    "clean_title": "First and Last Digit",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 80,
+    "raw_title": "[SET4] Sum of Squares",
+    "clean_title": "Sum of Squares",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 81,
+    "raw_title": "[SET4] Print Multiples",
+    "clean_title": "Print Multiples",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 82,
+    "raw_title": "[SET4] Count Digits Equal to X",
+    "clean_title": "Count Digits Equal to X",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 83,
+    "raw_title": "[SET4] Check Perfect Square",
+    "clean_title": "Check Perfect Square",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 84,
+    "raw_title": "[SET4] String First and Last Character",
+    "clean_title": "String First and Last Character",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 85,
+    "raw_title": "[SET4] Count Uppercase Letters",
+    "clean_title": "Count Uppercase Letters",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 86,
+    "raw_title": "[SET4] Second Smallest Element",
+    "clean_title": "Second Smallest Element",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 87,
+    "raw_title": "[SET4] Sum of Positive Elements",
+    "clean_title": "Sum of Positive Elements",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 88,
+    "raw_title": "[SET4] Replace Negative Values",
+    "clean_title": "Replace Negative Values",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 89,
+    "raw_title": "[SET4] Array Intersection",
+    "clean_title": "Array Intersection",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 90,
+    "raw_title": "[SET4] Difference of Even and Odd Sums",
+    "clean_title": "Difference of Even and Odd Sums",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 91,
+    "raw_title": "[SET4] Longest Word",
+    "clean_title": "Longest Word",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 92,
+    "raw_title": "[SET4] Remove Vowels",
+    "clean_title": "Remove Vowels",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 93,
+    "raw_title": "[SET4] Number of Palindromic Words",
+    "clean_title": "Number of Palindromic Words",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 94,
+    "raw_title": "[SET4] Matrix Column Sums",
+    "clean_title": "Matrix Column Sums",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 95,
+    "raw_title": "[SET4] Transpose of a Matrix",
+    "clean_title": "Transpose of a Matrix",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 96,
+    "raw_title": "[SET4] Linear Search \u2014 Maximum Position",
+    "clean_title": "Linear Search \u2014 Maximum Position",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 97,
+    "raw_title": "[SET4] Binary Search \u2014 Insertion Position",
+    "clean_title": "Binary Search \u2014 Insertion Position",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 98,
+    "raw_title": "[SET4] Bubble Sort \u2014 Number of Swaps",
+    "clean_title": "Bubble Sort \u2014 Number of Swaps",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 99,
+    "raw_title": "[SET4] Selection Sort \u2014 Ascending Order",
+    "clean_title": "Selection Sort \u2014 Ascending Order",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 100,
+    "raw_title": "[SET4] Insertion Sort \u2014 Descending Order",
+    "clean_title": "Insertion Sort \u2014 Descending Order",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 101,
+    "raw_title": "[SET5] Sum of Even Numbers",
+    "clean_title": "Sum of Even Numbers",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 102,
+    "raw_title": "[SET5] Check Prime Number",
+    "clean_title": "Check Prime Number",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 103,
+    "raw_title": "[SET5] Count Factors",
+    "clean_title": "Count Factors",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 104,
+    "raw_title": "[SET5] Number of Zeros",
+    "clean_title": "Number of Zeros",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 105,
+    "raw_title": "[SET5] Largest of Two Numbers",
+    "clean_title": "Largest of Two Numbers",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 106,
+    "raw_title": "[SET5] Sum of Digits at Even Positions",
+    "clean_title": "Sum of Digits at Even Positions",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 107,
+    "raw_title": "[SET5] Print a Number Pattern",
+    "clean_title": "Print a Number Pattern",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 108,
+    "raw_title": "[SET5] Check Armstrong Number",
+    "clean_title": "Check Armstrong Number",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 109,
+    "raw_title": "[SET5] Count Consonants",
+    "clean_title": "Count Consonants",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 110,
+    "raw_title": "[SET5] Convert Lowercase to Uppercase",
+    "clean_title": "Convert Lowercase to Uppercase",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 111,
+    "raw_title": "[SET5] Third Largest Element",
+    "clean_title": "Third Largest Element",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 112,
+    "raw_title": "[SET5] Count Values in Range",
+    "clean_title": "Count Values in Range",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 113,
+    "raw_title": "[SET5] Reverse Array",
+    "clean_title": "Reverse Array",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 114,
+    "raw_title": "[SET5] Duplicate Elements",
+    "clean_title": "Duplicate Elements",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 115,
+    "raw_title": "[SET5] Pair With",
+    "clean_title": "Pair With",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 116,
+    "raw_title": "[SET5] String Character Removal",
+    "clean_title": "String Character Removal",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 117,
+    "raw_title": "[SET5] Reverse Words",
+    "clean_title": "Reverse Words",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 118,
+    "raw_title": "[SET5] Longest Consecutive Character",
+    "clean_title": "Longest Consecutive Character",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 119,
+    "raw_title": "[SET5] Matrix Maximum Element",
+    "clean_title": "Matrix Maximum Element",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 120,
+    "raw_title": "[SET5] Matrix Boundary Sum",
+    "clean_title": "Matrix Boundary Sum",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 121,
+    "raw_title": "[SET5] Linear Search \u2014 All Positions",
+    "clean_title": "Linear Search \u2014 All Positions",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 122,
+    "raw_title": "[SET5] Binary Search \u2014 Closest Smaller Element",
+    "clean_title": "Binary Search \u2014 Closest Smaller Element",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 123,
+    "raw_title": "[SET5] Bubble Sort \u2014 Ascending Order",
+    "clean_title": "Bubble Sort \u2014 Ascending Order",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 124,
+    "raw_title": "[SET5] Selection Sort \u2014 Number of Comparisons",
+    "clean_title": "Selection Sort \u2014 Number of Comparisons",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 125,
+    "raw_title": "[SET5] Insertion Sort \u2014 Number of Shifts",
+    "clean_title": "Insertion Sort \u2014 Number of Shifts",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 126,
+    "raw_title": "[SET6] Sum of Multiples of 3",
+    "clean_title": "Sum of Multiples of 3",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 127,
+    "raw_title": "[SET6] Check Palindrome Number",
+    "clean_title": "Check Palindrome Number",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 128,
+    "raw_title": "[SET6] Count Prime Numbers",
+    "clean_title": "Count Prime Numbers",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 129,
+    "raw_title": "[SET6] Smallest Digit",
+    "clean_title": "Smallest Digit",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 130,
+    "raw_title": "[SET6] Swap Two Numbers",
+    "clean_title": "Swap Two Numbers",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 131,
+    "raw_title": "[SET6] Sum of First and Last Digit",
+    "clean_title": "Sum of First and Last Digit",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 132,
+    "raw_title": "[SET6] Print Divisors",
+    "clean_title": "Print Divisors",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 133,
+    "raw_title": "[SET6] Character Type",
+    "clean_title": "Character Type",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 134,
+    "raw_title": "[SET6] Count Digits in String",
+    "clean_title": "Count Digits in String",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 135,
+    "raw_title": "[SET6] Remove Spaces",
+    "clean_title": "Remove Spaces",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 136,
+    "raw_title": "[SET6] Sum of Array Except Maximum",
+    "clean_title": "Sum of Array Except Maximum",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 137,
+    "raw_title": "[SET6] Frequency of a",
+    "clean_title": "Frequency of a",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 138,
+    "raw_title": "[SET6] Leftmost Minimum",
+    "clean_title": "Leftmost Minimum",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 139,
+    "raw_title": "[SET6] Alternate Positive and Negative",
+    "clean_title": "Alternate Positive and Negative",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 140,
+    "raw_title": "[SET6] Count Equal Adjacent Elements",
+    "clean_title": "Count Equal Adjacent Elements",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 141,
+    "raw_title": "[SET6] String Compression",
+    "clean_title": "String Compression",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 142,
+    "raw_title": "[SET6] First Non-Repeating Character",
+    "clean_title": "First Non-Repeating Character",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 143,
+    "raw_title": "[SET6] Count Palindromic Numbers",
+    "clean_title": "Count Palindromic Numbers",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 144,
+    "raw_title": "[SET6] Matrix Main Diagonal",
+    "clean_title": "Matrix Main Diagonal",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 145,
+    "raw_title": "[SET6] Matrix Transpose",
+    "clean_title": "Matrix Transpose",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 146,
+    "raw_title": "[SET6] Linear Search \u2014 First Greater Element",
+    "clean_title": "Linear Search \u2014 First Greater Element",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 147,
+    "raw_title": "[SET6] Binary Search \u2014",
+    "clean_title": "Binary Search \u2014",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 148,
+    "raw_title": "[SET6] Bubble Sort \u2014 Early Termination",
+    "clean_title": "Bubble Sort \u2014 Early Termination",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 149,
+    "raw_title": "[SET6] Selection Sort \u2014 Descending Order",
+    "clean_title": "Selection Sort \u2014 Descending Order",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 150,
+    "raw_title": "[SET6] Insertion Sort \u2014 Sorted Position",
+    "clean_title": "Insertion Sort \u2014 Sorted Position",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 151,
+    "raw_title": "[SET7] Sum of Multiples of 5",
+    "clean_title": "Sum of Multiples of 5",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 152,
+    "raw_title": "[SET7] Check Perfect Number",
+    "clean_title": "Check Perfect Number",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 153,
+    "raw_title": "[SET7] Count Digits Greater Than 5",
+    "clean_title": "Count Digits Greater Than 5",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 154,
+    "raw_title": "[SET7] Product of Even Numbers",
+    "clean_title": "Product of Even Numbers",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 155,
+    "raw_title": "[SET7] Middle of Three Numbers",
+    "clean_title": "Middle of Three Numbers",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 156,
+    "raw_title": "[SET7] Sum of Odd Digits",
+    "clean_title": "Sum of Odd Digits",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 157,
+    "raw_title": "[SET7] Print Factors in Descending Order",
+    "clean_title": "Print Factors in Descending Order",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 158,
+    "raw_title": "[SET7] Check Alphabet",
+    "clean_title": "Check Alphabet",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 159,
+    "raw_title": "[SET7] Count Vowels and Consonants",
+    "clean_title": "Count Vowels and Consonants",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 160,
+    "raw_title": "[SET7] Remove a",
+    "clean_title": "Remove a",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 161,
+    "raw_title": "[SET7] Sum of Elements at Even Indices",
+    "clean_title": "Sum of Elements at Even Indices",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 162,
+    "raw_title": "[SET7] Maximum Frequency Element",
+    "clean_title": "Maximum Frequency Element",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 163,
+    "raw_title": "[SET7] Unique Elements",
+    "clean_title": "Unique Elements",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 164,
+    "raw_title": "[SET7] Reverse Array in Groups",
+    "clean_title": "Reverse Array in Groups",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 165,
+    "raw_title": "[SET7] Missing NumberAn array contains N-1 distinct integers from 1 to N.",
+    "clean_title": "Missing NumberAn array contains N-1 distinct integers from 1 to N.",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 166,
+    "raw_title": "[SET7] Remove Duplicate Characters",
+    "clean_title": "Remove Duplicate Characters",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 167,
+    "raw_title": "[SET7] Most Frequent Character",
+    "clean_title": "Most Frequent Character",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 168,
+    "raw_title": "[SET7] Word",
+    "clean_title": "Word",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 169,
+    "raw_title": "[SET7] Matrix Row With Minimum Sum",
+    "clean_title": "Matrix Row With Minimum Sum",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 170,
+    "raw_title": "[SET7] Matrix Secondary Diagonal",
+    "clean_title": "Matrix Secondary Diagonal",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 171,
+    "raw_title": "[SET7] Linear Search \u2014 First Occurrence of Minimum",
+    "clean_title": "Linear Search \u2014 First Occurrence of Minimum",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 172,
+    "raw_title": "[SET7] Binary Search \u2014 First Element Greater Than or Equal to X",
+    "clean_title": "Binary Search \u2014 First Element Greater Than or Equal to X",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 173,
+    "raw_title": "[SET7] Bubble Sort \u2014 Descending Order",
+    "clean_title": "Bubble Sort \u2014 Descending Order",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 174,
+    "raw_title": "[SET7] Selection Sort \u2014 Kth Largest",
+    "clean_title": "Selection Sort \u2014 Kth Largest",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 175,
+    "raw_title": "[SET7] Insertion Sort \u2014",
+    "clean_title": "Insertion Sort \u2014",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 176,
+    "raw_title": "[SET8] Sum of Multiples of 7",
+    "clean_title": "Sum of Multiples of 7",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 177,
+    "raw_title": "[SET8] Check Even Digit",
+    "clean_title": "Check Even Digit",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 178,
+    "raw_title": "[SET8] Count Digits Less Than 5",
+    "clean_title": "Count Digits Less Than 5",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 179,
+    "raw_title": "[SET8] Sum of Natural Numbers in Range",
+    "clean_title": "Sum of Natural Numbers in Range",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 180,
+    "raw_title": "[SET8] Difference Between Even and Odd Digits",
+    "clean_title": "Difference Between Even and Odd Digits",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 181,
+    "raw_title": "[SET8] Print Squares",
+    "clean_title": "Print Squares",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 182,
+    "raw_title": "[SET8] Check Multiple of 10",
+    "clean_title": "Check Multiple of 10",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 183,
+    "raw_title": "[SET8] Count a Specific Digit",
+    "clean_title": "Count a Specific Digit",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 184,
+    "raw_title": "[SET8] First Vowel",
+    "clean_title": "First Vowel",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 185,
+    "raw_title": "[SET8] String Character",
+    "clean_title": "String Character",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 186,
+    "raw_title": "[SET8] Sum of Array Elements at Odd Indices",
+    "clean_title": "Sum of Array Elements at Odd Indices",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 187,
+    "raw_title": "[SET8] Closest to Zero",
+    "clean_title": "Closest to Zero",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 188,
+    "raw_title": "[SET8] Count Distinct Elements",
+    "clean_title": "Count Distinct Elements",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 189,
+    "raw_title": "[SET8] Find Missing Value",
+    "clean_title": "Find Missing Value",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 190,
+    "raw_title": "[SET8] Maximum Difference",
+    "clean_title": "Maximum Difference",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 191,
+    "raw_title": "[SET8] String Rotation",
+    "clean_title": "String Rotation",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 192,
+    "raw_title": "[SET8] Count Words Starting With a Vowel",
+    "clean_title": "Count Words Starting With a Vowel",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 193,
+    "raw_title": "[SET8] Remove Consecutive Duplicates",
+    "clean_title": "Remove Consecutive Duplicates",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 194,
+    "raw_title": "[SET8] Matrix Maximum Row Sum",
+    "clean_title": "Matrix Maximum Row Sum",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 195,
+    "raw_title": "[SET8] Matrix Column Maximum",
+    "clean_title": "Matrix Column Maximum",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 196,
+    "raw_title": "[SET8] Linear Search \u2014",
+    "clean_title": "Linear Search \u2014",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 197,
+    "raw_title": "[SET8] Binary Search \u2014 Exact or Nearest",
+    "clean_title": "Binary Search \u2014 Exact or Nearest",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 198,
+    "raw_title": "[SET8] Bubble Sort \u2014",
+    "clean_title": "Bubble Sort \u2014",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 199,
+    "raw_title": "[SET8] Selection Sort \u2014 Descending Order",
+    "clean_title": "Selection Sort \u2014 Descending Order",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 200,
+    "raw_title": "[SET8] Insertion Sort \u2014 Kth Smallest",
+    "clean_title": "Insertion Sort \u2014 Kth Smallest",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 201,
+    "raw_title": "[SET10] Sum of Multiples of 6",
+    "clean_title": "Sum of Multiples of 6",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 202,
+    "raw_title": "[SET10] Count Even and Odd Numbers",
+    "clean_title": "Count Even and Odd Numbers",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 203,
+    "raw_title": "[SET10] Smallest Digit Position",
+    "clean_title": "Smallest Digit Position",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 204,
+    "raw_title": "[SET10] Sum of Digits at Odd Positions",
+    "clean_title": "Sum of Digits at Odd Positions",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 205,
+    "raw_title": "[SET10] Check Multiple of 7",
+    "clean_title": "Check Multiple of 7",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 206,
+    "raw_title": "[SET10] Print Even Numbers in Reverse",
+    "clean_title": "Print Even Numbers in Reverse",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 207,
+    "raw_title": "[SET10] Count Digits Greater Than or Equal to 5",
+    "clean_title": "Count Digits Greater Than or Equal to 5",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 208,
+    "raw_title": "[SET10] Sum of Array Elements",
+    "clean_title": "Sum of Array Elements",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 209,
+    "raw_title": "[SET10] First Character Occurrence",
+    "clean_title": "First Character Occurrence",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 210,
+    "raw_title": "[SET10] Count Special Characters",
+    "clean_title": "Count Special Characters",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 211,
+    "raw_title": "[SET10] Largest and Second Largest",
+    "clean_title": "Largest and Second Largest",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 212,
+    "raw_title": "[SET10] Count Elements Between Two Values",
+    "clean_title": "Count Elements Between Two Values",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 213,
+    "raw_title": "[SET10] Array Rotation",
+    "clean_title": "Array Rotation",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 214,
+    "raw_title": "[SET10] Sum of Duplicate Elements",
+    "clean_title": "Sum of Duplicate Elements",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 215,
+    "raw_title": "[SET10] Closest Pair Sum",
+    "clean_title": "Closest Pair Sum",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 216,
+    "raw_title": "[SET10] Reverse Characters of Each Word",
+    "clean_title": "Reverse Characters of Each Word",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 217,
+    "raw_title": "[SET10] First Repeated Character",
+    "clean_title": "First Repeated Character",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 218,
+    "raw_title": "[SET10] Remove Consecutive Spaces",
+    "clean_title": "Remove Consecutive Spaces",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 219,
+    "raw_title": "[SET10] Matrix Border Elements",
+    "clean_title": "Matrix Border Elements",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 220,
+    "raw_title": "[SET10] Matrix Column With Maximum Sum",
+    "clean_title": "Matrix Column With Maximum Sum",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 221,
+    "raw_title": "[SET10] Linear Search \u2014 Target Range",
+    "clean_title": "Linear Search \u2014 Target Range",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 222,
+    "raw_title": "[SET10] Binary Search \u2014 First Occurrence",
+    "clean_title": "Binary Search \u2014 First Occurrence",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 223,
+    "raw_title": "[SET10] Bubble Sort \u2014 Ascending Order",
+    "clean_title": "Bubble Sort \u2014 Ascending Order",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 224,
+    "raw_title": "[SET10] Selection Sort \u2014",
+    "clean_title": "Selection Sort \u2014",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 225,
+    "raw_title": "[SET10] Insertion Sort \u2014 Kth Largest",
+    "clean_title": "Insertion Sort \u2014 Kth Largest",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 226,
+    "raw_title": "[SET11] Sum of Multiples of 8",
+    "clean_title": "Sum of Multiples of 8",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 227,
+    "raw_title": "[SET11] Count Positive Numbers",
+    "clean_title": "Count Positive Numbers",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 228,
+    "raw_title": "[SET11] Largest Digit Position",
+    "clean_title": "Largest Digit Position",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 229,
+    "raw_title": "[SET11] Sum of Digits Divisible by 3",
+    "clean_title": "Sum of Digits Divisible by 3",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 230,
+    "raw_title": "[SET11] Check Divisibility by 4",
+    "clean_title": "Check Divisibility by 4",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 231,
+    "raw_title": "[SET11] Print Odd Numbers in Reverse",
+    "clean_title": "Print Odd Numbers in Reverse",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 232,
+    "raw_title": "[SET11] Count Digit 1",
+    "clean_title": "Count Digit 1",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 233,
+    "raw_title": "[SET11] Difference of First and Last Digit",
+    "clean_title": "Difference of First and Last Digit",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 234,
+    "raw_title": "[SET11] Count Lowercase Letters",
+    "clean_title": "Count Lowercase Letters",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 235,
+    "raw_title": "[SET11] Character Replacement",
+    "clean_title": "Character Replacement",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 236,
+    "raw_title": "[SET11] Sum of Elements at Odd Positions",
+    "clean_title": "Sum of Elements at Odd Positions",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 237,
+    "raw_title": "[SET11] Minimum and Maximum Difference",
+    "clean_title": "Minimum and Maximum Difference",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 238,
+    "raw_title": "[SET11] Count Elements Smaller Than Average",
+    "clean_title": "Count Elements Smaller Than Average",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 239,
+    "raw_title": "[SET11] Move Negative Elements",
+    "clean_title": "Move Negative Elements",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 240,
+    "raw_title": "[SET11] Find the Repeated NumberAn array contains N integers where every value appears once except one value that appears twice. Find the repeated value.",
+    "clean_title": "Find the Repeated NumberAn array contains N integers where every value appears once except one value that appears twice. Find the repeated value.",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 241,
+    "raw_title": "[SET11] Longest Word in a Sentence",
+    "clean_title": "Longest Word in a Sentence",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 242,
+    "raw_title": "[SET11] Count Character Pairs",
+    "clean_title": "Count Character Pairs",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 243,
+    "raw_title": "[SET11] Remove First Occurrence",
+    "clean_title": "Remove First Occurrence",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 244,
+    "raw_title": "[SET11] Matrix Main Diagonal Maximum",
+    "clean_title": "Matrix Main Diagonal Maximum",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 245,
+    "raw_title": "[SET11] Matrix Row With Minimum Element",
+    "clean_title": "Matrix Row With Minimum Element",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 246,
+    "raw_title": "[SET11] Linear Search \u2014 Last Element in Range",
+    "clean_title": "Linear Search \u2014 Last Element in Range",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 247,
+    "raw_title": "[SET11] Binary Search \u2014 Last Occurrence",
+    "clean_title": "Binary Search \u2014 Last Occurrence",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 248,
+    "raw_title": "[SET11] Bubble Sort \u2014 Ascending Order",
+    "clean_title": "Bubble Sort \u2014 Ascending Order",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 249,
+    "raw_title": "[SET11] Selection Sort \u2014 Descending Order",
+    "clean_title": "Selection Sort \u2014 Descending Order",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 250,
+    "raw_title": "[SET11] Insertion Sort \u2014",
+    "clean_title": "Insertion Sort \u2014",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 251,
+    "raw_title": "[SET12] Sum of Multiples of 9",
+    "clean_title": "Sum of Multiples of 9",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 252,
+    "raw_title": "[SET12] Count Negative Numbers",
+    "clean_title": "Count Negative Numbers",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 253,
+    "raw_title": "[SET12] Largest and Smallest Digit",
+    "clean_title": "Largest and Smallest Digit",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 254,
+    "raw_title": "[SET12] Sum of Even Digits",
+    "clean_title": "Sum of Even Digits",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 255,
+    "raw_title": "[SET12] Check Divisibility by 6",
+    "clean_title": "Check Divisibility by 6",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 256,
+    "raw_title": "[SET12] Print Multiples in Reverse",
+    "clean_title": "Print Multiples in Reverse",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 257,
+    "raw_title": "[SET12] Count Digit 5",
+    "clean_title": "Count Digit 5",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 258,
+    "raw_title": "[SET12] Difference Between Largest and Smallest Digit",
+    "clean_title": "Difference Between Largest and Smallest Digit",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 259,
+    "raw_title": "[SET12] Count Alphabetic Characters",
+    "clean_title": "Count Alphabetic Characters",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 260,
+    "raw_title": "[SET12] Remove Digits",
+    "clean_title": "Remove Digits",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 261,
+    "raw_title": "[SET12] Sum of Odd Elements",
+    "clean_title": "Sum of Odd Elements",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 262,
+    "raw_title": "[SET12] Second Largest Distinct Element",
+    "clean_title": "Second Largest Distinct Element",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 263,
+    "raw_title": "[SET12] Count Elements Greater Than Average",
+    "clean_title": "Count Elements Greater Than Average",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 264,
+    "raw_title": "[SET12] Move Zeros to Beginning",
+    "clean_title": "Move Zeros to Beginning",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 265,
+    "raw_title": "[SET12] Find the Unique Element",
+    "clean_title": "Find the Unique Element",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 266,
+    "raw_title": "[SET12] Count Words With Even Length",
+    "clean_title": "Count Words With Even Length",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 267,
+    "raw_title": "[SET12] Remove Repeated Characters",
+    "clean_title": "Remove Repeated Characters",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 268,
+    "raw_title": "[SET12] Check String Rotation",
+    "clean_title": "Check String Rotation",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 269,
+    "raw_title": "[SET12] Matrix Minimum Row Sum",
+    "clean_title": "Matrix Minimum Row Sum",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 270,
+    "raw_title": "[SET12] Matrix Diagonal Product",
+    "clean_title": "Matrix Diagonal Product",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 271,
+    "raw_title": "[SET12] Linear Search \u2014",
+    "clean_title": "Linear Search \u2014",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 272,
+    "raw_title": "[SET12] Binary Search \u2014 First Element Greater Than X",
+    "clean_title": "Binary Search \u2014 First Element Greater Than X",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 273,
+    "raw_title": "[SET12] Bubble Sort \u2014",
+    "clean_title": "Bubble Sort \u2014",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 274,
+    "raw_title": "[SET12] Selection Sort \u2014 Kth Smallest",
+    "clean_title": "Selection Sort \u2014 Kth Smallest",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 275,
+    "raw_title": "[SET12] Insertion Sort \u2014 Descending Order",
+    "clean_title": "Insertion Sort \u2014 Descending Order",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 276,
+    "raw_title": "[SET13] Sum of Multiples of 10",
+    "clean_title": "Sum of Multiples of 10",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 277,
+    "raw_title": "[SET13] Count Numbers Greater Than Zero",
+    "clean_title": "Count Numbers Greater Than Zero",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 278,
+    "raw_title": "[SET13] Product of Digits Greater Than 3",
+    "clean_title": "Product of Digits Greater Than 3",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 279,
+    "raw_title": "[SET13] Sum of First and Last Two Digits",
+    "clean_title": "Sum of First and Last Two Digits",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 280,
+    "raw_title": "[SET13] Check Divisibility by 8",
+    "clean_title": "Check Divisibility by 8",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 281,
+    "raw_title": "[SET13] Print Odd Multiples",
+    "clean_title": "Print Odd Multiples",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 282,
+    "raw_title": "[SET13] Count Digit 7",
+    "clean_title": "Count Digit 7",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 283,
+    "raw_title": "[SET13] Number of Even Digits",
+    "clean_title": "Number of Even Digits",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 284,
+    "raw_title": "[SET13] Count Uppercase and Lowercase",
+    "clean_title": "Count Uppercase and Lowercase",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 285,
+    "raw_title": "[SET13] Remove Vowels",
+    "clean_title": "Remove Vowels",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 286,
+    "raw_title": "[SET13] Maximum Even Element",
+    "clean_title": "Maximum Even Element",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 287,
+    "raw_title": "[SET13] Minimum Odd Element",
+    "clean_title": "Minimum Odd Element",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 288,
+    "raw_title": "[SET13] Count Frequency Greater Than One",
+    "clean_title": "Count Frequency Greater Than One",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 289,
+    "raw_title": "[SET13] Reverse Only Odd Elements",
+    "clean_title": "Reverse Only Odd Elements",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 290,
+    "raw_title": "[SET13] Pair With Difference X",
+    "clean_title": "Pair With Difference X",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 291,
+    "raw_title": "[SET13] Count Words With a Specific Character",
+    "clean_title": "Count Words With a Specific Character",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 292,
+    "raw_title": "[SET13] Most Frequent Word",
+    "clean_title": "Most Frequent Word",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 293,
+    "raw_title": "[SET13] String Palindrome Ignoring Spaces",
+    "clean_title": "String Palindrome Ignoring Spaces",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 294,
+    "raw_title": "[SET13] Matrix Minimum Element Position",
+    "clean_title": "Matrix Minimum Element Position",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 295,
+    "raw_title": "[SET13] Matrix Odd Element Sum",
+    "clean_title": "Matrix Odd Element Sum",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 296,
+    "raw_title": "[SET13] Linear Search \u2014 First Odd Element",
+    "clean_title": "Linear Search \u2014 First Odd Element",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 297,
+    "raw_title": "[SET13] Binary Search \u2014",
+    "clean_title": "Binary Search \u2014",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 298,
+    "raw_title": "[SET13] Bubble Sort \u2014 Descending Order",
+    "clean_title": "Bubble Sort \u2014 Descending Order",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 299,
+    "raw_title": "[SET13] Selection Sort \u2014",
+    "clean_title": "Selection Sort \u2014",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 300,
+    "raw_title": "[SET13] Insertion Sort \u2014",
+    "clean_title": "Insertion Sort \u2014",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 301,
+    "raw_title": "[SET14] Sum of Multiples of 11",
+    "clean_title": "Sum of Multiples of 11",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 302,
+    "raw_title": "[SET14] Count Numbers Less Than Zero",
+    "clean_title": "Count Numbers Less Than Zero",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 303,
+    "raw_title": "[SET14] Sum of Digits Less Than 5",
+    "clean_title": "Sum of Digits Less Than 5",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 304,
+    "raw_title": "[SET14] Largest Even Digit",
+    "clean_title": "Largest Even Digit",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 305,
+    "raw_title": "[SET14] Check Divisibility by 9",
+    "clean_title": "Check Divisibility by 9",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 306,
+    "raw_title": "[SET14] Print Multiples in a Range",
+    "clean_title": "Print Multiples in a Range",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 307,
+    "raw_title": "[SET14] Count Digit 9",
+    "clean_title": "Count Digit 9",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 308,
+    "raw_title": "[SET14] Sum of First and Last Digits",
+    "clean_title": "Sum of First and Last Digits",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 309,
+    "raw_title": "[SET14] Count Digits in a String",
+    "clean_title": "Count Digits in a String",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 310,
+    "raw_title": "[SET14] Convert Case",
+    "clean_title": "Convert Case",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 311,
+    "raw_title": "[SET14] Largest Odd Element",
+    "clean_title": "Largest Odd Element",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 312,
+    "raw_title": "[SET14] Smallest Even Element",
+    "clean_title": "Smallest Even Element",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 313,
+    "raw_title": "[SET14] Count Unique Values",
+    "clean_title": "Count Unique Values",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 314,
+    "raw_title": "[SET14] Move Even Elements to Front",
+    "clean_title": "Move Even Elements to Front",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 315,
+    "raw_title": "[SET14] Find Pair With",
+    "clean_title": "Find Pair With",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 316,
+    "raw_title": "[SET14] Count Words Ending With a Character",
+    "clean_title": "Count Words Ending With a Character",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 317,
+    "raw_title": "[SET14] Reverse Words With Even Length",
+    "clean_title": "Reverse Words With Even Length",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 318,
+    "raw_title": "[SET14] Remove Repeated Consecutive Words",
+    "clean_title": "Remove Repeated Consecutive Words",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 319,
+    "raw_title": "[SET14] Matrix Even Element Sum",
+    "clean_title": "Matrix Even Element Sum",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 320,
+    "raw_title": "[SET14] Matrix Largest Element Position",
+    "clean_title": "Matrix Largest Element Position",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 321,
+    "raw_title": "[SET14] Linear Search \u2014 First Negative Element",
+    "clean_title": "Linear Search \u2014 First Negative Element",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 322,
+    "raw_title": "[SET14] Binary Search \u2014",
+    "clean_title": "Binary Search \u2014",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 323,
+    "raw_title": "[SET14] Bubble Sort \u2014 Ascending Order",
+    "clean_title": "Bubble Sort \u2014 Ascending Order",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 324,
+    "raw_title": "[SET14] Selection Sort \u2014 Number of Swaps",
+    "clean_title": "Selection Sort \u2014 Number of Swaps",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 325,
+    "raw_title": "[SET14] Insertion Sort \u2014 Kth Smallest",
+    "clean_title": "Insertion Sort \u2014 Kth Smallest",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 326,
+    "raw_title": "[SET15] Sum of Multiples of 12",
+    "clean_title": "Sum of Multiples of 12",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 327,
+    "raw_title": "[SET15] Count Zeroes",
+    "clean_title": "Count Zeroes",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 328,
+    "raw_title": "[SET15] Sum of Odd Digits",
+    "clean_title": "Sum of Odd Digits",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 329,
+    "raw_title": "[SET15] Smallest Odd Digit",
+    "clean_title": "Smallest Odd Digit",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 330,
+    "raw_title": "[SET15] Check Divisibility by 10 or 5",
+    "clean_title": "Check Divisibility by 10 or 5",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 331,
+    "raw_title": "[SET15] Print Numbers in a Range",
+    "clean_title": "Print Numbers in a Range",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 332,
+    "raw_title": "[SET15] Count Digit 2",
+    "clean_title": "Count Digit 2",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 333,
+    "raw_title": "[SET15] Reverse Digits",
+    "clean_title": "Reverse Digits",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 334,
+    "raw_title": "[SET15] Count Vowels",
+    "clean_title": "Count Vowels",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 335,
+    "raw_title": "[SET15] Remove Special Characters",
+    "clean_title": "Remove Special Characters",
+    "marks": 1,
+    "difficulty": "EASY"
+  },
+  {
+    "id": 336,
+    "raw_title": "[SET15] Sum of Maximum and Minimum",
+    "clean_title": "Sum of Maximum and Minimum",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 337,
+    "raw_title": "[SET15] Second Smallest Distinct Element",
+    "clean_title": "Second Smallest Distinct Element",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 338,
+    "raw_title": "[SET15] Count Elements With Even Frequency",
+    "clean_title": "Count Elements With Even Frequency",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 339,
+    "raw_title": "[SET15] Move Odd Elements to Front",
+    "clean_title": "Move Odd Elements to Front",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 340,
+    "raw_title": "[SET15] Pair With",
+    "clean_title": "Pair With",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 341,
+    "raw_title": "[SET15] Count Words Starting and Ending With Same Character",
+    "clean_title": "Count Words Starting and Ending With Same Character",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 342,
+    "raw_title": "[SET15] Reverse the String Without Changing Digits",
+    "clean_title": "Reverse the String Without Changing Digits",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 343,
+    "raw_title": "[SET15] Remove Duplicate Words",
+    "clean_title": "Remove Duplicate Words",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 344,
+    "raw_title": "[SET15] Matrix Total Sum",
+    "clean_title": "Matrix Total Sum",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 345,
+    "raw_title": "[SET15] Matrix Main Diagonal Sum",
+    "clean_title": "Matrix Main Diagonal Sum",
+    "marks": 2,
+    "difficulty": "MEDIUM"
+  },
+  {
+    "id": 346,
+    "raw_title": "[SET15] Linear Search \u2014 Last Odd Element",
+    "clean_title": "Linear Search \u2014 Last Odd Element",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 347,
+    "raw_title": "[SET15] Binary Search \u2014 First Element Greater Than or Equal to X",
+    "clean_title": "Binary Search \u2014 First Element Greater Than or Equal to X",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 348,
+    "raw_title": "[SET15] Bubble Sort \u2014 Ascending Order and Swaps",
+    "clean_title": "Bubble Sort \u2014 Ascending Order and Swaps",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 349,
+    "raw_title": "[SET15] Selection Sort \u2014 Kth Largest",
+    "clean_title": "Selection Sort \u2014 Kth Largest",
+    "marks": 4,
+    "difficulty": "HARD"
+  },
+  {
+    "id": 350,
+    "raw_title": "[SET15] Insertion Sort \u2014 Ascending Order and Shifts",
+    "clean_title": "Insertion Sort \u2014 Ascending Order and Shifts",
+    "marks": 4,
+    "difficulty": "HARD"
+  }
+]

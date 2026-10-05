@@ -1,0 +1,2362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Team Coding Sprint • SPEC INDUSTRY HACK 2026</title>
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;700;800&display=swap" rel="stylesheet">
+    
+    <!-- CodeMirror Editor -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/monokai.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/theme/material-darker.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/python/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/clike/clike.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/edit/matchbrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/addon/selection/active-line.min.js"></script>
+    
+    <!-- Marked.js for HackerRank Markdown Rendering -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    
+    <style>
+        :root {
+            --bg-blueprint: #0e2a4a;
+            --bg-body: #091c33;
+            --bg-navbar: #0b223d;
+            --bg-panel: #0e2a4a;
+            --bg-card: #123a63;
+            --bg-card-subtle: #184a7e;
+            --bg-editor: #071526;
+            --border-dim: rgba(234, 242, 250, 0.18);
+            --border-active: #00e5ff;
+            
+            --accent-signal: #ffb800;
+            --accent-stamp: #e8483c;
+            --accent-cyan: #00d2ff;
+            --hr-green: #00ea64;
+            --hr-green-bg: rgba(0, 234, 100, 0.15);
+            --hr-red: #ff5555;
+            --hr-red-bg: rgba(255, 85, 85, 0.15);
+            --hr-amber: #ffb800;
+            --hr-blue: #38bdf8;
+            
+            --text-bright: #ffffff;
+            --text-main: #ffffff;
+            --text-subtle: #9fb8d4;
+            --text-dim: #6b8bae;
+            
+            --font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-sans);
+            background-color: var(--bg-body);
+            background-image: 
+                linear-gradient(90deg, rgba(234, 242, 250, 0.035) 1px, transparent 1px),
+                linear-gradient(rgba(234, 242, 250, 0.035) 1px, transparent 1px);
+            background-size: 28px 28px;
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Sponsor Logos & Technical Support Styling */
+        .nav-sponsors {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 10px;
+            background: rgba(9, 28, 51, 0.6);
+            border: 1px solid var(--border-dim);
+            border-radius: 8px;
+        }
+        .nav-sponsors-label {
+            font-size: 10px;
+            font-family: var(--font-mono);
+            color: var(--text-subtle);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .nav-sponsor-logos {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sponsor-logo-nav {
+            height: 18px;
+            width: auto;
+            max-width: 60px;
+            object-fit: contain;
+            filter: brightness(0.95) contrast(1.1);
+            transition: transform 0.2s ease;
+        }
+        .sponsor-logo-nav:hover {
+            transform: scale(1.08);
+            filter: brightness(1.1);
+        }
+
+        .btn-leaderboard {
+            background: linear-gradient(135deg, rgba(255, 184, 0, 0.15), rgba(0, 229, 255, 0.15));
+            border: 1px solid var(--accent-signal);
+            color: var(--accent-signal);
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-family: var(--font-display);
+            font-weight: 700;
+            font-size: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            letter-spacing: 0.03em;
+            transition: all 0.2s ease;
+            box-shadow: 0 0 10px rgba(255, 184, 0, 0.1);
+        }
+        .btn-leaderboard:hover {
+            background: var(--accent-signal);
+            color: #000;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 14px rgba(255, 184, 0, 0.3);
+        }
+
+        /* Leaderboard Modal */
+        .leaderboard-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(4, 14, 26, 0.85);
+            backdrop-filter: blur(8px);
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .leaderboard-modal-box {
+            background: var(--bg-panel);
+            border: 1.5px solid var(--border-dim);
+            border-radius: 18px;
+            width: 100%;
+            max-width: 800px;
+            max-height: 85vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+            overflow: hidden;
+            animation: modalPop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes modalPop {
+            0% { opacity: 0; transform: scale(0.96) translateY(8px); }
+            100% { opacity: 1; transform: scale(1) translateY(0); }
+        }
+        .leaderboard-modal-header {
+            padding: 16px 22px;
+            background: var(--bg-navbar);
+            border-bottom: 1px solid var(--border-dim);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .leaderboard-modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 18px 22px;
+        }
+        .leaderboard-modal-footer {
+            padding: 12px 22px;
+            background: var(--bg-dark-panel, #091c33);
+            border-top: 1px solid var(--border-dim);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .sponsor-logos-row {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .sponsor-logo-modal {
+            height: 22px;
+            object-fit: contain;
+            filter: brightness(0.9);
+        }
+
+        .lb-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+        .lb-table th {
+            text-align: left;
+            padding: 10px 12px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-subtle);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border-dim);
+        }
+        .lb-table td {
+            padding: 12px;
+            border-bottom: 1px solid rgba(234, 242, 250, 0.08);
+            font-family: var(--font-sans);
+        }
+        .lb-row-current {
+            background: rgba(255, 184, 0, 0.12) !important;
+            border-left: 3px solid var(--accent-signal);
+        }
+        .lb-rank-badge {
+            font-family: var(--font-mono);
+            font-weight: 800;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 6px;
+        }
+        .rank-1 { background: #ffd700; color: #000; }
+        .rank-2 { background: #c0c0c0; color: #000; }
+        .rank-3 { background: #cd7f32; color: #000; }
+        .rank-other { background: rgba(255, 255, 255, 0.08); color: var(--text-subtle); }
+
+        /* Anti-Copy Protection for statements */
+        .no-select, .problem-pane, .problem-pane * {
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            -moz-user-select: none !important;
+            -ms-user-select: none !important;
+        }
+
+        /* Allow typing in Editor and Custom Stdin */
+        .CodeMirror, .CodeMirror *, #custom-stdin, textarea {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+        }
+
+        /* Top Navbar */
+        .navbar {
+            height: 58px;
+            background: var(--bg-navbar);
+            border-bottom: 1px solid var(--border-dim);
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .platform-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .platform-logo {
+            width: 28px;
+            height: 28px;
+            background: linear-gradient(135deg, #00ea64, #00b4d8);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: #000;
+            font-size: 15px;
+            font-family: var(--font-display);
+        }
+
+        .platform-title {
+            font-family: var(--font-display);
+            font-size: 14px;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            color: var(--text-main);
+            text-transform: uppercase;
+        }
+
+        .nav-divider {
+            height: 22px;
+            width: 1px;
+            background: var(--border-dim);
+        }
+
+        .nav-team-pill {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-subtle);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg-card);
+            padding: 4px 10px;
+            border-radius: 6px;
+            border: 1px solid var(--border-dim);
+        }
+
+        .nav-right {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .timer-display {
+            font-family: var(--font-mono);
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--hr-amber);
+            background: rgba(245, 158, 11, 0.1);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            padding: 5px 14px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .score-display {
+            font-family: var(--font-mono);
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--hr-green);
+            background: var(--hr-green-bg);
+            border: 1px solid rgba(0, 234, 100, 0.3);
+            padding: 5px 14px;
+            border-radius: 8px;
+        }
+
+        .btn-question-menu {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            color: var(--text-main);
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-question-menu:hover {
+            border-color: var(--hr-cyan);
+            color: var(--hr-cyan);
+        }
+
+        /* Main Workspace Container */
+        .workspace {
+            display: flex;
+            flex: 1;
+            height: calc(100vh - 58px);
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Question Drawer Sidebar */
+        .question-drawer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            width: 320px;
+            background: var(--bg-navbar);
+            border-right: 1px solid var(--border-dim);
+            z-index: 500;
+            transform: translateX(-100%);
+            transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+        }
+        .question-drawer.open {
+            transform: translateX(0);
+        }
+
+        .drawer-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-dim);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .drawer-title {
+            font-family: var(--font-display);
+            font-size: 14px;
+            font-weight: 800;
+            text-transform: uppercase;
+        }
+        .drawer-close {
+            background: transparent;
+            border: none;
+            color: var(--text-subtle);
+            font-size: 18px;
+            cursor: pointer;
+        }
+
+        .drawer-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .drawer-item {
+            padding: 10px 12px;
+            border-radius: 6px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            margin-bottom: 6px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .drawer-item:hover {
+            border-color: var(--hr-cyan);
+            background: var(--bg-card-subtle);
+        }
+        .drawer-item.active {
+            border-color: var(--hr-green);
+            background: rgba(0, 234, 100, 0.08);
+        }
+        .drawer-item.solved {
+            border-left: 3px solid var(--hr-green);
+        }
+
+        .drawer-item-title {
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .drawer-item-meta {
+            font-size: 10px;
+            font-family: var(--font-mono);
+            color: var(--text-subtle);
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+
+        /* Split Panes & Drag Resizers */
+        .pane-problem {
+            width: 46%;
+            min-width: 280px;
+            max-width: 75%;
+            background: var(--bg-body);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            flex-shrink: 0;
+        }
+
+        .splitter-v {
+            width: 8px;
+            background: var(--bg-navbar);
+            border-left: 1px solid var(--border-dim);
+            border-right: 1px solid var(--border-dim);
+            cursor: col-resize;
+            position: relative;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            user-select: none;
+            transition: background 0.15s ease;
+        }
+        .splitter-v:hover, .splitter-v.dragging {
+            background: var(--hr-cyan);
+        }
+        .splitter-v::after {
+            content: '';
+            width: 2px;
+            height: 28px;
+            border-radius: 2px;
+            background: var(--text-dim);
+        }
+        .splitter-v:hover::after, .splitter-v.dragging::after {
+            background: #000;
+        }
+
+        .pane-editor {
+            flex: 1;
+            min-width: 320px;
+            background: var(--bg-editor);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .splitter-h {
+            height: 8px;
+            background: var(--bg-navbar);
+            border-top: 1px solid var(--border-dim);
+            border-bottom: 1px solid var(--border-dim);
+            cursor: row-resize;
+            position: relative;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            user-select: none;
+            transition: background 0.15s ease;
+        }
+        .splitter-h:hover, .splitter-h.dragging {
+            background: var(--hr-green);
+        }
+        .splitter-h::after {
+            content: '';
+            height: 2px;
+            width: 32px;
+            border-radius: 2px;
+            background: var(--text-dim);
+        }
+        .splitter-h:hover::after, .splitter-h.dragging::after {
+            background: #000;
+        }
+
+        /* Problem Header & Tabs */
+        .problem-header {
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid var(--border-dim);
+            background: var(--bg-navbar);
+        }
+
+        .problem-title-row {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .problem-title {
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 800;
+            line-height: 1.3;
+            color: #ffffff;
+        }
+
+        .badge {
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .badge.easy { background: rgba(0, 234, 100, 0.15); color: var(--hr-green); border: 1px solid rgba(0, 234, 100, 0.3); }
+        .badge.medium { background: rgba(245, 158, 11, 0.15); color: var(--hr-amber); border: 1px solid rgba(245, 158, 11, 0.3); }
+        .badge.hard { background: rgba(255, 85, 85, 0.15); color: var(--hr-red); border: 1px solid rgba(255, 85, 85, 0.3); }
+
+        .problem-meta-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 11px;
+            font-family: var(--font-mono);
+            color: var(--text-subtle);
+        }
+
+        .problem-tabs {
+            display: flex;
+            gap: 24px;
+            padding: 0 24px;
+            background: var(--bg-navbar);
+            border-bottom: 1px solid var(--border-dim);
+        }
+
+        .problem-tab {
+            padding: 10px 0;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-subtle);
+            cursor: pointer;
+            position: relative;
+            text-decoration: none;
+        }
+        .problem-tab:hover { color: var(--text-main); }
+        .problem-tab.active {
+            color: var(--hr-green);
+        }
+        .problem-tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: var(--hr-green);
+        }
+
+        /* Problem Content Styling (HackerRank Markdown Style) */
+        .problem-body {
+            padding: 24px;
+            font-size: 14px;
+            line-height: 1.68;
+            color: #d1d5db;
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .problem-body h3 {
+            font-family: var(--font-display);
+            font-size: 15px;
+            font-weight: 800;
+            color: #ffffff;
+            margin: 22px 0 10px;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .problem-body h3:first-child { margin-top: 0; }
+
+        .problem-body p {
+            margin-bottom: 14px;
+        }
+
+        .problem-body ul {
+            margin-left: 20px;
+            margin-bottom: 14px;
+        }
+
+        .problem-body li {
+            margin-bottom: 6px;
+        }
+
+        .problem-body code {
+            font-family: var(--font-mono);
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 12.5px;
+            color: var(--hr-cyan);
+        }
+
+        .problem-body pre {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin: 8px 0 16px;
+            overflow-x: auto;
+        }
+
+        .problem-body pre code {
+            background: transparent;
+            border: none;
+            padding: 0;
+            font-size: 13px;
+            color: #f3f4f6;
+            line-height: 1.5;
+        }
+
+        /* Editor Section */
+        .editor-header {
+            height: 46px;
+            background: var(--bg-navbar);
+            border-bottom: 1px solid var(--border-dim);
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .editor-controls-left {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .editor-select {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            color: var(--text-main);
+            font-size: 12px;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            padding: 5px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            outline: none;
+        }
+        .editor-select:focus { border-color: var(--hr-green); }
+
+        .editor-controls-right {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .editor-icon-btn {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-subtle);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 11px;
+            cursor: pointer;
+            font-family: var(--font-sans);
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .editor-icon-btn:hover {
+            background: var(--bg-card);
+            border-color: var(--border-dim);
+            color: var(--text-main);
+        }
+
+        .editor-container {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: #091c33;
+            min-height: 120px;
+        }
+
+        .CodeMirror {
+            height: 100% !important;
+            font-family: var(--font-mono) !important;
+            font-size: 13.5px !important;
+            line-height: 1.55 !important;
+            background: #091c33 !important;
+        }
+        .CodeMirror-gutters {
+            background: #061528 !important;
+            border-right: 1px solid var(--border-dim) !important;
+        }
+        .CodeMirror-activeline-background {
+            background: rgba(255, 255, 255, 0.04) !important;
+        }
+
+        /* HackerRank Testcase & Runner Console Panel */
+        .testcase-panel {
+            background: var(--bg-navbar);
+            display: flex;
+            flex-direction: column;
+            height: 270px;
+            min-height: 100px;
+            max-height: calc(100vh - 180px);
+            box-shadow: 0 -4px 16px rgba(0,0,0,0.3);
+            flex-shrink: 0;
+        }
+
+        .testcase-bar {
+            height: 48px;
+            background: var(--bg-card);
+            border-bottom: 1px solid var(--border-dim);
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .testcase-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            overflow-x: auto;
+        }
+
+        .custom-input-check {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-subtle);
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .custom-input-check input {
+            cursor: pointer;
+            accent-color: var(--hr-green);
+        }
+
+        .testcase-tabs {
+            display: flex;
+            gap: 6px;
+        }
+
+        .testcase-tab {
+            padding: 6px 14px;
+            border-radius: 6px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            font-weight: 700;
+            color: var(--text-subtle);
+            background: var(--bg-navbar);
+            border: 1px solid var(--border-dim);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: all 0.15s ease;
+        }
+        .testcase-tab:hover { background: var(--bg-card-subtle); color: var(--text-main); }
+        .testcase-tab.active {
+            background: var(--bg-editor);
+            border-color: var(--hr-green);
+            color: var(--hr-green);
+        }
+        .testcase-tab.pass-dot::after {
+            content: '●';
+            color: var(--hr-green);
+            font-size: 10px;
+        }
+        .testcase-tab.fail-dot::after {
+            content: '●';
+            color: var(--hr-red);
+            font-size: 10px;
+        }
+
+        .testcase-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-run {
+            background: transparent;
+            border: 1.5px solid var(--hr-cyan);
+            color: var(--hr-cyan);
+            padding: 7px 18px;
+            border-radius: 6px;
+            font-family: var(--font-display);
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            transition: all 0.15s ease;
+        }
+        .btn-run:hover {
+            background: rgba(0, 229, 255, 0.15);
+            transform: translateY(-1px);
+        }
+
+        .btn-submit {
+            background: var(--hr-green);
+            border: 1.5px solid var(--hr-green);
+            color: #000000;
+            padding: 7px 22px;
+            border-radius: 6px;
+            font-family: var(--font-display);
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            transition: all 0.15s ease;
+        }
+        .btn-submit:hover {
+            background: #00ff6e;
+            transform: translateY(-1px);
+        }
+
+        .testcase-body {
+            flex: 1;
+            padding: 16px 20px;
+            overflow-y: auto;
+            font-family: var(--font-mono);
+            font-size: 12.5px;
+        }
+
+        .status-banner {
+            padding: 10px 14px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .status-banner.success { background: var(--hr-green-bg); border: 1px solid rgba(0, 234, 100, 0.3); color: #4ade80; }
+        .status-banner.error { background: var(--hr-red-bg); border: 1px solid rgba(255, 85, 85, 0.3); color: #f87171; }
+        .status-banner.running { background: rgba(56, 189, 248, 0.12); border: 1px solid rgba(56, 189, 248, 0.3); color: var(--hr-blue); }
+
+        .io-box-label {
+            font-size: 11px;
+            color: var(--text-subtle);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin: 8px 0 4px;
+            font-weight: 600;
+        }
+        .io-box {
+            background: var(--bg-body);
+            border: 1px solid var(--border-dim);
+            border-radius: 6px;
+            padding: 10px 14px;
+            white-space: pre-wrap;
+            word-break: break-all;
+            color: #f3f4f6;
+            margin-bottom: 10px;
+        }
+        .io-box.correct { border-left: 3px solid var(--hr-green); }
+        .io-box.incorrect { border-left: 3px solid var(--hr-red); }
+
+        .custom-stdin-area {
+            width: 100%;
+            height: 90px;
+            background: var(--bg-body);
+            border: 1px solid var(--border-dim);
+            border-radius: 6px;
+            padding: 10px 14px;
+            color: #fff;
+            font-family: var(--font-mono);
+            font-size: 12.5px;
+            resize: none;
+            outline: none;
+        }
+        .custom-stdin-area:focus { border-color: var(--hr-cyan); }
+
+        /* Fullscreen Anti-Cheat Overlay */
+        #fullscreen-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(5, 10, 20, 0.96);
+            backdrop-filter: blur(16px);
+            z-index: 99999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .strike-modal {
+            background: var(--bg-card);
+            border: 2px solid var(--hr-red);
+            border-radius: 16px;
+            padding: 36px 32px;
+            text-align: center;
+            max-width: 520px;
+            width: 90%;
+            box-shadow: 0 16px 48px rgba(0,0,0,0.8);
+        }
+
+        .strike-pill {
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            text-transform: uppercase;
+            display: inline-block;
+            margin-bottom: 12px;
+        }
+        .strike-pill.warning-1 { background: rgba(245, 158, 11, 0.15); color: var(--hr-amber); border: 1px solid var(--hr-amber); }
+        .strike-pill.warning-2 { background: rgba(255, 85, 85, 0.15); color: var(--hr-red); border: 1px solid var(--hr-red); }
+
+        /* Lobby & Finished Screens */
+        .lobby-screen {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+        }
+        .lobby-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-dim);
+            border-radius: 16px;
+            padding: 40px;
+            text-align: center;
+            max-width: 680px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+        <div class="nav-left">
+            <button class="btn-question-menu" onclick="toggleQuestionDrawer()">
+                ☰ Questions <span id="solved-count-badge" style="background:var(--hr-green); color:#000; padding:1px 6px; border-radius:10px; font-size:10px; font-weight:800;">0/25</span>
+            </button>
+            <div class="nav-divider"></div>
+            <a href="#" class="platform-brand">
+                <div class="platform-logo">&lt;/&gt;</div>
+                <span class="platform-title">SPEC INDUSTRY HACK 2026</span>
+            </a>
+            <div class="nav-divider"></div>
+            <div class="nav-team-pill">
+                <span>Team:</span>
+                <strong id="nav-team-name" style="color:var(--accent-signal);">Loading...</strong>
+            </div>
+        </div>
+
+        <div class="nav-right" style="display:flex; align-items:center; gap:12px;">
+            <!-- Live Leaderboard Button -->
+            <button class="btn-leaderboard" onclick="openLeaderboardModal()" title="View Live Leaderboard">
+                🏆 Leaderboard
+            </button>
+
+            <!-- Support Logos in Navbar -->
+            <div class="nav-sponsors">
+                <span class="nav-sponsors-label">Tech:</span>
+                <div class="nav-sponsor-logos">
+                    <img src="assets/ratio_logo.png" alt="Ratiio" class="sponsor-logo-nav" title="Ratiio AI">
+                    <img src="assets/riftgo_logo.png" alt="RiftGo Studios" class="sponsor-logo-nav" title="RiftGo Studios">
+                    <img src="assets/dondeal_logo.png" alt="Don Deal" class="sponsor-logo-nav" title="Don Deal">
+                </div>
+                <div style="width:1px; height:14px; background:var(--border-dim, rgba(255,255,255,0.15)); margin:0 4px;"></div>
+                <span class="nav-sponsors-label">Ops:</span>
+                <div class="nav-sponsor-logos">
+                    <img src="assets/veixon_logo.png" alt="VEIXON.Tech" class="sponsor-logo-nav" title="VEIXON.Tech" style="height:12px; max-width:55px;">
+                </div>
+            </div>
+
+            <div class="score-display" id="nav-score-display">
+                Score: 0 / 50 Pts
+            </div>
+            <div class="timer-display" id="nav-timer-box">
+                ⏱ <span id="timer">02:00:00</span>
+            </div>
+            <button class="editor-icon-btn" onclick="enableFullscreen()" title="Toggle Fullscreen">
+                🖥️ Fullscreen
+            </button>
+            <button class="editor-icon-btn" onclick="logoutTeam()" title="Logout from Platform" style="background:rgba(232,72,60,0.15); color:#ff6b6b; border:1px solid rgba(232,72,60,0.4);">
+                🚪 Logout
+            </button>
+        </div>
+    </header>
+
+    <!-- Question Drawer Overlay -->
+    <div class="question-drawer" id="question-drawer">
+        <div class="drawer-header">
+            <div class="drawer-title">Problem Palette (25 Questions)</div>
+            <button class="drawer-close" onclick="toggleQuestionDrawer()">✕</button>
+        </div>
+        <div class="drawer-list" id="drawer-question-list">
+            <div style="text-align:center; padding:20px; color:var(--text-subtle); font-size:12px;">Loading problem set...</div>
+        </div>
+        <div style="padding:14px 18px; border-top:1px solid var(--border-dim); background:var(--bg-dark-panel, #091c33); text-align:center;">
+            <div style="display:flex; justify-content:space-around; align-items:center; gap:12px;">
+                <div>
+                    <div style="font-size:9px; font-family:var(--font-mono); color:var(--text-subtle); margin-bottom:6px; text-transform:uppercase;">Technical Support by</div>
+                    <div class="sponsor-logos-row" style="justify-content:center; gap:8px;">
+                        <img src="assets/ratio_logo.png" alt="Ratiio" class="sponsor-logo-modal" style="height:16px;">
+                        <img src="assets/riftgo_logo.png" alt="RiftGo Studios" class="sponsor-logo-modal" style="height:16px;">
+                        <img src="assets/dondeal_logo.png" alt="Don Deal" class="sponsor-logo-modal" style="height:16px;">
+                    </div>
+                </div>
+                <div style="width:1px; height:32px; background:var(--border-dim);"></div>
+                <div>
+                    <div style="font-size:9px; font-family:var(--font-mono); color:var(--text-subtle); margin-bottom:6px; text-transform:uppercase;">Operational Support by</div>
+                    <div class="sponsor-logos-row" style="justify-content:center;">
+                        <img src="assets/veixon_logo.png" alt="VEIXON.Tech" class="sponsor-logo-modal" style="height:12px;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Workspace -->
+    <main class="workspace">
+        
+        <!-- Pre-Sprint Lobby -->
+        <div class="lobby-screen" id="lobby-view">
+            <div class="lobby-box">
+                <div style="font-size:36px; margin-bottom:12px;">⏳</div>
+                <span class="strike-pill warning-1">SPRINT LOBBY • WAITING FOR HOST</span>
+                <h2 style="font-family:var(--font-display); font-size:24px; text-transform:uppercase; margin:12px 0 8px; color:var(--text-bright);">
+                    Waiting for Administrator to Start Sprint
+                </h2>
+                <p style="color:var(--text-subtle); font-size:13px; max-width:540px; margin:0 auto 20px; line-height:1.5;">
+                    Central synchronization is active. As soon as the sprint is triggered by organizers, your 25 questions and 120-minute countdown will launch automatically.
+                </p>
+                <div style="display:flex; justify-content:center; gap:12px; margin-bottom:28px; flex-wrap:wrap;">
+                    <button class="btn-run" onclick="enableFullscreen()">
+                        🖥️ Prepare Fullscreen Mode
+                    </button>
+                    <button class="btn-leaderboard" onclick="openLeaderboardModal()">
+                        🏆 View Standings
+                    </button>
+                    <button class="btn-ghost" onclick="logoutTeam()" style="background:rgba(232,72,60,0.15); color:#ff6b6b; border:1px solid rgba(232,72,60,0.4); padding:8px 16px; border-radius:6px; font-weight:600; cursor:pointer; font-size:12px;">
+                        🚪 Leave Lobby & Logout
+                    </button>
+                </div>
+
+                <div style="padding-top:20px; border-top:1px dashed var(--border-dim); margin-top:10px;">
+                    <div style="display:flex; justify-content:space-around; align-items:center; gap:20px; flex-wrap:wrap;">
+                        <div>
+                            <div style="font-size:10px; font-family:var(--font-mono); color:var(--text-subtle); text-transform:uppercase; margin-bottom:8px; letter-spacing:0.06em;">
+                                Technical Support by
+                            </div>
+                            <div class="sponsor-logos-row" style="justify-content:center; gap:16px;">
+                                <img src="assets/ratio_logo.png" alt="Ratiio" style="height:22px; object-fit:contain; filter:brightness(0.95);">
+                                <img src="assets/riftgo_logo.png" alt="RiftGo Studios" style="height:22px; object-fit:contain; filter:brightness(0.95);">
+                                <img src="assets/dondeal_logo.png" alt="Don Deal" style="height:22px; object-fit:contain; filter:brightness(0.95);">
+                            </div>
+                        </div>
+                        <div style="width:1px; height:40px; background:var(--border-dim);"></div>
+                        <div>
+                            <div style="font-size:10px; font-family:var(--font-mono); color:var(--text-subtle); text-transform:uppercase; margin-bottom:8px; letter-spacing:0.06em;">
+                                Operational Support by
+                            </div>
+                            <div class="sponsor-logos-row" style="justify-content:center;">
+                                <img src="assets/veixon_logo.png" alt="VEIXON.Tech" style="height:14px; max-width:85px; object-fit:contain; filter:brightness(1.05);">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active HackerRank Split IDE -->
+        <div id="active-sprint-view" style="display:none; width:100%; height:100%;" class="workspace">
+            
+            <!-- Left Pane: Problem Description -->
+            <section class="pane-problem no-select">
+                <div class="problem-header">
+                    <div class="problem-title-row">
+                        <h1 class="problem-title" id="prob-title">1. Problem Title</h1>
+                        <span class="badge easy" id="prob-difficulty">Easy</span>
+                    </div>
+                    <div class="problem-meta-row">
+                        <span id="prob-marks" style="color:var(--hr-amber); font-weight:700;">5 Marks</span>
+                        <span>•</span>
+                        <span>Time Limit: 5.0s</span>
+                        <span>•</span>
+                        <span>Memory Limit: 256MB</span>
+                    </div>
+                </div>
+
+                <div class="problem-tabs">
+                    <div class="problem-tab active" id="tab-prob-desc" onclick="switchProblemTab('desc')">Problem</div>
+                    <div class="problem-tab" id="tab-prob-subs" onclick="switchProblemTab('subs')">Submissions</div>
+                </div>
+
+                <div class="problem-body" id="prob-body-content">
+                    Loading problem statement...
+                </div>
+                
+                <div class="problem-body" id="prob-subs-content" style="display:none;">
+                    <div style="color:var(--text-subtle); font-size:13px;">No past submissions for this question yet.</div>
+                </div>
+            </section>
+
+            <!-- Vertical Resizer Splitter (Movable Left/Right) -->
+            <div class="splitter-v" id="splitter-v" title="Drag left or right to resize panes"></div>
+
+            <!-- Right Pane: HackerRank Editor & Testcase Console -->
+            <section class="pane-editor">
+                
+                <!-- Editor Topbar -->
+                <div class="editor-header">
+                    <div class="editor-controls-left">
+                        <select class="editor-select" id="language" onchange="changeLanguage()">
+                            <option value="python">Python 3</option>
+                            <option value="cpp">C++ (GCC)</option>
+                            <option value="java">Java (OpenJDK)</option>
+                            <option value="javascript">JavaScript (Node.js)</option>
+                        </select>
+                        <select class="editor-select" id="font-size" onchange="changeFontSize()">
+                            <option value="13.5px">13.5px</option>
+                            <option value="14.5px">14.5px</option>
+                            <option value="16px">16px</option>
+                        </select>
+                    </div>
+                    <div class="editor-controls-right">
+                        <span id="autosave-indicator" style="font-size:11px; color:#10b981; font-weight:600; display:inline-flex; align-items:center; gap:5px; margin-right:10px; opacity:0.9;">
+                            <span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#10b981;"></span> Auto-Saved
+                        </span>
+                        <button class="editor-icon-btn" onclick="resetTemplate()" title="Reset Code">
+                            ↺ Reset
+                        </button>
+                    </div>
+                </div>
+
+                <!-- CodeMirror Editor -->
+                <div class="editor-container">
+                    <textarea id="code-editor" style="display:none;"></textarea>
+                </div>
+
+                <!-- Horizontal Resizer Splitter (Movable Up/Down) -->
+                <div class="splitter-h" id="splitter-h" title="Drag up or down to resize test console"></div>
+
+                <!-- HackerRank Testcase & Runner Console -->
+                <div class="testcase-panel">
+                    <div class="testcase-bar">
+                        <div class="testcase-left">
+                            <label class="custom-input-check">
+                                <input type="checkbox" id="custom-input-toggle" onchange="toggleCustomInput()">
+                                Test against custom input
+                            </label>
+                            
+                            <div class="testcase-tabs" id="testcase-tabs-container">
+                                <!-- Dynamic Tabs: Test 0, Test 1, etc. -->
+                            </div>
+                        </div>
+
+                        <div class="testcase-actions">
+                            <button class="btn-run" onclick="runCode()">
+                                ▶ Run Code
+                            </button>
+                            <button class="btn-submit" onclick="submitCode()">
+                                Submit Code
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="testcase-body" id="testcase-body-content">
+                        <div style="color:var(--text-subtle); padding:10px 0;">Click <strong>Run Code</strong> to test your solution against sample test cases.</div>
+                    </div>
+                </div>
+
+            </section>
+        </div>
+
+    </main>
+
+    <!-- Fullscreen / Anti-Cheat Warning Modal -->
+    <div id="fullscreen-overlay">
+        <div class="strike-modal">
+            <span class="strike-pill warning-1" id="strike-badge">Alert 1/3</span>
+            <h2 id="strike-title" style="font-family:var(--font-display); font-size:20px; color:#fff; text-transform:uppercase; margin:8px 0 10px;">
+                Anti-Cheat Violation Detected
+            </h2>
+            <p id="strike-desc" style="color:var(--text-subtle); font-size:13px; line-height:1.5; margin-bottom:20px;">
+                Action detected: Fullscreen exit / Window switched.<br>Please return to fullscreen to resume the sprint.
+            </p>
+            <button class="btn-submit" id="resume-btn" onclick="enableFullscreen()" style="width:100%; padding:10px;">
+                Re-enter Fullscreen Mode
+            </button>
+        </div>
+    </div>
+
+    <script src="config.js"></script>
+    <script>
+        const API_BASE = window.APP_CONFIG ? window.APP_CONFIG.getApiBase() : (
+            (window.location.protocol.startsWith('http') && window.location.hostname)
+                ? `${window.location.protocol}//${window.location.hostname}:8000`
+                : 'http://localhost:8000'
+        );
+        
+        let token = localStorage.getItem('token');
+        let userInfo = JSON.parse(localStorage.getItem('user_info') || '{}');
+        let questions = [];
+        let currentQuestion = null;
+        let currentQuestionIndex = 0;
+        let editor = null;
+        let timerInterval = null;
+        let testTargetExpiry = 0;
+        let violations = 0;
+        let testStarted = false;
+        let activeTestcaseIndex = 0;
+        let sampleResults = [];
+        let isCustomInputActive = false;
+
+        if (!token) {
+            window.location.href = 'index.html';
+        }
+
+        document.getElementById('nav-team-name').textContent = userInfo.team_name || 'Team';
+
+        function toggleQuestionDrawer() {
+            const drawer = document.getElementById('question-drawer');
+            drawer.classList.toggle('open');
+        }
+
+        function enableFullscreen() {
+            try {
+                const el = document.documentElement;
+                if (el.requestFullscreen) {
+                    el.requestFullscreen().catch(() => {});
+                } else if (el.webkitRequestFullscreen) {
+                    el.webkitRequestFullscreen();
+                }
+            } catch (e) {}
+            const overlay = document.getElementById('fullscreen-overlay');
+            if (overlay) {
+                overlay.style.display = 'none';
+            }
+        }
+
+        async function logoutTeam() {
+            if (!confirm('Are you sure you want to log out from the exam platform?')) {
+                return;
+            }
+
+            try {
+                if (token) {
+                    await fetch(`${API_BASE}/api/teams/logout`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                }
+            } catch (err) {
+                console.warn('Logout notification error:', err);
+            }
+
+            // Clear local session storage
+            localStorage.removeItem('token');
+            localStorage.removeItem('user_info');
+            localStorage.removeItem('session_token');
+            if (timerInterval) clearInterval(timerInterval);
+
+            alert('You have logged out successfully. Connected lobby presence has been updated.');
+            window.location.href = 'index.html';
+        }
+
+        // Proctoring Triggers
+        ['fullscreenchange', 'webkitfullscreenchange', 'mozfullscreenchange', 'MSFullscreenChange'].forEach(event => {
+            document.addEventListener(event, () => {
+                const isFS = document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement || document.msFullscreenElement;
+                if (!isFS && testStarted) {
+                    recordViolation('Fullscreen Exit');
+                }
+            });
+        });
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden && testStarted) {
+                recordViolation('Tab Switch / Backgrounded');
+            }
+        });
+
+        window.addEventListener('blur', () => {
+            if (testStarted) {
+                recordViolation('App Focus Lost');
+            }
+        });
+
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('keydown', e => {
+            if (e.key === 'F12' || (e.ctrlKey && e.shiftKey && ['I','J','C'].includes(e.key.toUpperCase())) || (e.ctrlKey && e.key.toLowerCase() === 'u')) {
+                e.preventDefault();
+                recordViolation('Developer Tools Shortcut');
+            }
+        });
+
+        let lastViolationTime = 0;
+        async function recordViolation(reason) {
+            if (!testStarted) return;
+            if (Date.now() - lastViolationTime < 2000) return;
+            lastViolationTime = Date.now();
+
+            const overlay = document.getElementById('fullscreen-overlay');
+            const badge = document.getElementById('strike-badge');
+            const title = document.getElementById('strike-title');
+            const desc = document.getElementById('strike-desc');
+            const resumeBtn = document.getElementById('resume-btn');
+
+            overlay.style.display = 'flex';
+            violations++;
+
+            badge.className = violations > 1 ? 'strike-pill warning-2' : 'strike-pill warning-1';
+            badge.textContent = `Proctoring Alert #${violations}`;
+            title.textContent = 'Anti-Cheat Alert Logged';
+            desc.innerHTML = `Action detected: <strong>${reason}</strong>.<br>This incident has been recorded and transmitted to the admin proctoring monitor.<br>Please click below to return to fullscreen and resume coding.`;
+            resumeBtn.textContent = 'Re-enter Fullscreen Mode';
+            resumeBtn.onclick = enableFullscreen;
+
+            try {
+                await fetch(`${API_BASE}/api/teams/proctoring/violation`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ violation_type: reason, count: violations })
+                });
+            } catch (err) {}
+        }
+
+        // Sprint Synchronization
+        async function checkSprintSync() {
+            try {
+                const res = await fetch(`${API_BASE}/api/teams/sprint/status`, {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+
+                if (data.sprint_active) {
+                    if (!testStarted) {
+                        testStarted = true;
+                        document.getElementById('lobby-view').style.display = 'none';
+                        document.getElementById('active-sprint-view').style.display = 'flex';
+                        loadQuestions();
+                        startTimer(data.time_remaining_seconds);
+                        setTimeout(initSplitters, 100);
+                    } else {
+                        if (!questions || questions.length === 0) {
+                            loadQuestions();
+                        }
+                        updateScoreDisplay(data.total_score, data.solved_count);
+                    }
+                } else if (data.sprint_ended) {
+                    if (testStarted) {
+                        testStarted = false;
+                        clearInterval(timerInterval);
+                        alert('The sprint has concluded. Submissions are closed.');
+                        window.location.href = 'index.html';
+                    }
+                }
+            } catch (e) {}
+        }
+
+        async function loadQuestions() {
+            try {
+                const res = await fetch(`${API_BASE}/api/teams/questions`, {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.detail || 'Failed to fetch questions');
+
+                questions = data.questions || [];
+
+                // Sync cloud-saved / previous answers to local drafts
+                questions.forEach(q => {
+                    if (q.saved_code && q.saved_code.trim()) {
+                        const savedLang = q.saved_language || 'python';
+                        const localKey = `draft_${q.question_id}_${savedLang}`;
+                        // If no local draft exists, initialize it with the saved answer
+                        if (!localStorage.getItem(localKey)) {
+                            try {
+                                localStorage.setItem(localKey, q.saved_code);
+                            } catch (e) {}
+                        }
+                    }
+                });
+
+                updateScoreDisplay(data.total_score, data.solved_count);
+                renderDrawerList();
+
+                if (questions.length > 0) {
+                    if (currentQuestionIndex < 0 || currentQuestionIndex >= questions.length) {
+                        currentQuestionIndex = 0;
+                    }
+                    loadQuestion(currentQuestionIndex);
+                } else {
+                    document.getElementById('prob-body-content').innerHTML = `
+                        <div style="text-align:center; padding:40px; color:var(--text-subtle);">
+                            <p>Loading problem set...</p>
+                            <button class="btn-submit" onclick="loadQuestions()" style="margin-top:10px; padding:6px 16px;">🔄 Reload Questions</button>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                console.error('Error loading questions:', err);
+                const bodyEl = document.getElementById('prob-body-content');
+                if (bodyEl && (!questions || questions.length === 0)) {
+                    bodyEl.innerHTML = `
+                        <div style="text-align:center; padding:40px; color:var(--hr-red);">
+                            <p>Could not load questions: ${escapeHtml(err.message)}</p>
+                            <button class="btn-submit" onclick="loadQuestions()" style="margin-top:10px; padding:6px 16px;">🔄 Retry Loading</button>
+                        </div>
+                    `;
+                }
+            }
+        }
+
+        function updateScoreDisplay(score, solved) {
+            document.getElementById('nav-score-display').textContent = `Score: ${score || 0} / 50 Pts`;
+            document.getElementById('solved-count-badge').textContent = `${solved || 0}/25`;
+        }
+
+        function renderDrawerList() {
+            const list = document.getElementById('drawer-question-list');
+            if (!list) return;
+            list.innerHTML = (questions || []).map((q, idx) => {
+                const isSolved = q.submission_status === 'graded' && (q.awarded_marks || 0) > 0;
+                const isAttempted = (q.saved_code && q.saved_code.trim()) || q.submission_status === 'submitted' || q.submission_status === 'grading';
+                const cleanTitle = (q.title || `Problem ${q.position || (idx+1)}`).replace(/^\[.*?\]\s*/, '');
+                return `
+                    <div class="drawer-item ${isSolved ? 'solved' : ''} ${idx === currentQuestionIndex ? 'active' : ''}" 
+                         onclick="selectQuestionFromDrawer(${idx})">
+                        <div class="drawer-item-title">${q.position || (idx+1)}. ${cleanTitle}</div>
+                        <div class="drawer-item-meta">
+                            <span class="badge ${(q.difficulty || 'Easy').toLowerCase()}">${q.difficulty || 'Easy'}</span>
+                            <span>•</span>
+                            <span>${q.marks || 1} pts</span>
+                            ${isSolved ? `<span style="color:var(--hr-green); font-weight:700;">• Solved (+${q.awarded_marks})</span>` : (isAttempted ? `<span style="color:#60a5fa;">• Answer Saved</span>` : '')}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function selectQuestionFromDrawer(idx) {
+            loadQuestion(idx);
+            toggleQuestionDrawer();
+        }
+
+        let cloudAutosaveTimer = null;
+
+        function setAutosaveStatus(text, color = '#10b981') {
+            const el = document.getElementById('autosave-indicator');
+            if (el) {
+                el.innerHTML = `<span style="display:inline-block; width:7px; height:7px; border-radius:50%; background:${color};"></span> ${text}`;
+                el.style.color = color;
+            }
+        }
+
+        function saveCurrentDraft() {
+            if (editor && currentQuestion && currentQuestion.question_id) {
+                const lang = document.getElementById('language').value || 'python';
+                const code = editor.getValue();
+                const qid = currentQuestion.question_id;
+                
+                try {
+                    localStorage.setItem(`draft_${qid}_${lang}`, code);
+                } catch (e) {}
+
+                // Keep reference in object
+                currentQuestion.saved_code = code;
+                currentQuestion.saved_language = lang;
+
+                // Debounce cloud autosave (1.5 seconds)
+                if (cloudAutosaveTimer) clearTimeout(cloudAutosaveTimer);
+                setAutosaveStatus('Saving...', '#f59e0b');
+                cloudAutosaveTimer = setTimeout(() => {
+                    triggerCloudAutosave(qid, code, lang);
+                }, 1500);
+            }
+        }
+
+        async function triggerCloudAutosave(qid, code, lang) {
+            try {
+                const res = await fetch(`${API_BASE}/api/teams/submissions/${qid}/autosave`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ code, language: lang })
+                });
+                if (res.ok) {
+                    setAutosaveStatus('Auto-Saved', '#10b981');
+                } else {
+                    setAutosaveStatus('Local Saved', '#10b981');
+                }
+            } catch (e) {
+                setAutosaveStatus('Local Saved', '#10b981');
+            }
+        }
+
+        function getSavedDraft(qid, lang) {
+            try {
+                return localStorage.getItem(`draft_${qid}_${lang}`);
+            } catch (e) {
+                return null;
+            }
+        }
+
+        function loadQuestion(index) {
+            saveCurrentDraft();
+            if (!questions || questions.length === 0) {
+                loadQuestions();
+                return;
+            }
+            if (index < 0 || index >= questions.length) index = 0;
+            currentQuestionIndex = index;
+            currentQuestion = questions[index];
+            if (!currentQuestion) return;
+
+            renderDrawerList();
+
+            const cleanTitle = (currentQuestion.title || `Problem ${currentQuestion.position || (index+1)}`).replace(/^\[.*?\]\s*/, '');
+            const titleElem = document.getElementById('prob-title');
+            if (titleElem) titleElem.textContent = `${currentQuestion.position || (index + 1)}. ${cleanTitle}`;
+            
+            const diffEl = document.getElementById('prob-difficulty');
+            if (diffEl) {
+                const diff = currentQuestion.difficulty || 'Easy';
+                diffEl.textContent = diff;
+                diffEl.className = `badge ${diff.toLowerCase()}`;
+            }
+            
+            const marksEl = document.getElementById('prob-marks');
+            if (marksEl) marksEl.textContent = `${currentQuestion.marks || 1} Marks`;
+
+            // Render Markdown
+            let mdHtml = currentQuestion.prompt_markdown || '<p>Problem description not available.</p>';
+            if (window.marked && currentQuestion.prompt_markdown) {
+                try {
+                    mdHtml = marked.parse(currentQuestion.prompt_markdown);
+                } catch(e) {
+                    mdHtml = `<div style="white-space:pre-wrap;">${escapeHtml(currentQuestion.prompt_markdown)}</div>`;
+                }
+            }
+            const bodyEl = document.getElementById('prob-body-content');
+            if (bodyEl) bodyEl.innerHTML = mdHtml;
+
+            // Setup Editor
+            setupEditor();
+
+            // Setup Testcase Tabs
+            setupTestcaseTabs();
+        }
+
+        function setupEditor() {
+            const langSelect = document.getElementById('language');
+            let lang = langSelect.value;
+            const qid = currentQuestion ? currentQuestion.question_id : 0;
+            
+            // Check local draft first
+            let savedDraft = getSavedDraft(qid, lang);
+            
+            // If no local draft for selected language, check if the question has a saved answer / submission from backend
+            if ((!savedDraft || !savedDraft.trim()) && currentQuestion && currentQuestion.saved_code && currentQuestion.saved_code.trim()) {
+                if (currentQuestion.saved_language && currentQuestion.saved_language !== lang) {
+                    lang = currentQuestion.saved_language;
+                    langSelect.value = lang;
+                }
+                savedDraft = currentQuestion.saved_code;
+                try {
+                    localStorage.setItem(`draft_${qid}_${lang}`, savedDraft);
+                } catch (e) {}
+            }
+            
+            let codeToSet = '';
+            if (savedDraft !== null && savedDraft.trim() !== '') {
+                codeToSet = savedDraft;
+            } else if (currentQuestion && currentQuestion.starter_code && currentQuestion.starter_code[lang]) {
+                codeToSet = currentQuestion.starter_code[lang];
+            } else {
+                codeToSet = '# Write your solution here\n';
+            }
+
+            if (!editor) {
+                const textarea = document.getElementById('code-editor');
+                editor = CodeMirror.fromTextArea(textarea, {
+                    mode: 'python',
+                    theme: 'monokai',
+                    lineNumbers: true,
+                    autoCloseBrackets: true,
+                    matchBrackets: true,
+                    styleActiveLine: true,
+                    indentUnit: 4,
+                    tabSize: 4,
+                    indentWithTabs: false,
+                    lineWrapping: true,
+                    extraKeys: {
+                        "Ctrl-Enter": function() { runCode(); },
+                        "Tab": function(cm) {
+                            if (cm.somethingSelected()) {
+                                cm.indentSelection("add");
+                            } else {
+                                cm.replaceSelection("    ", "end");
+                            }
+                        }
+                    }
+                });
+
+                editor.on('change', () => {
+                    saveCurrentDraft();
+                });
+            }
+
+            const modes = {
+                'python': 'python',
+                'cpp': 'text/x-c++src',
+                'java': 'text/x-java',
+                'javascript': 'javascript'
+            };
+            editor.setOption('mode', modes[lang] || 'python');
+            editor.setValue(codeToSet);
+            setAutosaveStatus('Auto-Saved', '#10b981');
+            setTimeout(() => { if (editor) editor.refresh(); }, 60);
+        }
+
+        function changeLanguage() {
+            const lang = document.getElementById('language').value;
+            const qid = currentQuestion ? currentQuestion.question_id : 0;
+            const savedDraft = getSavedDraft(qid, lang);
+            const starterCode = (currentQuestion && currentQuestion.starter_code && currentQuestion.starter_code[lang]) || '';
+            const codeToSet = (savedDraft !== null && savedDraft.trim() !== '') ? savedDraft : starterCode;
+
+            if (editor) {
+                const modes = {
+                    'python': 'python',
+                    'cpp': 'text/x-c++src',
+                    'java': 'text/x-java',
+                    'javascript': 'javascript'
+                };
+                editor.setOption('mode', modes[lang] || 'python');
+                editor.setValue(codeToSet);
+                editor.refresh();
+                editor.focus();
+            }
+        }
+
+        function changeFontSize() {
+            const size = document.getElementById('font-size').value;
+            const cmEl = document.querySelector('.CodeMirror');
+            if (cmEl) cmEl.style.fontSize = size;
+            if (editor) editor.refresh();
+        }
+
+        function resetTemplate() {
+            if (confirm('Reset code to the original starter template?')) {
+                const lang = document.getElementById('language').value;
+                const qid = currentQuestion ? currentQuestion.question_id : 0;
+                try {
+                    localStorage.removeItem(`draft_${qid}_${lang}`);
+                } catch (e) {}
+                const starterCode = (currentQuestion && currentQuestion.starter_code && currentQuestion.starter_code[lang]) || '# Write your solution here\n';
+                if (editor) {
+                    editor.setValue(starterCode);
+                    editor.refresh();
+                }
+                setAutosaveStatus('Reset', '#60a5fa');
+            }
+        }
+
+        function getEditorCode() {
+            return editor ? editor.getValue() : '';
+        }
+
+        function setupTestcaseTabs() {
+            sampleResults = [];
+            const container = document.getElementById('testcase-tabs-container');
+            const samples = (currentQuestion && currentQuestion.sample_test_cases) || [];
+
+            let tabsHtml = samples.map((tc, idx) => `
+                <div class="testcase-tab ${idx === 0 ? 'active' : ''}" id="tc-tab-${idx}" onclick="selectTestcaseTab(${idx})">
+                    Test ${idx + 1}
+                </div>
+            `).join('');
+
+            container.innerHTML = tabsHtml;
+            activeTestcaseIndex = 0;
+            renderTestcaseBody();
+        }
+
+        function selectTestcaseTab(idx) {
+            activeTestcaseIndex = idx;
+            const samples = (currentQuestion && currentQuestion.sample_test_cases) || [];
+            samples.forEach((_, i) => {
+                const tab = document.getElementById(`tc-tab-${i}`);
+                if (tab) tab.classList.toggle('active', i === idx);
+            });
+            renderTestcaseBody();
+        }
+
+        function toggleCustomInput() {
+            isCustomInputActive = document.getElementById('custom-input-toggle').checked;
+            renderTestcaseBody();
+        }
+
+        function renderTestcaseBody() {
+            const body = document.getElementById('testcase-body-content');
+            
+            if (isCustomInputActive) {
+                body.innerHTML = `
+                    <div class="io-box-label">Custom Standard Input (stdin)</div>
+                    <textarea class="custom-stdin-area" id="custom-stdin" placeholder="Enter input values here..."></textarea>
+                    <div id="custom-output-box" style="margin-top:12px;"></div>
+                `;
+                return;
+            }
+
+            const samples = (currentQuestion && currentQuestion.sample_test_cases) || [];
+            if (samples.length === 0) {
+                body.innerHTML = `<div style="color:var(--text-subtle)">No sample test cases available.</div>`;
+                return;
+            }
+
+            const currentSample = samples[activeTestcaseIndex] || samples[0];
+            const currentResult = sampleResults[activeTestcaseIndex];
+
+            let bannerHtml = '';
+            let actualOutputHtml = '';
+            let errorDetailsHtml = '';
+
+            if (currentResult) {
+                const isPass = currentResult.passed;
+                const hasErr = !!(currentResult.error || (latestRunData && latestRunData.stderr));
+                const statusTitle = isPass ? 'Success (Passed)' : (hasErr ? 'Runtime / Compiler Error' : 'Wrong Answer');
+                
+                bannerHtml = `
+                    <div class="status-banner ${isPass ? 'success' : 'error'}">
+                        <strong>Compiler Message: ${statusTitle}</strong>
+                        <span>${currentResult.execution_time_ms || 0} ms</span>
+                    </div>
+                `;
+
+                const outputVal = currentResult.actual_output !== undefined && currentResult.actual_output !== null && currentResult.actual_output !== ''
+                    ? escapeHtml(currentResult.actual_output)
+                    : '<span style="color:var(--text-subtle); font-style:italic;">(No standard output produced)</span>';
+
+                actualOutputHtml = `
+                    <div class="io-box-label">Your Output (stdout)</div>
+                    <div class="io-box ${isPass ? 'correct' : 'incorrect'}">${outputVal}</div>
+                `;
+
+                if (currentResult.error) {
+                    errorDetailsHtml = `
+                        <div class="io-box-label" style="color:var(--hr-red); margin-top:10px;">Compiler / Runtime Error (stderr)</div>
+                        <div class="io-box incorrect" style="white-space:pre-wrap; font-family:var(--font-mono); color:#fca5a5;">${escapeHtml(currentResult.error)}</div>
+                    `;
+                } else if (latestRunData && latestRunData.stderr) {
+                    errorDetailsHtml = `
+                        <div class="io-box-label" style="color:var(--hr-red); margin-top:10px;">Compiler / Runtime Error (stderr)</div>
+                        <div class="io-box incorrect" style="white-space:pre-wrap; font-family:var(--font-mono); color:#fca5a5;">${escapeHtml(latestRunData.stderr)}</div>
+                    `;
+                }
+            }
+
+            body.innerHTML = `
+                ${bannerHtml}
+                <div class="io-box-label">Input (stdin)</div>
+                <div class="io-box">${escapeHtml(currentSample.input_data || '(Empty)')}</div>
+                
+                <div class="io-box-label">Expected Output</div>
+                <div class="io-box">${escapeHtml(currentSample.expected_output || '')}</div>
+
+                ${actualOutputHtml}
+                ${errorDetailsHtml}
+            `;
+        }
+
+        function escapeHtml(str) {
+            return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        }
+
+        let latestRunData = null;
+
+        // Run Code Action
+        async function runCode() {
+            const code = getEditorCode();
+            const language = document.getElementById('language').value;
+            const customInput = isCustomInputActive ? (document.getElementById('custom-stdin')?.value || '') : null;
+
+            const body = document.getElementById('testcase-body-content');
+            body.innerHTML = `
+                <div class="status-banner running">
+                    <strong>⏳ Compiling and executing code...</strong>
+                </div>
+            `;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/teams/run-code`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        code: code,
+                        language: language,
+                        custom_input: customInput,
+                        question_id: currentQuestion ? currentQuestion.question_id : 1
+                    })
+                });
+
+                const data = await res.json();
+                latestRunData = data;
+
+                if (!res.ok) {
+                    body.innerHTML = `
+                        <div class="status-banner error">
+                            <strong>Compilation / Server Error</strong>
+                        </div>
+                        <div class="io-box incorrect">${escapeHtml(data.detail || 'Execution failed')}</div>
+                    `;
+                    return;
+                }
+
+                if (isCustomInputActive) {
+                    body.innerHTML = `
+                        <div class="status-banner ${data.success ? 'success' : 'error'}">
+                            <strong>Status: ${data.success ? 'Execution Finished' : 'Runtime / Compiler Error'}</strong>
+                            <span>${data.execution_time_ms || 0} ms</span>
+                        </div>
+                        <div class="io-box-label">Custom Standard Input (stdin)</div>
+                        <textarea class="custom-stdin-area" id="custom-stdin">${escapeHtml(customInput || '')}</textarea>
+                        <div class="io-box-label" style="margin-top:12px;">Your Output (stdout)</div>
+                        <div class="io-box ${data.success ? 'correct' : 'incorrect'}">${escapeHtml(data.stdout || '(no output produced)')}</div>
+                        ${data.stderr ? `<div class="io-box-label" style="color:var(--hr-red); margin-top:10px;">Error Output (stderr)</div><div class="io-box incorrect" style="white-space:pre-wrap; color:#fca5a5;">${escapeHtml(data.stderr)}</div>` : ''}
+                    `;
+                    return;
+                }
+
+                // Process Sample Test Results
+                sampleResults = data.sample_test_results || [];
+
+                if (sampleResults.length === 0 && (data.stderr || data.error)) {
+                    body.innerHTML = `
+                        <div class="status-banner error">
+                            <strong>Compilation / Runtime Error</strong>
+                        </div>
+                        <div class="io-box-label" style="color:var(--hr-red);">Compiler Message / Error Details</div>
+                        <div class="io-box incorrect" style="white-space:pre-wrap; color:#fca5a5;">${escapeHtml(data.stderr || data.error)}</div>
+                    `;
+                    return;
+                }
+
+                // Update Tab dots
+                sampleResults.forEach((r, i) => {
+                    const tab = document.getElementById(`tc-tab-${i}`);
+                    if (tab) {
+                        tab.classList.remove('pass-dot', 'fail-dot');
+                        tab.classList.add(r.passed ? 'pass-dot' : 'fail-dot');
+                    }
+                });
+
+                renderTestcaseBody();
+
+            } catch (err) {
+                body.innerHTML = `
+                    <div class="status-banner error">
+                        <strong>Network / Request Error</strong>
+                    </div>
+                    <div class="io-box incorrect">${escapeHtml(err.message)}</div>
+                `;
+            }
+        }
+
+        // Submit Code Action (HackerRank Submission Drawer)
+        async function submitCode() {
+            const code = getEditorCode();
+            const language = document.getElementById('language').value;
+
+            // Preserve answer immediately in memory and storage
+            if (currentQuestion && currentQuestion.question_id) {
+                currentQuestion.saved_code = code;
+                currentQuestion.saved_language = language;
+                try {
+                    localStorage.setItem(`draft_${currentQuestion.question_id}_${language}`, code);
+                } catch (e) {}
+            }
+
+            const body = document.getElementById('testcase-body-content');
+            body.innerHTML = `
+                <div class="status-banner running">
+                    <strong>🚀 Submitting solution & running hidden test cases...</strong>
+                </div>
+            `;
+
+            try {
+                const res = await fetch(`${API_BASE}/api/teams/submissions/${currentQuestion.question_id}/submit`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ code, language })
+                });
+
+                const data = await res.json();
+
+                if (data.status === 'already_submitted') {
+                    body.innerHTML = `
+                        <div class="status-banner error">
+                            <strong>Notice: Solution already submitted for this problem.</strong>
+                        </div>
+                    `;
+                    return;
+                }
+
+                pollSubmissionStatus(data.submission_id);
+
+            } catch (err) {
+                body.innerHTML = `
+                    <div class="status-banner error">
+                        <strong>Submission Error: ${escapeHtml(err.message)}</strong>
+                    </div>
+                `;
+            }
+        }
+
+        async function pollSubmissionStatus(submissionId) {
+            const body = document.getElementById('testcase-body-content');
+            let attempts = 0;
+
+            const interval = setInterval(async () => {
+                attempts++;
+                try {
+                    const res = await fetch(`${API_BASE}/api/teams/submissions/${submissionId}/status`, {
+                        headers: {'Authorization': `Bearer ${token}`}
+                    });
+                    const data = await res.json();
+
+                    if (data.status === 'graded') {
+                        clearInterval(interval);
+
+                        const isFullPass = data.passed_tests === data.total_tests && data.marks_awarded > 0;
+
+                        body.innerHTML = `
+                            <div class="status-banner ${isFullPass ? 'success' : 'error'}">
+                                <strong>${isFullPass ? '🎉 Congratulations! Accepted' : 'Evaluation Completed'}</strong>
+                                <span>Awarded: <strong>${data.marks_awarded}</strong> / ${currentQuestion.marks} Marks</span>
+                            </div>
+                            <div style="font-size:12px; color:var(--text-subtle); margin-bottom:8px;">
+                                Passed <strong>${data.passed_tests}</strong> of <strong>${data.total_tests}</strong> test cases (${data.execution_time_ms || 0} ms)
+                            </div>
+                        `;
+
+                        // Refresh score and list
+                        loadQuestions();
+                    } else if (attempts > 30) {
+                        clearInterval(interval);
+                        body.innerHTML = `
+                            <div class="status-banner running">
+                                <strong>⏳ Submission In Progress</strong>
+                                <span>Your solution has been securely received by the grading queue. Result will sync momentarily.</span>
+                            </div>
+                        `;
+                        loadQuestions();
+                    }
+                } catch (e) {
+                    if (attempts > 30) {
+                        clearInterval(interval);
+                    }
+                }
+            }, 600);
+        }
+
+        function switchProblemTab(tab) {
+            document.getElementById('tab-prob-desc').classList.toggle('active', tab === 'desc');
+            document.getElementById('tab-prob-subs').classList.toggle('active', tab === 'subs');
+            document.getElementById('prob-body-content').style.display = tab === 'desc' ? 'block' : 'none';
+            document.getElementById('prob-subs-content').style.display = tab === 'subs' ? 'block' : 'none';
+        }
+
+        function startTimer(durationSeconds) {
+            if (timerInterval) clearInterval(timerInterval);
+            testTargetExpiry = Date.now() + (durationSeconds * 1000);
+
+            function update() {
+                const remaining = Math.max(0, Math.floor((testTargetExpiry - Date.now()) / 1000));
+                const h = String(Math.floor(remaining / 3600)).padStart(2, '0');
+                const m = String(Math.floor((remaining % 3600) / 60)).padStart(2, '0');
+                const s = String(remaining % 60).padStart(2, '0');
+                document.getElementById('timer').textContent = `${h}:${m}:${s}`;
+
+                if (remaining <= 0) {
+                    clearInterval(timerInterval);
+                }
+            }
+
+            update();
+            timerInterval = setInterval(update, 1000);
+        }
+
+        // --- HackerRank Interactive Splitters (Draggable Left/Right & Up/Down) ---
+        function initSplitters() {
+            const splitterV = document.getElementById('splitter-v');
+            const splitterH = document.getElementById('splitter-h');
+            const paneProblem = document.querySelector('.pane-problem');
+            const testcasePanel = document.querySelector('.testcase-panel');
+            const sprintWorkspace = document.getElementById('active-sprint-view');
+
+            if (splitterV && paneProblem && sprintWorkspace) {
+                let isDraggingV = false;
+
+                const onMouseDownV = (e) => {
+                    isDraggingV = true;
+                    splitterV.classList.add('dragging');
+                    document.body.style.cursor = 'col-resize';
+                    document.body.style.userSelect = 'none';
+                    e.preventDefault();
+                };
+
+                const onMouseMoveV = (e) => {
+                    if (!isDraggingV) return;
+                    const workspaceRect = sprintWorkspace.getBoundingClientRect();
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    let newWidth = clientX - workspaceRect.left;
+                    
+                    const minW = 280;
+                    const maxW = workspaceRect.width - 320;
+                    if (newWidth < minW) newWidth = minW;
+                    if (newWidth > maxW) newWidth = maxW;
+                    
+                    paneProblem.style.width = `${newWidth}px`;
+                    if (editor) editor.refresh();
+                };
+
+                const onMouseUpV = () => {
+                    if (isDraggingV) {
+                        isDraggingV = false;
+                        splitterV.classList.remove('dragging');
+                        document.body.style.cursor = '';
+                        document.body.style.userSelect = '';
+                        if (editor) editor.refresh();
+                    }
+                };
+
+                splitterV.addEventListener('mousedown', onMouseDownV);
+                splitterV.addEventListener('touchstart', onMouseDownV, { passive: false });
+                document.addEventListener('mousemove', onMouseMoveV);
+                document.addEventListener('touchmove', onMouseMoveV, { passive: false });
+                document.addEventListener('mouseup', onMouseUpV);
+                document.addEventListener('touchend', onMouseUpV);
+            }
+
+            if (splitterH && testcasePanel) {
+                let isDraggingH = false;
+                let startY = 0;
+                let startHeight = 0;
+
+                const onMouseDownH = (e) => {
+                    isDraggingH = true;
+                    startY = e.touches ? e.touches[0].clientY : e.clientY;
+                    startHeight = testcasePanel.offsetHeight;
+                    splitterH.classList.add('dragging');
+                    document.body.style.cursor = 'row-resize';
+                    document.body.style.userSelect = 'none';
+                    e.preventDefault();
+                };
+
+                const onMouseMoveH = (e) => {
+                    if (!isDraggingH) return;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    const deltaY = clientY - startY;
+                    let newHeight = startHeight - deltaY;
+                    
+                    const minH = 90;
+                    const maxH = window.innerHeight - 180;
+                    if (newHeight < minH) newHeight = minH;
+                    if (newHeight > maxH) newHeight = maxH;
+                    
+                    testcasePanel.style.height = `${newHeight}px`;
+                    if (editor) editor.refresh();
+                };
+
+                const onMouseUpH = () => {
+                    if (isDraggingH) {
+                        isDraggingH = false;
+                        splitterH.classList.remove('dragging');
+                        document.body.style.cursor = '';
+                        document.body.style.userSelect = '';
+                        if (editor) editor.refresh();
+                    }
+                };
+
+                splitterH.addEventListener('mousedown', onMouseDownH);
+                splitterH.addEventListener('touchstart', onMouseDownH, { passive: false });
+                document.addEventListener('mousemove', onMouseMoveH);
+                document.addEventListener('touchmove', onMouseMoveH, { passive: false });
+                document.addEventListener('mouseup', onMouseUpH);
+                document.addEventListener('touchend', onMouseUpH);
+            }
+        }
+
+        // --- Live Leaderboard Controller ---
+        let leaderboardPollingInterval = null;
+
+        function openLeaderboardModal() {
+            const modal = document.getElementById('leaderboard-modal');
+            if (modal) {
+                modal.style.display = 'flex';
+                fetchLiveLeaderboard();
+                if (leaderboardPollingInterval) clearInterval(leaderboardPollingInterval);
+                leaderboardPollingInterval = setInterval(fetchLiveLeaderboard, 10000);
+            }
+        }
+
+        function closeLeaderboardModal() {
+            const modal = document.getElementById('leaderboard-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            if (leaderboardPollingInterval) {
+                clearInterval(leaderboardPollingInterval);
+                leaderboardPollingInterval = null;
+            }
+        }
+
+        async function fetchLiveLeaderboard() {
+            const container = document.getElementById('leaderboard-modal-content');
+            if (!container) return;
+            
+            try {
+                const token = localStorage.getItem('token');
+                const user_info = JSON.parse(localStorage.getItem('user_info') || '{}');
+                const myTeamId = user_info.team_id || (user_info.id || null);
+                
+                const response = await fetch(`${API_BASE}/api/teams/leaderboard`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!response.ok) {
+                    throw new Error('Failed to fetch leaderboard');
+                }
+                
+                const data = await response.json();
+                const entries = data.leaderboard || [];
+                
+                if (entries.length === 0) {
+                    container.innerHTML = `
+                        <div style="text-align:center; padding:40px 20px; color:var(--text-subtle);">
+                            <div style="font-size:36px; margin-bottom:10px;">📊</div>
+                            <div style="font-size:16px; font-weight:700; color:var(--text-bright); margin-bottom:6px;">No Live Submissions Yet</div>
+                            <div style="font-size:12px;">Rankings and scores will update automatically as teams submit solutions.</div>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                let rowsHtml = '';
+                entries.forEach((item, index) => {
+                    const rank = item.rank || (index + 1);
+                    const isMe = (myTeamId && item.team_id == myTeamId) || (user_info.team_name && item.team_name === user_info.team_name);
+                    const rankBadgeClass = rank === 1 ? 'rank-1' : rank === 2 ? 'rank-2' : rank === 3 ? 'rank-3' : 'rank-other';
+                    
+                    rowsHtml += `
+                        <tr class="${isMe ? 'lb-row-current' : ''}">
+                            <td style="width:50px; text-align:center;">
+                                <span class="lb-rank-badge ${rankBadgeClass}">${rank}</span>
+                            </td>
+                            <td>
+                                <div style="font-weight:700; color:${isMe ? 'var(--accent-signal)' : 'var(--text-bright)'};">
+                                    ${item.team_name} ${isMe ? '🌟 (You)' : ''}
+                                </div>
+                                <div style="font-size:11px; color:var(--text-subtle);">${item.college_name || 'Registered College'}</div>
+                            </td>
+                            <td style="text-align:center; font-family:var(--font-mono); font-weight:700; color:var(--hr-green);">
+                                ${item.total_score || 0} pts
+                            </td>
+                            <td style="text-align:center; font-family:var(--font-mono); font-size:12px;">
+                                ${item.questions_solved !== undefined ? item.questions_solved : (item.solved_count || 0)} / 25
+                            </td>
+                            <td style="text-align:right; font-family:var(--font-mono); font-size:12px; color:var(--text-subtle);">
+                                <div style="color:var(--text-bright);">${item.last_submission_formatted || item.time_taken_formatted || '--:--:--'}</div>
+                                <div style="font-size:10px; color:var(--text-muted);">Elapsed: ${item.time_taken_formatted || '00:00:00'}</div>
+                            </td>
+                        </tr>
+                    `;
+                });
+                
+                container.innerHTML = `
+                    <div style="margin-bottom:12px; display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:12px; color:var(--text-subtle); font-family:var(--font-mono);">
+                            Total Active Teams: <strong>${data.total_teams || entries.length}</strong>
+                        </span>
+                        <span style="font-size:11px; color:var(--hr-cyan); font-family:var(--font-mono);">
+                            🟢 Live Auto-Sync
+                        </span>
+                    </div>
+                    <table class="lb-table">
+                        <thead>
+                            <tr>
+                                <th style="text-align:center;">#</th>
+                                <th>Team Name</th>
+                                <th style="text-align:center;">Score</th>
+                                <th style="text-align:center;">Solved</th>
+                                <th style="text-align:right;">Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                `;
+                
+            } catch (err) {
+                container.innerHTML = `
+                    <div style="text-align:center; padding:30px; color:var(--hr-red);">
+                        <div style="font-size:24px; margin-bottom:8px;">⚠️</div>
+                        <div>Could not load standings: ${err.message}</div>
+                        <button class="editor-icon-btn" onclick="fetchLiveLeaderboard()" style="margin-top:12px; margin-left:auto; margin-right:auto;">Try Again</button>
+                    </div>
+                `;
+            }
+        }
+
+        // Initialize Sprint Polling & Splitters
+        document.addEventListener('DOMContentLoaded', initSplitters);
+        window.addEventListener('load', initSplitters);
+        checkSprintSync();
+        setInterval(checkSprintSync, 5000);
+
+    </script>
+
+    <!-- Live Leaderboard Modal -->
+    <div class="leaderboard-modal-overlay" id="leaderboard-modal" style="display:none;" onclick="if(event.target === this) closeLeaderboardModal()">
+        <div class="leaderboard-modal-box">
+            <div class="leaderboard-modal-header">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:22px;">🏆</span>
+                    <div>
+                        <h2 style="font-family:var(--font-display); font-size:18px; font-weight:800; color:var(--text-bright); text-transform:uppercase; margin:0;">
+                            Live Sprint Leaderboard
+                        </h2>
+                        <div style="font-size:11px; color:var(--text-subtle); font-family:var(--font-mono);">
+                            SPEC INDUSTRY HACK 2026 • Real-Time Standings
+                        </div>
+                    </div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button class="editor-icon-btn" onclick="fetchLiveLeaderboard()" title="Refresh Standings">🔄 Refresh</button>
+                    <button class="drawer-close" onclick="closeLeaderboardModal()">✕</button>
+                </div>
+            </div>
+            <div class="leaderboard-modal-body" id="leaderboard-modal-content">
+                <div style="text-align:center; padding:30px; color:var(--text-subtle);">Loading live rankings...</div>
+            </div>
+            <div class="leaderboard-modal-footer">
+                <div style="display:flex; justify-content:space-around; align-items:center; width:100%; gap:16px; flex-wrap:wrap;">
+                    <div>
+                        <div class="powered-by-label" style="font-size:10px; font-family:var(--font-mono); color:var(--text-subtle); text-transform:uppercase; margin-bottom:6px;">
+                            Technical Support by
+                        </div>
+                        <div class="sponsor-logos-row" style="gap:12px;">
+                            <img src="assets/ratio_logo.png" alt="Ratiio" class="sponsor-logo-modal" title="Ratiio AI">
+                            <img src="assets/riftgo_logo.png" alt="RiftGo Studios" class="sponsor-logo-modal" title="RiftGo Studios">
+                            <img src="assets/dondeal_logo.png" alt="Don Deal" class="sponsor-logo-modal" title="Don Deal">
+                        </div>
+                    </div>
+                    <div style="width:1px; height:28px; background:var(--border-dim);"></div>
+                    <div>
+                        <div class="powered-by-label" style="font-size:10px; font-family:var(--font-mono); color:var(--text-subtle); text-transform:uppercase; margin-bottom:6px;">
+                            Operational Support by
+                        </div>
+                        <div class="sponsor-logos-row">
+                            <img src="assets/veixon_logo.png" alt="VEIXON.Tech" class="sponsor-logo-modal" title="VEIXON.Tech" style="height:12px; max-width:65px;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,83 @@
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║          🚀 GENERATE 150 QUESTIONS - RUN THIS NOW! 🚀        ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+
+📋 COPY/PASTE THIS COMMAND INTO POWERSHELL:
+───────────────────────────────────────────────────────────────
+
+cd "c:\Exam Webpage\coding-test-platform\backend"
+python generate_questions_now.py
+
+
+───────────────────────────────────────────────────────────────
+
+⏳ What will happen:
+- Installs needed packages (~2 minutes)
+- Generates 150 questions using Grok AI (~25 minutes)
+- Saves questions to database
+- Total time: ~30 minutes
+
+🎯 When to run: TONIGHT (before you sleep)
+
+📱 What to do: Let it run, go do something else!
+
+
+═══════════════════════════════════════════════════════════════
+  IF YOU GET AN ERROR ABOUT DATABASE:
+═══════════════════════════════════════════════════════════════
+
+Don't worry! The questions will be generated as JSON files.
+Tomorrow morning, we'll import them to the database.
+
+Just let the script run to completion!
+
+
+═══════════════════════════════════════════════════════════════
+  AFTER IT COMPLETES (30 minutes from now):
+═══════════════════════════════════════════════════════════════
+
+✅ You should see: "SUCCESS! 150 questions generated"
+
+📂 Questions saved in: backend/generated_questions.json
+
+🌙 Now go to sleep! Tomorrow follow DEPLOY_NOW.md
+
+
+═══════════════════════════════════════════════════════════════
+  TOMORROW MORNING (15 minutes total):
+═══════════════════════════════════════════════════════════════
+
+1. Setup PostgreSQL database (5 min)
+2. Import questions (2 min)
+3. Start 3 services (2 min)
+4. Upload teams_real.csv (2 min)
+5. Configure test timing (1 min)
+6. TEST! (9:00 AM)
+
+
+═══════════════════════════════════════════════════════════════
+  STUCK? TRY THIS ALTERNATIVE:
+═══════════════════════════════════════════════════────────════
+
+If python command doesn't work:
+
+1. Find your Python installation:
+   - Check: C:\Program Files\Python314\python.exe
+   - Or: C:\Python314\python.exe
+   - Or: py.exe (Python launcher)
+
+2. Use full path:
+   "C:\Program Files\Python314\python.exe" generate_questions_now.py
+
+
+═══════════════════════════════════════════════════════════════
+
+🎉 Ready? Just run this:
+
+cd "c:\Exam Webpage\coding-test-platform\backend"
+python generate_questions_now.py
+
+═══════════════════════════════════════════════════════════════

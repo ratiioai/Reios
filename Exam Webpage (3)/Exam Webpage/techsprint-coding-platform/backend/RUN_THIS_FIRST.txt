@@ -1,0 +1,63 @@
+╔═══════════════════════════════════════════════════════════════╗
+║                                                               ║
+║     🚀 START HERE - GENERATE QUESTIONS TONIGHT! 🚀            ║
+║                                                               ║
+╚═══════════════════════════════════════════════════════════════╝
+
+
+📋 COPY/PASTE THESE COMMANDS INTO POWERSHELL:
+───────────────────────────────────────────────────────────────
+
+cd "c:\Exam Webpage\coding-test-platform\backend"
+
+.\setup_environment.ps1
+
+.\generate_questions_ai.ps1
+
+
+───────────────────────────────────────────────────────────────
+
+That's it! Wait 30 minutes for question generation.
+
+Tomorrow morning, follow DEPLOY_NOW.md for full setup.
+
+
+═══════════════════════════════════════════════════════════════
+  IF SCRIPTS DON'T RUN:
+═══════════════════════════════════════════════════════════════
+
+PowerShell may block scripts. Fix with:
+
+Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+
+Then retry the commands above.
+
+
+═══════════════════════════════════════════════════════════════
+  ALTERNATIVE (If scripts still don't work):
+═══════════════════════════════════════════════════════════════
+
+1. Install dependencies manually:
+
+cd "c:\Exam Webpage\coding-test-platform\backend"
+python -m venv venv
+venv\Scripts\Activate.ps1
+pip install fastapi uvicorn sqlalchemy psycopg2-binary python-jose passlib python-multipart pydantic pydantic-settings python-dotenv httpx requests openai
+
+2. Generate questions:
+
+python ai_question_generator.py
+
+
+═══════════════════════════════════════════════════════════════
+
+✅ AFTER GENERATION COMPLETES:
+
+Check if it worked:
+- Should say "SUCCESS! 150 questions added to database"
+- If you see errors, contact support or try again
+
+Tomorrow: Follow DEPLOY_NOW.md for complete deployment!
+
+
+═══════════════════════════════════════════════════════════════

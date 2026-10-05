@@ -1,0 +1,12 @@
+{
+  "version": 2,
+  "name": "spec-industry-hack-2026",
+  "cleanUrls": true,
+  "outputDirectory": "frontend",
+  "routes": [
+    { "src": "/admin", "dest": "/frontend/admin-login.html" },
+    { "src": "/command-center", "dest": "/frontend/admin-dashboard.html" },
+    { "src": "/contest", "dest": "/frontend/team-dashboard.html" },
+    { "src": "/(.*)", "dest": "/frontend/$1" }
+  ]
+}

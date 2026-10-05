@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPEC Industry Hack - Admin Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f7fa;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .stat-value {
+            font-size: 36px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .card {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-right: 10px;
+        }
+        
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th, td {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+        }
+        
+        .badge {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+        
+        .badge-danger {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        input[type="file"] {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div style="max-width: 1400px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+                <h1>🎯 Admin Control Panel</h1>
+                <p style="opacity: 0.9; margin-top: 5px;">SPEC Industry Hack - Round 1</p>
+            </div>
+            <button class="btn btn-primary" onclick="logout()">Logout</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="total-teams">--</div>
+                <div class="stat-label">Total Teams</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="teams-submitted">--</div>
+                <div class="stat-label">Tests Submitted</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="teams-in-progress">--</div>
+                <div class="stat-label">Tests In Progress</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="queue-depth">--</div>
+                <div class="stat-label">Grading Queue</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">Upload Teams (CSV)</h2>
+            <p style="color: #666; margin-bottom: 15px;">Upload CSV with columns: team_name, leader_name, leader_phone, member_2, member_3, member_4, college</p>
+            <input type="file" id="csv-file" accept=".csv">
+            <button class="btn btn-success" onclick="uploadCSV()">Upload Teams</button>
+            <div id="upload-result" style="margin-top: 15px;"></div>
+        </div>
+        
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">Test Configuration</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                <div>
+                    <label>Test Opens At:</label>
+                    <input type="datetime-local" id="test-open" class="form-control">
+                </div>
+                <div>
+                    <label>Test Closes At:</label>
+                    <input type="datetime-local" id="test-close" class="form-control">
+                </div>
+                <div>
+                    <label>Duration (minutes):</label>
+                    <input type="number" id="duration" value="120" class="form-control">
+                </div>
+                <div>
+                    <label>Global Start Time:</label>
+                    <input type="datetime-local" id="global-start" class="form-control">
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="configureTest()" style="margin-top: 20px;">Save Configuration</button>
+        </div>
+        
+        <div class="card">
+            <h2 style="margin-bottom: 20px;">Leaderboard</h2>
+            <button class="btn btn-primary" onclick="loadLeaderboard()">Refresh Leaderboard</button>
+            <button class="btn btn-success" onclick="publishLeaderboard()">Publish to Teams</button>
+            
+            <div style="margin-top: 20px; overflow-x: auto;">
+                <table id="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Team Name</th>
+                            <th>Total Score</th>
+                            <th>Time Taken</th>
+                            <th>Easy</th>
+                            <th>Medium</th>
+                            <th>Hard</th>
+                            <th>Questions Solved</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body">
+                        <tr><td colspan="8" style="text-align: center;">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = 'http://localhost:8000';
+        let token = localStorage.getItem('token');
+        
+        if (!token) {
+            window.location.href = 'index.html';
+        }
+        
+        // Load stats
+        async function loadStats() {
+            try {
+                const [statusRes, queueRes] = await Promise.all([
+                    fetch(`${API_BASE}/api/admin/test/status`, {
+                        headers: {'Authorization': `Bearer ${token}`}
+                    }),
+                    fetch(`${API_BASE}/api/admin/queue/stats`, {
+                        headers: {'Authorization': `Bearer ${token}`}
+                    })
+                ]);
+                
+                const status = await statusRes.json();
+                const queue = await queueRes.json();
+                
+                document.getElementById('total-teams').textContent = status.total_teams;
+                document.getElementById('teams-submitted').textContent = status.teams_submitted + status.teams_auto_submitted;
+                document.getElementById('teams-in-progress').textContent = status.teams_in_progress;
+                document.getElementById('queue-depth').textContent = queue.queue_depth;
+                
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+        
+        async function uploadCSV() {
+            const fileInput = document.getElementById('csv-file');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select a CSV file');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            const resultDiv = document.getElementById('upload-result');
+            resultDiv.innerHTML = '<p>Uploading...</p>';
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/teams/upload-csv`, {
+                    method: 'POST',
+                    headers: {'Authorization': `Bearer ${token}`},
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div style="background: #d4edda; padding: 15px; border-radius: 8px; color: #155724;">
+                            <strong>Success!</strong><br>
+                            Teams created: ${data.teams_created}<br>
+                            Question sets assigned: ${data.question_sets_assigned}
+                        </div>
+                    `;
+                    loadStats();
+                } else {
+                    resultDiv.innerHTML = `
+                        <div style="background: #f8d7da; padding: 15px; border-radius: 8px; color: #721c24;">
+                            <strong>Errors:</strong><br>
+                            ${data.errors.map(e => `Row ${e.row}: ${e.error}`).join('<br>')}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: #dc3545;">Error: ${error.message}</p>`;
+            }
+        }
+        
+        async function configureTest() {
+            const config = {
+                test_open_at: document.getElementById('test-open').value + ':00Z',
+                test_close_at: document.getElementById('test-close').value + ':00Z',
+                duration_minutes: parseInt(document.getElementById('duration').value),
+                global_start_time: document.getElementById('global-start').value + ':00Z',
+                synchronized_start: true
+            };
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/test/configure`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(config)
+                });
+                
+                if (response.ok) {
+                    alert('Test configuration saved!');
+                } else {
+                    alert('Error saving configuration');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        async function loadLeaderboard() {
+            try {
+                const response = await fetch(`${API_BASE}/api/admin/leaderboard`, {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                
+                const data = await response.json();
+                
+                const tbody = document.getElementById('leaderboard-body');
+                
+                if (data.leaderboard.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align: center;">No submissions yet</td></tr>';
+                    return;
+                }
+                
+                tbody.innerHTML = data.leaderboard.map(entry => `
+                    <tr>
+                        <td><strong>${entry.rank}</strong></td>
+                        <td>${entry.team_name}</td>
+                        <td><strong>${entry.total_score}</strong></td>
+                        <td>${entry.time_taken_formatted || 'N/A'}</td>
+                        <td>${entry.score_breakdown.easy_score}</td>
+                        <td>${entry.score_breakdown.medium_score}</td>
+                        <td>${entry.score_breakdown.hard_score}</td>
+                        <td>${entry.questions_solved}/${entry.questions_attempted}</td>
+                    </tr>
+                `).join('');
+                
+            } catch (error) {
+                alert('Error loading leaderboard: ' + error.message);
+            }
+        }
+        
+        async function publishLeaderboard() {
+            try {
+                await fetch(`${API_BASE}/api/admin/test/configure`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({leaderboard_published: true})
+                });
+                
+                alert('Leaderboard published! Teams can now view it.');
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'index.html';
+        }
+        
+        // Auto-refresh stats every 10 seconds
+        setInterval(loadStats, 10000);
+        
+        // Initial load
+        loadStats();
+        loadLeaderboard();
+    </script>
+</body>
+</html>

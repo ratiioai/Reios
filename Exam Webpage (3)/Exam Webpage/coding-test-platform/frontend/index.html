@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPEC INDUSTRY HACK 2026 | Coding Sprint - Round 1</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-blueprint: #0e2a4a;
+            --bg-panel: #123a63;
+            --bg-dark-panel: #091c33;
+            --line-white: #eaf2fa;
+            --line-dim: rgba(234, 242, 250, 0.25);
+            --line-faint: rgba(234, 242, 250, 0.08);
+            --accent-signal: #ffb800;
+            --accent-stamp: #e8483c;
+            --text-bright: #ffffff;
+            --text-dim: #9fb8d4;
+            --text-muted: #6b8bae;
+            --font-display: "Space Grotesk", -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-body: "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: "JetBrains Mono", monospace;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: var(--font-body);
+            background-color: var(--bg-blueprint);
+            background-image: 
+                linear-gradient(90deg, var(--line-faint) 1px, transparent 1px),
+                linear-gradient(var(--line-faint) 1px, transparent 1px);
+            background-size: 30px 30px;
+            color: var(--text-dim);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            background: rgba(9, 28, 51, 0.95);
+            border: 1.5px solid var(--line-dim);
+            border-radius: 20px;
+            padding: 44px 40px;
+            max-width: 480px;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .logo-section {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        
+        .event-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: var(--font-mono);
+            color: var(--accent-stamp);
+            border: 1.5px solid var(--accent-stamp);
+            background-color: rgba(232, 72, 60, 0.12);
+            padding: 6px 16px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            margin-bottom: 16px;
+        }
+        
+        h1 {
+            font-family: var(--font-display);
+            text-align: center;
+            color: var(--text-bright);
+            margin-bottom: 6px;
+            font-size: 28px;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: var(--text-dim);
+            margin-bottom: 24px;
+            font-size: 13px;
+            font-family: var(--font-mono);
+            letter-spacing: 0.02em;
+        }
+        
+        .subtitle strong {
+            color: var(--accent-signal);
+            font-weight: 700;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 28px;
+            padding: 14px;
+            background: rgba(18, 58, 99, 0.5);
+            border: 1px solid var(--line-dim);
+            border-radius: 14px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-family: var(--font-display);
+            font-size: 22px;
+            font-weight: 800;
+            color: var(--text-bright);
+        }
+        
+        .stat-label {
+            font-family: var(--font-mono);
+            font-size: 10px;
+            color: var(--text-dim);
+            margin-top: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .auth-tabs {
+            display: flex;
+            background: rgba(18, 58, 99, 0.45);
+            border: 1.5px solid var(--line-dim);
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 22px;
+            gap: 4px;
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: 10px 12px;
+            border: none;
+            background: transparent;
+            color: var(--text-dim);
+            font-family: var(--font-display);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .auth-tab.active {
+            background: var(--accent-signal);
+            color: var(--bg-blueprint) !important;
+            box-shadow: 0 2px 10px rgba(255, 184, 0, 0.3);
+        }
+
+        .auth-tab:hover:not(.active) {
+            color: var(--text-bright);
+            background: rgba(255, 255, 255, 0.06);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--line-white);
+            font-family: var(--font-mono);
+            font-weight: 600;
+            font-size: 11px;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+        
+        input {
+            width: 100%;
+            padding: 14px 16px;
+            background: rgba(18, 58, 99, 0.5);
+            border: 1.5px solid var(--line-dim);
+            border-radius: 10px;
+            font-size: 14px;
+            color: var(--text-bright);
+            transition: border-color 0.2s ease;
+            font-family: var(--font-body);
+        }
+        
+        input::placeholder {
+            color: var(--text-muted);
+        }
+        
+        input:focus {
+            outline: none;
+            background: rgba(18, 58, 99, 0.85);
+            border-color: var(--accent-signal);
+        }
+        
+        button.btn-illuminated {
+            width: 100%;
+            padding: 14px 20px;
+            background-color: var(--accent-signal);
+            color: var(--bg-blueprint) !important;
+            border: 2px solid var(--accent-signal);
+            border-radius: 9999px;
+            font-family: var(--font-display);
+            font-size: 15px;
+            font-weight: 800;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: background-color 0.15s, transform 0.15s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        button.btn-illuminated:hover {
+            background-color: #ffca28;
+            transform: translateY(-1px);
+        }
+        
+        button.btn-illuminated:active {
+            transform: translateY(0);
+        }
+        
+        .error {
+            background: rgba(232, 72, 60, 0.15);
+            color: #ff8a80;
+            border: 1px solid var(--accent-stamp);
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            font-family: var(--font-mono);
+            display: none;
+        }
+        
+        .success {
+            background: rgba(34, 197, 94, 0.15);
+            color: #86efac;
+            border: 1px solid #22c55e;
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            font-family: var(--font-mono);
+            display: none;
+        }
+        
+        .info-section {
+            margin-top: 24px;
+            padding-top: 18px;
+            border-top: 1px solid var(--line-faint);
+            text-align: center;
+        }
+        
+        .info-text {
+            color: var(--text-muted);
+            font-size: 12px;
+            line-height: 1.5;
+            font-family: var(--font-mono);
+        }
+
+        /* Powered By Section */
+        .powered-by {
+            text-align: center;
+            margin-top: 24px;
+            padding-top: 18px;
+            border-top: 1px solid var(--line-faint);
+        }
+
+        .support-columns {
+            display: flex;
+            align-items: center;
+            justify-content: space-around;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .support-col {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            flex: 1;
+            min-width: 150px;
+        }
+
+        .support-divider {
+            width: 1px;
+            height: 48px;
+            background: var(--line-faint, rgba(234, 242, 250, 0.15));
+        }
+
+        .powered-by-label {
+            font-family: var(--font-mono);
+            font-size: 9.5px;
+            font-weight: 700;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            margin-bottom: 12px;
+        }
+
+        .sponsor-logos {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .sponsor-logos img {
+            height: 32px;
+            width: auto;
+            object-fit: contain;
+            opacity: 0.9;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+        }
+
+        .sponsor-logos img:hover {
+            opacity: 1;
+            transform: scale(1.05);
+        }
+
+        .sponsor-logos .riftgo-logo,
+        .sponsor-logos .dondeal-logo {
+            border-radius: 6px;
+        }
+
+        .sponsor-logos .veixon-logo {
+            height: 18px;
+            max-height: 18px;
+            max-width: 110px;
+            filter: brightness(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-section">
+            <div class="event-badge">Round 1 • 2026</div>
+            <h1>SPEC Industry Hack</h1>
+            <p class="subtitle">
+                <strong>175 Teams</strong> • <strong>25 Problems</strong> • <strong>120 Minutes</strong>
+            </p>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-value">175</div>
+                <div class="stat-label">Teams</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">25</div>
+                <div class="stat-label">Problems</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value">120</div>
+                <div class="stat-label">Minutes</div>
+            </div>
+        </div>
+        
+        <div id="error" class="error"></div>
+        <div id="success" class="success"></div>
+        
+        <!-- Auth Tabs -->
+        <div class="auth-tabs">
+            <button type="button" class="auth-tab active" id="tab-login" onclick="switchTab('login')">
+                🔑 Team Login
+            </button>
+            <button type="button" class="auth-tab" id="tab-signup" onclick="switchTab('signup')">
+                ✨ New Team Sign-Up
+            </button>
+        </div>
+
+        <!-- Team Login Form -->
+        <form id="team-login-form" onsubmit="loginTeam(event)">
+            <div class="form-group">
+                <label for="team-name">Team Name</label>
+                <input type="text" id="team-name" placeholder="Enter registered team name" required autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label for="team-phone">Leader Mobile Number</label>
+                <input type="tel" id="team-phone" placeholder="10-digit mobile number" maxlength="10" pattern="[0-9]{10}" required autocomplete="off">
+            </div>
+            <button type="submit" class="btn-illuminated">Enter Coding Sprint</button>
+        </form>
+
+        <!-- Team Sign-Up / Register Form -->
+        <form id="team-signup-form" onsubmit="registerTeam(event)" style="display: none;">
+            <div class="form-group">
+                <label for="reg-team-name">Team Name</label>
+                <input type="text" id="reg-team-name" placeholder="e.g. Code Titans" required autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label for="reg-leader-name">Team Leader Full Name</label>
+                <input type="text" id="reg-leader-name" placeholder="e.g. John Doe" required autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label for="reg-team-phone">Leader Mobile Number</label>
+                <input type="tel" id="reg-team-phone" placeholder="10-digit mobile number (used as password)" maxlength="10" pattern="[0-9]{10}" required autocomplete="off">
+            </div>
+            <div class="form-group">
+                <label for="reg-college">College / Institute Name</label>
+                <input type="text" id="reg-college" placeholder="e.g. VNR VJIET / KMIT" autocomplete="off">
+            </div>
+            <button type="submit" class="btn-illuminated" style="background:#22c55e; border-color:#22c55e; color:#0e2a4a !important;">
+                🚀 Register & Allot 25 Problems
+            </button>
+        </form>
+
+        <div class="powered-by">
+            <div class="support-columns">
+                <div class="support-col">
+                    <div class="powered-by-label">Technical Support by</div>
+                    <div class="sponsor-logos">
+                        <img src="assets/ratio_logo.png" alt="Ratiio" class="ratio-logo" title="Ratiio AI">
+                        <img src="assets/riftgo_logo.png" alt="RiftGo Studios" class="riftgo-logo" title="RiftGo Studios">
+                        <img src="assets/dondeal_logo.png" alt="Don Deal" class="dondeal-logo" title="Don Deal">
+                    </div>
+                </div>
+                <div class="support-divider"></div>
+                <div class="support-col">
+                    <div class="powered-by-label">Operational Support by</div>
+                    <div class="sponsor-logos">
+                        <img src="assets/veixon_logo.png" alt="VEIXON.Tech" class="veixon-logo" title="VEIXON.Tech">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-section">
+            <p class="info-text" id="info-description">
+                Already registered? Use your team name and leader mobile number to enter.
+            </p>
+            <div style="text-align: center; margin-top: 14px;">
+                <a href="admin-login.html" style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-signal); text-decoration: none; border-bottom: 1px dashed var(--accent-signal); padding-bottom: 2px;">
+                    🛡️ Admin Command Portal →
+                </a>
+            </div>
+        </div>
+    </div>
+    <script src="config.js"></script>
+    <script>
+        const API_BASE = window.APP_CONFIG ? window.APP_CONFIG.getApiBase() : (
+            (window.location.protocol.startsWith('http') && window.location.hostname)
+                ? `${window.location.protocol}//${window.location.hostname}:8000`
+                : 'http://localhost:8000'
+        );
+        
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            document.getElementById('success').style.display = 'none';
+        }
+        
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+            document.getElementById('error').style.display = 'none';
+        }
+        
+        function hideMessages() {
+            document.getElementById('error').style.display = 'none';
+            document.getElementById('success').style.display = 'none';
+        }
+
+        function switchTab(tab) {
+            hideMessages();
+            const tabLogin = document.getElementById('tab-login');
+            const tabSignup = document.getElementById('tab-signup');
+            const formLogin = document.getElementById('team-login-form');
+            const formSignup = document.getElementById('team-signup-form');
+            const infoDesc = document.getElementById('info-description');
+
+            if (tab === 'signup') {
+                tabSignup.classList.add('active');
+                tabLogin.classList.remove('active');
+                formLogin.style.display = 'none';
+                formSignup.style.display = 'block';
+                if (infoDesc) infoDesc.textContent = 'Newly registered teams will instantly receive an assigned 25-question problem set and direct sprint access.';
+            } else {
+                tabLogin.classList.add('active');
+                tabSignup.classList.remove('active');
+                formLogin.style.display = 'block';
+                formSignup.style.display = 'none';
+                if (infoDesc) infoDesc.textContent = 'Already registered? Use your team name and leader mobile number to enter.';
+            }
+        }
+        
+        async function loginTeam(event) {
+            event.preventDefault();
+            hideMessages();
+            
+            const teamName = document.getElementById('team-name').value.trim();
+            const leaderPhone = document.getElementById('team-phone').value.trim();
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/team/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        team_name: teamName,
+                        leader_phone: leaderPhone
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Login failed');
+                }
+                
+                // Store token
+                localStorage.setItem('token', data.access_token);
+                localStorage.setItem('role', 'team');
+                localStorage.setItem('user_info', JSON.stringify(data.user_info));
+                
+                // Request automatic fullscreen on the user interaction gesture
+                try {
+                    const el = document.documentElement;
+                    if (el.requestFullscreen) {
+                        el.requestFullscreen().catch(() => {});
+                    } else if (el.webkitRequestFullscreen) {
+                        el.webkitRequestFullscreen();
+                    }
+                } catch (fsErr) {
+                    console.log('Fullscreen prompt will appear in dashboard');
+                }
+                
+                showSuccess(`Welcome ${data.user_info.team_name}! Redirecting to Coding Sprint...`);
+                
+                setTimeout(() => {
+                    window.location.href = 'team-dashboard.html';
+                }, 800);
+                
+            } catch (error) {
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.message.includes('fetch')) {
+                    showError(`⚠️ Cannot reach backend server at [${API_BASE}].`);
+                } else {
+                    showError(error.message);
+                }
+            }
+        }
+
+        async function registerTeam(event) {
+            event.preventDefault();
+            hideMessages();
+
+            const teamName = document.getElementById('reg-team-name').value.trim();
+            const leaderName = document.getElementById('reg-leader-name').value.trim();
+            const leaderPhone = document.getElementById('reg-team-phone').value.trim();
+            const college = document.getElementById('reg-college').value.trim() || 'General';
+
+            if (!teamName || !leaderName || !leaderPhone) {
+                showError('Please fill in Team Name, Leader Name, and 10-digit Phone Number.');
+                return;
+            }
+
+            try {
+                const response = await fetch(`${API_BASE}/api/auth/team/register`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({
+                        team_name: teamName,
+                        leader_name: leaderName,
+                        leader_phone: leaderPhone,
+                        college: college
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.detail || 'Registration failed');
+                }
+
+                // Store token & user info
+                localStorage.setItem('token', data.access_token);
+                localStorage.setItem('role', 'team');
+                localStorage.setItem('user_info', JSON.stringify(data.user_info));
+
+                // Try fullscreen on user interaction
+                try {
+                    const el = document.documentElement;
+                    if (el.requestFullscreen) {
+                        el.requestFullscreen().catch(() => {});
+                    } else if (el.webkitRequestFullscreen) {
+                        el.webkitRequestFullscreen();
+                    }
+                } catch (fsErr) {}
+
+                const setName = data.user_info.assigned_set ? ` (${data.user_info.assigned_set} Assigned)` : '';
+                showSuccess(`🎉 Registration Successful! ${setName} Launching Coding Sprint...`);
+
+                setTimeout(() => {
+                    window.location.href = 'team-dashboard.html';
+                }, 1000);
+
+            } catch (error) {
+                if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError') || error.message.includes('fetch')) {
+                    showError(`⚠️ Cannot reach backend server at [${API_BASE}].`);
+                } else {
+                    showError(error.message);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+# Secrets and personal data
+.env
+**/.env
+*credentials*
+*CREDENTIALS*
+**/firebase-credentials*.json
+*Form Responses*.csv
+**/teams_*.csv
+**/teams_from_form.csv
+**/exports/
+**/uploads/
+*.db
+*.sqlite3
+**/logs/
+**/submissions/
+
+# Environments, binaries, caches
+**/venv/
+**/.venv/
+**/.venv312/
+**/compilers/
+*.exe
+*.zip
+__pycache__/
+*.pyc
+node_modules/
+round-1-/
