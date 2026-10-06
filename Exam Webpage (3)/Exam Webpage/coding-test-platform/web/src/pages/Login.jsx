@@ -60,12 +60,19 @@ export default function Login() {
     setError("");
     const body = { identifier: identifier.trim(), password };
     if (mode === "student") {
-      if (!collegeCode.trim()) { setError("Enter your college code"); return; }
+      if (!collegeCode.trim()) { setError("Enter your organization code"); return; }
       body.college_code = collegeCode.trim();
     }
     setBusy(true);
     try {
-      const u = await login(body);
+      let u;
+      try {
+        u = await login(body);
+      } catch (err) {
+        // Super admins sign in through Firebase: same email and password, sent there instead
+        if (mode !== "admin" || !firebaseOn || !/Firebase/.test(err.message)) throw err;
+        u = await loginWithFirebase(await firebaseSignIn("password", body.identifier, password));
+      }
       if (mode === "student" && u.role !== "student") {
         throw new Error("Use the Staff tab to sign in as an admin");
       }
@@ -124,7 +131,7 @@ export default function Login() {
             <form onSubmit={submit}>
               {mode === "student" && (
                 <div className="field">
-                  <label htmlFor="college_code">College code</label>
+                  <label htmlFor="college_code">Organization code</label>
                   <input id="college_code" value={collegeCode} placeholder="e.g. JNTU"
                          autoComplete="organization" style={{ textTransform: "uppercase" }}
                          onChange={(e) => setCollegeCode(e.target.value)} />
@@ -139,8 +146,8 @@ export default function Login() {
               </div>
               <div className="field">
                 <label htmlFor="password">Password</label>
-                <input id="password" type="password" required autoComplete="current-password"
-                       value={password} onChange={(e) => setPassword(e.target.value)} />
+                <PasswordInput id="password" required value={password}
+                               onChange={(e) => setPassword(e.target.value)} />
               </div>
               <div className="small" style={{ color: "var(--danger)", minHeight: 18, marginBottom: 4, fontWeight: 550 }}>
                 {error}
@@ -219,9 +226,9 @@ function SuperAdminFirebase({ onSignedIn, onError }) {
           </div>
           <div className="field">
             <label htmlFor="fb-pass">Firebase password</label>
-            <input id="fb-pass" type="password" autoComplete="current-password" value={password}
-                   onChange={(e) => setPassword(e.target.value)}
-                   onKeyDown={(e) => e.key === "Enter" && go("password")} />
+            <PasswordInput id="fb-pass" value={password}
+                           onChange={(e) => setPassword(e.target.value)}
+                           onKeyDown={(e) => e.key === "Enter" && go("password")} />
           </div>
           <button type="button" className="btn primary block" disabled={!!busy || !email || !password}
                   onClick={() => go("password")}>
@@ -229,6 +236,21 @@ function SuperAdminFirebase({ onSignedIn, onError }) {
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+export function PasswordInput(props) {
+  const [show, setShow] = useState(false);
+  return (
+    <div style={{ position: "relative" }}>
+      <input autoComplete="current-password" {...props} type={show ? "text" : "password"}
+             style={{ paddingRight: 64, ...(props.style || {}) }} />
+      <button type="button" className="btn ghost sm" onClick={() => setShow((v) => !v)}
+              aria-label={show ? "Hide password" : "Show password"}
+              style={{ position: "absolute", right: 4, top: "50%", transform: "translateY(-50%)" }}>
+        {show ? "Hide" : "Show"}
+      </button>
     </div>
   );
 }

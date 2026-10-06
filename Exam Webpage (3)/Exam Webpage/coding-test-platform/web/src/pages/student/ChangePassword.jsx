@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api } from "../../lib/api.js";
 import { useAuth } from "../../lib/auth.jsx";
 import { Field, Modal, ModalButton, useToast } from "../../components/ui.jsx";
+import { PasswordInput } from "../Login.jsx";
 
 /** `forced` is used at first login, when a temporary password must be replaced. */
 export default function ChangePassword({ forced = false, onClose, onDone }) {
@@ -47,15 +48,15 @@ export default function ChangePassword({ forced = false, onClose, onDone }) {
         </p>
       )}
       <Field label="Current password">
-        <input type="password" autoComplete="current-password" value={cur}
+        <PasswordInput autoComplete="current-password" value={cur}
                onChange={(e) => setCur(e.target.value)} />
       </Field>
       <Field label="New password (min 8 characters)">
-        <input type="password" autoComplete="new-password" value={n1}
+        <PasswordInput autoComplete="new-password" value={n1}
                onChange={(e) => setN1(e.target.value)} />
       </Field>
       <Field label="Confirm new password">
-        <input type="password" autoComplete="new-password" value={n2}
+        <PasswordInput autoComplete="new-password" value={n2}
                onChange={(e) => setN2(e.target.value)} />
       </Field>
     </Modal>

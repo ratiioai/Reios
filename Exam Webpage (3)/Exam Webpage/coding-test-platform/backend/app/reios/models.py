@@ -48,6 +48,8 @@ class College(Base):
     contact_email = Column(String(255), nullable=True)
     contact_phone = Column(String(32), nullable=True)
     max_students = Column(Integer, nullable=True)  # licence limit, None = unlimited
+    max_exams = Column(Integer, nullable=True)  # exams the plan includes, None = unlimited
+    access_until = Column(DateTime(timezone=True), nullable=True)  # account locks after this, None = no end
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

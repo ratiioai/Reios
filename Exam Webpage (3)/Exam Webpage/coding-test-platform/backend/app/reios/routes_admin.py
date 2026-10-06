@@ -285,6 +285,16 @@ def get_student(db: Session, college_id: int, student_id: int) -> User:
     return student
 
 
+def check_exam_quota(db: Session, college_id: int) -> None:
+    org = db.get(College, college_id)
+    if org and org.max_exams is not None:
+        used = db.query(Exam).filter(Exam.college_id == college_id).count()
+        if used >= org.max_exams:
+            raise HTTPException(status.HTTP_403_FORBIDDEN,
+                                f"Your plan includes {org.max_exams} exams and all are used. "
+                                "Delete an unused exam or contact the Reios team to add more")
+
+
 def get_exam(db: Session, college_id: int, exam_id: int) -> Exam:
     exam = db.get(Exam, exam_id)
     if not exam or exam.college_id != college_id:
@@ -374,7 +384,8 @@ def college_stats(college_id: int = Depends(scoped_college_id), db: Session = De
                     len(finished), 1) if finished else None
     return {
         "college": {"id": college.id, "name": college.name, "code": college.code,
-                    "max_students": college.max_students},
+                    "max_students": college.max_students, "max_exams": college.max_exams,
+                    "access_until": as_utc(college.access_until)},
         "students": db.query(func.count(User.id)).filter(
             User.college_id == college_id, User.role == Role.STUDENT).scalar(),
         "active_students": db.query(func.count(User.id)).filter(
@@ -797,6 +808,7 @@ def list_exams(college_id: int = Depends(scoped_college_id), db: Session = Depen
 @router.post("/exams", status_code=status.HTTP_201_CREATED)
 def create_exam(body: ExamIn, college_id: int = Depends(scoped_college_id), user: User = Depends(require_admin),
                 db: Session = Depends(get_db)):
+    check_exam_quota(db, college_id)
     exam = Exam(college_id=college_id, created_by=user.id, **body.model_dump())
     db.add(exam)
     db.commit()
@@ -919,6 +931,7 @@ def delete_exam(exam_id: int, college_id: int = Depends(scoped_college_id), db: 
 def duplicate_exam(exam_id: int, college_id: int = Depends(scoped_college_id), user: User = Depends(require_admin),
                    db: Session = Depends(get_db)):
     src = get_exam(db, college_id, exam_id)
+    check_exam_quota(db, college_id)
     copy = Exam(college_id=college_id, created_by=user.id, title=f"{src.title} (copy)", is_published=False,
                 **{c: getattr(src, c) for c in (
                     "description", "instructions", "start_at", "end_at", "duration_minutes", "branch_filter",

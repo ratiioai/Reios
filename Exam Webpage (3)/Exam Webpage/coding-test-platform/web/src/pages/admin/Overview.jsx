@@ -38,7 +38,7 @@ export default function Overview() {
 
   if (loading) return <Loading />;
   if (!platform && !college) {
-    return <Empty title="No colleges yet" hint="Create your first college under Colleges & Admins." />;
+    return <Empty title="No organizations yet" hint="Create your first one under Organizations." />;
   }
 
   return (
@@ -47,8 +47,8 @@ export default function Overview() {
         <>
           <div className="page-head"><h1>Platform overview</h1></div>
           <div className="grid cols-4" style={{ marginBottom: 24 }}>
-            <Stat label="Colleges" value={`${platform.active_colleges} / ${platform.colleges}`} sub="active / total" />
-            <Stat label="College admins" value={platform.college_admins} tone="plain" />
+            <Stat label="Organizations" value={`${platform.active_colleges} / ${platform.colleges}`} sub="active / total" />
+            <Stat label="Organization admins" value={platform.college_admins} tone="plain" />
             <Stat label="Students" value={platform.students} tone="plain" />
             <Stat label="Exams" value={platform.exams} tone="plain" />
             <Stat label="Attempts" value={platform.attempts} tone="plain" />
@@ -65,6 +65,11 @@ export default function Overview() {
             {college.college.name}{" "}
             <span className="muted small">code {college.college.code}</span>
           </h2>
+          {college.college.access_until && (
+            <p className="muted small" style={{ marginTop: -6 }}>
+              Access until <strong>{new Date(college.college.access_until).toLocaleDateString()}</strong>
+            </p>
+          )}
           <div className="grid cols-4">
             <Stat
               label="Students"
@@ -73,7 +78,8 @@ export default function Overview() {
                 : college.students}
               sub={`${college.active_students} active`}
             />
-            <Stat label="Exams" value={college.exams}
+            <Stat label="Exams"
+                  value={college.college.max_exams ? `${college.exams} / ${college.college.max_exams}` : college.exams}
                   sub={`${college.live_exams} live · ${college.upcoming_exams} scheduled`} />
             <Stat label="Writing now" value={college.live_attempts}
                   tone={college.live_attempts ? "green" : "plain"} />

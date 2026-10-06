@@ -630,3 +630,36 @@ def test_super_admin_firebase_sign_in(client, setup, monkeypatch):
     assert r.status_code == 403 and "Firebase" in r.text
     r = client.post("/api/reios/auth/login", json={"identifier": "tpo@tec.edu", "password": "TpoSecure99"})
     assert "Firebase" not in r.text
+
+
+def test_organization_plan_limits(client, setup):
+    from datetime import datetime, timedelta, timezone
+    root = setup["root"]
+    org = client.post("/api/reios/super/colleges", headers=auth(root),
+                      json={"name": "Acme Hiring", "code": "ACME", "max_exams": 1}).json()
+    assert org["max_exams"] == 1 and org["expired"] is False
+    client.post(f"/api/reios/super/colleges/{org['id']}/admins", headers=auth(root),
+                json={"name": "Acme HR", "email": "hr@acme.com", "password": "AcmePass1"})
+    r = client.post("/api/reios/auth/login", json={"identifier": "hr@acme.com", "password": "AcmePass1"})
+    assert r.status_code == 200, r.text
+    adm = r.json()["access_token"]
+    now = datetime.now(timezone.utc)
+    body = {"title": "Round 1", "start_at": now.isoformat(), "end_at": (now + timedelta(hours=1)).isoformat()}
+    first = client.post("/api/reios/admin/exams", headers=auth(adm), json=body)
+    assert first.status_code == 201
+    r = client.post("/api/reios/admin/exams", headers=auth(adm), json=body)
+    assert r.status_code == 403 and "plan includes 1" in r.text
+    assert client.post(f"/api/reios/admin/exams/{first.json()['id']}/duplicate", headers=auth(adm)).status_code == 403
+    assert client.get("/api/reios/admin/stats", headers=auth(adm)).json()["college"]["max_exams"] == 1
+
+    # Access end date in the past: existing sessions and new sign-ins are both refused
+    r = client.patch(f"/api/reios/super/colleges/{org['id']}", headers=auth(root),
+                     json={"access_until": (now - timedelta(minutes=1)).isoformat()})
+    assert r.json()["expired"] is True
+    r = client.get("/api/reios/admin/exams", headers=auth(adm))
+    assert r.status_code == 403 and "access ended" in r.text
+    assert client.post("/api/reios/auth/login", json={"identifier": "hr@acme.com", "password": "AcmePass1"}).status_code == 403
+    # Renewing restores access; super admin is never locked out
+    client.patch(f"/api/reios/super/colleges/{org['id']}", headers=auth(root),
+                 json={"access_until": (now + timedelta(days=30)).isoformat()})
+    assert client.get("/api/reios/admin/exams", headers=auth(adm)).status_code == 200

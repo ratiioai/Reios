@@ -72,8 +72,7 @@ def check_login(db: Session, user: Optional[User], password: str) -> User:
         raise invalid
     if not user.is_active:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Account is disabled")
-    if user.college_id and user.college and not user.college.is_active:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Your college account is disabled")
+    check_org_access(user)
     user.failed_login_attempts = 0
     user.locked_until = None
     user.last_login_at = utcnow()
@@ -81,6 +80,19 @@ def check_login(db: Session, user: Optional[User], password: str) -> User:
         user.hashed_password = hash_password(password)
     db.commit()
     return user
+
+
+def check_org_access(user: User) -> None:
+    org = user.college if user.college_id else None
+    if org is None:
+        return
+    if not org.is_active:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Your organization's account is disabled")
+    until = as_utc(org.access_until)
+    if until and until < utcnow():
+        raise HTTPException(status.HTTP_403_FORBIDDEN,
+                            f"Your organization's access ended on {until.strftime('%d %b %Y')}. "
+                            "Contact the Reios team to renew")
 
 
 def get_current_user(
@@ -96,8 +108,7 @@ def get_current_user(
     user = db.get(User, int(payload.get("sub", 0)))
     if not user or not user.is_active or user.token_version != payload.get("tv"):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Session expired, please log in again")
-    if user.college_id and user.college and not user.college.is_active:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Your college account is disabled")
+    check_org_access(user)
     return user
 
 

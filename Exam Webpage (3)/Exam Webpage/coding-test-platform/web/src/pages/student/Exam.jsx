@@ -349,7 +349,7 @@ export default function Exam() {
       <div className="pre-start" style={{ textAlign: "center", paddingTop: 80 }}>
         <div className="card">
           <h1>{doneMsg}</h1>
-          <p className="muted">You can close this window. Your college will review the results.</p>
+          <p className="muted">You can close this window. Your results will be shared with you.</p>
           <div className="row" style={{ justifyContent: "center" }}>
             <Link className="btn primary"
                   to={attemptRef.current ? `/student?result=${attemptRef.current}` : "/student"}>
@@ -446,13 +446,13 @@ export default function Exam() {
               ? <li><strong>Negative marking</strong> applies to wrong MCQ answers. Unanswered questions get zero.</li>
               : <li>There is no negative marking.</li>}
             <li>Answers are saved automatically as you go.{i.has_coding && <> For coding questions, use <strong>Submit code</strong> to score against hidden test cases; unsubmitted code is graded when the exam ends.</>}</li>
-            <li>Every action is logged and reviewed by your college.</li>
+            <li>Every action is logged and reviewed by the exam organizers.</li>
           </ul>
         </div>
 
         {i.instructions && (
           <div className="card">
-            <h3>Instructions from your college</h3>
+            <h3>Instructions</h3>
             <Markdown>{i.instructions}</Markdown>
           </div>
         )}

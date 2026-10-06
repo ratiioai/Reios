@@ -15,6 +15,7 @@ NEW_COLUMNS = {
     "reios_exam_items": [("set_id", "INTEGER")],
     "reios_attempts": [("set_id", "INTEGER")],
     "reios_users": [("firebase_uid", "VARCHAR(128)")],
+    "reios_colleges": [("max_exams", "INTEGER"), ("access_until", "TIMESTAMP")],
 }
 
 

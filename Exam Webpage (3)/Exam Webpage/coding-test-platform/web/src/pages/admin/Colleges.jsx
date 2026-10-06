@@ -36,23 +36,23 @@ export default function Colleges() {
     <>
       <div className="row between" style={{ marginBottom: 6 }}>
         <div className="page-head" style={{ margin: 0 }}>
-          <h1>Colleges</h1>
+          <h1>Organizations</h1>
           <p className="lede">
             Each college gets its own admins, students, exams and results. Students sign in with
             the college code.
           </p>
         </div>
-        <button className="btn primary" onClick={() => setEditing({})}>+ Add college</button>
+        <button className="btn primary" onClick={() => setEditing({})}>+ Add organization</button>
       </div>
 
       {loading ? <Loading /> : colleges.length === 0 ? (
-        <Empty title="No colleges yet" hint="Add one to get started." />
+        <Empty title="No organizations yet" hint="Add a college, company or event that uses Reios." />
       ) : (
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>College</th><th>Code</th><th className="num">Students</th>
+                <th>Organization</th><th>Code</th><th className="num">Students</th>
                 <th className="num">Admins</th><th className="num">Exams</th><th>Status</th><th />
               </tr>
             </thead>
@@ -66,9 +66,16 @@ export default function Colleges() {
                   <td><code>{c.code}</code></td>
                   <td className="num">{c.student_count}{c.max_students ? ` / ${c.max_students}` : ""}</td>
                   <td className="num">{c.admin_count}</td>
-                  <td className="num">{c.exam_count}</td>
+                  <td className="num">{c.exam_count}{c.max_exams ? ` / ${c.max_exams}` : ""}</td>
                   <td>
-                    {c.is_active ? <Badge color="green">Active</Badge> : <Badge color="red">Disabled</Badge>}
+                    {!c.is_active ? <Badge color="red">Disabled</Badge>
+                      : c.expired ? <Badge color="red">Expired</Badge>
+                      : <Badge color="green">Active</Badge>}
+                    {c.access_until && (
+                      <div className="muted small">
+                        {c.expired ? "ended" : "until"} {new Date(c.access_until).toLocaleDateString()}
+                      </div>
+                    )}
                   </td>
                   <td>
                     <div className="row tight">
@@ -166,6 +173,9 @@ function CollegeForm({ college, onClose, onSaved }) {
     code: college?.code || "",
     city: college?.city || "",
     max_students: college?.max_students || "",
+    max_exams: college?.max_exams || "",
+    // stored as end of that day, local time
+    access_until: college?.access_until ? toDateInput(college.access_until) : "",
     contact_email: college?.contact_email || "",
     contact_phone: college?.contact_phone || "",
     is_active: college ? college.is_active : true,
@@ -180,15 +190,17 @@ function CollegeForm({ college, onClose, onSaved }) {
       contact_email: nullIfBlank(f.contact_email),
       contact_phone: nullIfBlank(f.contact_phone),
       max_students: f.max_students ? Number(f.max_students) : null,
+      max_exams: f.max_exams ? Number(f.max_exams) : null,
+      access_until: f.access_until ? new Date(`${f.access_until}T23:59:59`).toISOString() : null,
     };
     try {
       if (college) {
         await api("PATCH", `/api/reios/super/colleges/${college.id}`, { ...body, is_active: f.is_active });
-        toast("College saved", "success");
+        toast("Organization saved", "success");
         onSaved(null);
       } else {
         const created = await api("POST", "/api/reios/super/colleges", { ...body, code: f.code });
-        toast("College created", "success");
+        toast("Organization created", "success");
         onSaved(created);
       }
     } catch (err) {
@@ -198,7 +210,7 @@ function CollegeForm({ college, onClose, onSaved }) {
 
   return (
     <Modal
-      title={college ? "Edit college" : "Add college"}
+      title={college ? "Edit organization" : "Add organization"}
       onClose={onClose}
       actions={
         <>
@@ -208,16 +220,22 @@ function CollegeForm({ college, onClose, onSaved }) {
       }
     >
       <div className="form-grid">
-        <Field label="College name *">
+        <Field label="Organization name * (college, company or event)">
           <input value={f.name} onChange={set("name")} />
         </Field>
-        <Field label="College code * (students type this at login)">
+        <Field label="Code * (students type this at login)">
           <input value={f.code} onChange={set("code")} disabled={!!college}
                  style={{ textTransform: "uppercase" }} />
         </Field>
         <Field label="City"><input value={f.city} onChange={set("city")} /></Field>
         <Field label="Student limit (blank = unlimited)">
           <input type="number" min="1" value={f.max_students} onChange={set("max_students")} />
+        </Field>
+        <Field label="Exam limit (blank = unlimited)">
+          <input type="number" min="1" value={f.max_exams} onChange={set("max_exams")} />
+        </Field>
+        <Field label="Access until (blank = no end date)">
+          <input type="date" value={f.access_until} onChange={set("access_until")} />
         </Field>
         <Field label="Contact email">
           <input type="email" value={f.contact_email} onChange={set("contact_email")} />
@@ -262,7 +280,7 @@ function CollegeAdmins({ college, onClose, onCreds }) {
       });
       setF({ name: "", email: "", phone: "", password: "" });
       onCreds({
-        title: "College admin created",
+        title: "Organization admin created",
         creds: [{ email: created.email, name: created.name, password: created.temporary_password }],
         note: `Share these sign-in details with the admin. Sign-in page: ${location.origin}${import.meta.env.BASE_URL}login?as=admin`,
       });
@@ -326,7 +344,7 @@ function CollegeAdmins({ college, onClose, onCreds }) {
         </div>
       )}
 
-      <h3 style={{ marginTop: 18 }}>Add college admin</h3>
+      <h3 style={{ marginTop: 18 }}>Add organization admin</h3>
       <div className="form-grid">
         <Field label="Name *"><input value={f.name} onChange={set("name")} /></Field>
         <Field label="Email * (login)"><input type="email" value={f.email} onChange={set("email")} /></Field>
@@ -338,4 +356,9 @@ function CollegeAdmins({ college, onClose, onCreds }) {
       <ModalButton cls="primary" onClick={create}>Create admin</ModalButton>
     </Modal>
   );
+}
+
+function toDateInput(iso) {
+  const d = new Date(iso);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }

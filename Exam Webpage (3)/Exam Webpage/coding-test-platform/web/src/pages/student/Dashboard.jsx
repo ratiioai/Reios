@@ -56,7 +56,7 @@ function ExamCard({ e, onResult, onElapsed, onLeaderboard }) {
           </button>
         </div>
       ) : (
-        <span className="muted small">Results will be shared by your college</span>
+        <span className="muted small">Results will be shared by your organization</span>
       );
       break;
     case "missed":
@@ -203,7 +203,7 @@ export default function Dashboard() {
             ? active.map((e) => (
                 <ExamCard key={e.id} e={e} onResult={openResult} onElapsed={load} onLeaderboard={setBoardExam} />
               ))
-            : <Empty title="No exams open" hint="Your college will schedule them here." />}
+            : <Empty title="No exams open" hint="Exams you're invited to will appear here." />}
 
           {past.length > 0 && (
             <>

@@ -54,7 +54,7 @@ export default function Announcements() {
     }
   }
 
-  if (needCollege && !isSuper) return <Empty title="No college selected" />;
+  if (needCollege && !isSuper) return <Empty title="No organization selected" />;
 
   return (
     <>
@@ -75,7 +75,7 @@ export default function Announcements() {
           <label className="check">
             <input type="checkbox" checked={allColleges}
                    onChange={(e) => setAllColleges(e.target.checked)} />
-            Send to all colleges
+            Send to all organizations
           </label>
         )}
         <button className="btn primary" onClick={post} disabled={busy}>
@@ -92,7 +92,7 @@ export default function Announcements() {
               <div className="row between">
                 <strong>{a.title}</strong>
                 <span className="row tight small muted">
-                  {a.is_global && <Badge color="blue">All colleges</Badge>}
+                  {a.is_global && <Badge color="blue">All organizations</Badge>}
                   {fmtDate(a.created_at)}
                   {(!a.is_global || isSuper) && (
                     <button className="btn sm ghost" onClick={() => remove(a.id)} aria-label="Delete">✕</button>

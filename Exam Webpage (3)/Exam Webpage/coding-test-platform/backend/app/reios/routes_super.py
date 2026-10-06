@@ -2,6 +2,7 @@
 Super admin endpoints: colleges, college admins and platform-wide stats.
 """
 import re
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -15,7 +16,7 @@ from app.reios.models import (
     Announcement, Attempt, AttemptStatus, CodeAnswer, CodingProblem, College, Exam, ExamItem, MCQAnswer,
     MCQQuestion, ProctorEvent, QuestionSet, Role, SetAssignment, User,
 )
-from app.reios.security import generate_password, require_super_admin
+from app.reios.security import as_utc, generate_password, require_super_admin, utcnow
 
 router = APIRouter(prefix="/api/reios/super", tags=["Reios Super Admin"])
 
@@ -29,6 +30,8 @@ class CollegeIn(BaseModel):
     contact_email: Optional[str] = Field(None, max_length=255)
     contact_phone: Optional[str] = Field(None, max_length=32)
     max_students: Optional[int] = Field(None, ge=1)
+    max_exams: Optional[int] = Field(None, ge=1)
+    access_until: Optional[datetime] = None
 
 
 class CollegeUpdate(BaseModel):
@@ -37,6 +40,8 @@ class CollegeUpdate(BaseModel):
     contact_email: Optional[str] = Field(None, max_length=255)
     contact_phone: Optional[str] = Field(None, max_length=32)
     max_students: Optional[int] = Field(None, ge=1)
+    max_exams: Optional[int] = Field(None, ge=1)
+    access_until: Optional[datetime] = None
     is_active: Optional[bool] = None
 
 
@@ -63,6 +68,8 @@ def college_payload(college: College, db: Session) -> dict:
         "id": college.id, "name": college.name, "code": college.code, "city": college.city,
         "contact_email": college.contact_email, "contact_phone": college.contact_phone,
         "max_students": college.max_students, "is_active": college.is_active,
+        "max_exams": college.max_exams, "access_until": as_utc(college.access_until),
+        "expired": bool(college.access_until and as_utc(college.access_until) < utcnow()),
         "created_at": college.created_at,
         "student_count": student_count, "admin_count": admin_count, "exam_count": exam_count,
     }
@@ -109,11 +116,12 @@ def list_colleges(db: Session = Depends(get_db), _=Depends(require_super_admin))
 def create_college(body: CollegeIn, db: Session = Depends(get_db), _=Depends(require_super_admin)):
     code = body.code.strip().upper()
     if not CODE_RE.match(code):
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "College code may only contain letters, digits, - and _")
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "The code may only contain letters, digits, - and _")
     if db.query(College).filter(func.upper(College.code) == code).first():
-        raise HTTPException(status.HTTP_409_CONFLICT, f"College code {code} is already in use")
+        raise HTTPException(status.HTTP_409_CONFLICT, f"The code {code} is already in use")
     college = College(name=body.name.strip(), code=code, city=body.city, contact_email=body.contact_email,
-                      contact_phone=body.contact_phone, max_students=body.max_students)
+                      contact_phone=body.contact_phone, max_students=body.max_students,
+                      max_exams=body.max_exams, access_until=body.access_until)
     db.add(college)
     db.commit()
     db.refresh(college)

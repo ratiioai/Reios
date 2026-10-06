@@ -2,6 +2,7 @@ import { useState } from "react";
 import { api } from "../../lib/api.js";
 import { useAuth } from "../../lib/auth.jsx";
 import { Field, Spinner, useToast } from "../../components/ui.jsx";
+import { PasswordInput } from "../Login.jsx";
 
 export default function Account({ onChanged }) {
   const { user, refresh } = useAuth();
@@ -51,15 +52,15 @@ export default function Account({ onChanged }) {
         <h3>Change password</h3>
         <form onSubmit={submit}>
           <Field label="Current password">
-            <input type="password" autoComplete="current-password" required
+            <PasswordInput autoComplete="current-password" required
                    value={cur} onChange={(e) => setCur(e.target.value)} />
           </Field>
           <Field label="New password (min 8 characters)">
-            <input type="password" autoComplete="new-password" required
+            <PasswordInput autoComplete="new-password" required
                    value={n1} onChange={(e) => setN1(e.target.value)} />
           </Field>
           <Field label="Confirm new password">
-            <input type="password" autoComplete="new-password" required
+            <PasswordInput autoComplete="new-password" required
                    value={n2} onChange={(e) => setN2(e.target.value)} />
           </Field>
           <button className="btn primary" type="submit" disabled={busy}>

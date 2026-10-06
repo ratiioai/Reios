@@ -82,8 +82,8 @@ export default function Console() {
   const NAV = [
     { group: "General" },
     { id: "overview", to: "/console", end: true, label: "Overview" },
-    ...(isSuper ? [{ id: "colleges", to: "/console/colleges", label: "Colleges & Admins" }] : []),
-    { group: isSuper ? "Selected college" : "College" },
+    ...(isSuper ? [{ id: "colleges", to: "/console/colleges", label: "Organizations" }] : []),
+    { group: isSuper ? "Selected organization" : "Organization" },
     { id: "students", to: "/console/students", label: "Students" },
     { id: "exams", to: "/console/exams", label: "Exams & Results" },
     { id: "leaderboard", to: "/console/leaderboard", label: "Leaderboard" },
@@ -99,7 +99,7 @@ export default function Console() {
     <AdminCtx.Provider value={ctx}>
       <div className="shell">
         <aside className={"sidebar" + (sidebarOpen ? " open" : "")}>
-          <Brand sub={isSuper ? "Super Admin" : "College Admin"} />
+          <Brand sub={isSuper ? "Super Admin" : "Admin"} />
           <nav className="nav">
             {NAV.map((n, i) =>
               n.group ? (
@@ -130,12 +130,12 @@ export default function Console() {
                       onClick={() => setSidebarOpen((o) => !o)}>☰</button>
               {isSuper && (
                 <div className="row tight">
-                  <label htmlFor="college-picker" style={{ margin: 0 }}>College</label>
+                  <label htmlFor="college-picker" style={{ margin: 0 }}>Organization</label>
                   <select id="college-picker" style={{ width: "auto", minWidth: 220 }}
                           value={collegeId ?? ""}
                           onChange={(e) => pickCollege(Number(e.target.value))}>
                     {colleges.length === 0
-                      ? <option value="">No colleges yet</option>
+                      ? <option value="">No organizations yet</option>
                       : colleges.map((c) => (
                           <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
                         ))}
@@ -191,7 +191,7 @@ function Scoped({ children }) {
   const { needCollege } = useAdmin();
   if (needCollege) {
     return (
-      <Empty title="No college selected"
+      <Empty title="No organization selected"
              hint="Create one under Colleges & Admins, then pick it from the dropdown above." />
     );
   }
