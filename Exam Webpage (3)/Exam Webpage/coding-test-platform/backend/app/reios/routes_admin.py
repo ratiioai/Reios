@@ -387,6 +387,7 @@ def college_stats(college_id: int = Depends(scoped_college_id), db: Session = De
         "college": {"id": college.id, "name": college.name, "code": college.code,
                     "max_students": college.max_students, "max_exams": college.max_exams,
                     "access_until": as_utc(college.access_until), "org_type": college.org_type,
+                    "organizer": college.organizer, "event_starts_at": as_utc(college.event_starts_at),
                     "features": college.features or []},
         "students": db.query(func.count(User.id)).filter(
             User.college_id == college_id, User.role == Role.STUDENT).scalar(),
@@ -440,6 +441,12 @@ def list_students(
             "items": [student_payload(s) for s in students]}
 
 
+def _forces_change(db: Session, college_id: int) -> bool:
+    """Colleges get generated temporary passwords; an event's organizer shares the passwords itself."""
+    org = db.get(College, college_id)
+    return not (org and org.org_type == "event")
+
+
 def _add_student(db: Session, college_id: int, data: StudentIn) -> Tuple[User, str]:
     roll = data.roll_no.strip().upper()
     if db.query(User).filter(User.college_id == college_id, func.upper(User.roll_no) == roll).first():
@@ -454,7 +461,7 @@ def _add_student(db: Session, college_id: int, data: StudentIn) -> Tuple[User, s
         role=Role.STUDENT, college_id=college_id, roll_no=roll, name=data.name.strip(), email=email,
         phone=clean(data.phone), branch=clean(data.branch) and data.branch.strip().upper(),
         section=clean(data.section) and data.section.strip().upper(), batch_year=data.batch_year,
-        hashed_password=hash_password(password), must_change_password=True,
+        hashed_password=hash_password(password), must_change_password=_forces_change(db, college_id),
     )
     db.add(student)
     db.flush()
@@ -535,7 +542,7 @@ def reset_student_password(student_id: int, college_id: int = Depends(scoped_col
     student = get_student(db, college_id, student_id)
     password = generate_password(8)
     student.hashed_password = hash_password(password)
-    student.must_change_password = True
+    student.must_change_password = _forces_change(db, college_id)
     student.token_version += 1
     student.locked_until = None
     student.failed_login_attempts = 0
@@ -552,7 +559,7 @@ def bulk_reset_passwords(body: BulkIds, college_id: int = Depends(scoped_college
     for student in students:
         password = generate_password(8)
         student.hashed_password = hash_password(password)
-        student.must_change_password = True
+        student.must_change_password = _forces_change(db, college_id)
         student.token_version += 1
         credentials.append({"roll_no": student.roll_no, "name": student.name, "password": password})
     db.commit()
@@ -1232,6 +1239,7 @@ def email_results(exam_id: int, college_id: int = Depends(scoped_college_id), db
         if certs and passed:
             text += "\nYour certificate is ready to download from your Reios dashboard.\n"
         text += "\nSign in to Reios to see section-wise scores.\n"
+        text += "\n-- Reios, developed by Ratiio\n"
         messages.append((a.student.email, f"Your result: {exam.title}", text))
     if not messages:
         return {"sent": 0, "skipped": skipped, "failed": []}

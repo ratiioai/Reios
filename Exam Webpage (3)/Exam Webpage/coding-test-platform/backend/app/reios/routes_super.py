@@ -37,6 +37,8 @@ class CollegeIn(BaseModel):
     features: List[str] = []
     logo: Optional[str] = None
     brand_color: Optional[str] = Field(None, pattern="^#[0-9a-fA-F]{6}$")
+    organizer: Optional[str] = Field(None, max_length=255)
+    event_starts_at: Optional[datetime] = None
 
 
 class CollegeUpdate(BaseModel):
@@ -51,6 +53,8 @@ class CollegeUpdate(BaseModel):
     features: Optional[List[str]] = None
     logo: Optional[str] = None
     brand_color: Optional[str] = Field(None, pattern="^#[0-9a-fA-F]{6}$")
+    organizer: Optional[str] = Field(None, max_length=255)
+    event_starts_at: Optional[datetime] = None
     is_active: Optional[bool] = None
 
 
@@ -67,6 +71,16 @@ class CollegeAdminUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
+def clean_text(value: Optional[str]) -> Optional[str]:
+    return (value or "").strip() or None
+
+
+def check_event_dates(college: College) -> None:
+    start, end = as_utc(college.event_starts_at), as_utc(college.access_until)
+    if start and end and end < start:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "The event can't end before it starts")
+
+
 def college_payload(college: College, db: Session) -> dict:
     student_count = db.query(func.count(User.id)).filter(
         User.college_id == college.id, User.role == Role.STUDENT).scalar()
@@ -80,6 +94,7 @@ def college_payload(college: College, db: Session) -> dict:
         "max_exams": college.max_exams, "access_until": as_utc(college.access_until),
         "expired": bool(college.access_until and as_utc(college.access_until) < utcnow()),
         "org_type": college.org_type, "features": college.features or [],
+        "organizer": college.organizer, "event_starts_at": as_utc(college.event_starts_at),
         "logo": college.logo, "brand_color": college.brand_color,
         "created_at": college.created_at,
         "student_count": student_count, "admin_count": admin_count, "exam_count": exam_count,
@@ -134,7 +149,9 @@ def create_college(body: CollegeIn, db: Session = Depends(get_db), _=Depends(req
                       contact_phone=body.contact_phone, max_students=body.max_students,
                       max_exams=body.max_exams, access_until=body.access_until, org_type=body.org_type,
                       features=clean_features(body.org_type, body.features), logo=check_logo(body.logo),
-                      brand_color=body.brand_color)
+                      brand_color=body.brand_color, organizer=clean_text(body.organizer),
+                      event_starts_at=body.event_starts_at if body.org_type == "event" else None)
+    check_event_dates(college)
     db.add(college)
     db.commit()
     db.refresh(college)
@@ -151,6 +168,11 @@ def update_college(college_id: int, body: CollegeUpdate, db: Session = Depends(g
     for field, value in data.items():
         setattr(college, field, value)
     college.features = clean_features(college.org_type, college.features)
+    if "organizer" in data:
+        college.organizer = clean_text(college.organizer)
+    if college.org_type != "event":
+        college.organizer, college.event_starts_at = None, None
+    check_event_dates(college)
     db.commit()
     return college_payload(college, db)
 

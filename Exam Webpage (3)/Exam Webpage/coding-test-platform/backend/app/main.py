@@ -43,7 +43,7 @@ async def lifespan(_app: FastAPI):
     yield
 
 
-app = FastAPI(title="Reios", version="2.0.0", docs_url="/api/docs", redoc_url="/api/redoc", lifespan=lifespan)
+app = FastAPI(title="Reios", description="Developed by Ratiio", version="2.0.0", docs_url="/api/docs", redoc_url="/api/redoc", lifespan=lifespan)
 
 # Any origin: the frontend may be served from this server, a LAN address or a separate host such as Vercel.
 # Auth uses bearer tokens, not cookies.

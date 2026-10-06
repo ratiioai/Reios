@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../../lib/api.js";
 import { useAuth } from "../../lib/auth.jsx";
 import { fmtDate, fmtDuration } from "../../lib/format.js";
-import { Badge, Empty, Loading, OrgBrand, ThemeToggle, useToast } from "../../components/ui.jsx";
+import { Badge, Credit, Empty, Loading, OrgBrand, ThemeToggle, useToast } from "../../components/ui.jsx";
 import ChangePassword from "./ChangePassword.jsx";
 import ResultModal from "./ResultModal.jsx";
 import LeaderboardModal from "./LeaderboardModal.jsx";
@@ -56,7 +56,7 @@ function ExamCard({ e, onResult, onElapsed, onLeaderboard }) {
           </button>
         </div>
       ) : (
-        <span className="muted small">Results will be shared by your organization</span>
+        <span className="muted small">Results will be shared by the organizers</span>
       );
       break;
     case "missed":
@@ -139,7 +139,9 @@ export default function Dashboard() {
     <div className="wrap">
       <header className="bar">
         <OrgBrand branding={user?.college?.branding} style={{ padding: 0 }}
-                  sub={user?.college?.branding ? "Powered by Reios" : user?.college?.name || "Student"} />
+                  sub={user?.college?.branding
+                    ? `${user.college.code} · Powered by Reios`
+                    : user?.college ? `${user.college.name} · ${user.college.code}` : "Student"} />
         <div className="row tight">
           <span className="muted small">{user?.name} · {user?.roll_no}</span>
           <button className="btn sm" onClick={() => setShowPwd(true)}>Change password</button>
@@ -217,6 +219,7 @@ export default function Dashboard() {
         </>
       )}
 
+      <Credit />
       {(showPwd || mustChange) && (
         <ChangePassword
           forced={mustChange}

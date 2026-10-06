@@ -20,7 +20,7 @@ from app.reios.models import (
     LANGUAGES, Announcement, Attempt, AttemptStatus, CodeAnswer, Exam, ExamItem, ItemType, MCQAnswer, User,
 )
 from app.reios.features import certificate_pdf, has_feature, require_feature
-from app.reios.security import as_utc, require_student, utcnow
+from app.reios.security import as_utc, needs_password_change, require_student, utcnow
 
 router = APIRouter(prefix="/api/reios/student", tags=["Reios Student"])
 
@@ -176,7 +176,8 @@ def dashboard(student: User = Depends(require_student), db: Session = Depends(ge
             "duration_minutes": exam.duration_minutes, "question_count": len(paper),
             "max_score": attempt.max_score if attempt else engine.exam_max_score(exam, set_id), "state": state,
             "sections": sorted({i.section for i in paper}), "exam_type": exam.exam_type,
-            "leaderboard_available": bool(attempt and can_view_result(attempt) and exam.show_leaderboard),
+            "leaderboard_available": bool(attempt and attempt.status != AttemptStatus.IN_PROGRESS
+                                          and exam.show_leaderboard),
             "attempt_id": attempt.id if attempt else None,
             "score": attempt.total_score if attempt and can_view_result(attempt) else None,
             "result_available": bool(attempt and can_view_result(attempt)),
@@ -228,7 +229,8 @@ def exam_info(exam_id: int, student: User = Depends(require_student), db: Sessio
         "max_violations": exam.max_violations, "allowed_languages": exam.allowed_languages or LANGUAGES,
         "attempt": {"id": attempt.id, "status": attempt.status.value, "seconds_left": seconds_left(attempt)}
         if attempt else None,
-        "must_change_password": student.must_change_password,
+        "must_change_password": needs_password_change(student),
+        "leaderboard_enabled": exam.show_leaderboard,
     }
 
 
@@ -238,7 +240,7 @@ def start_exam(exam_id: int, request: Request, student: User = Depends(require_s
     exam = db.get(Exam, exam_id)
     if not exam or not engine.student_is_eligible(exam, student):
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Exam not found")
-    if student.must_change_password:
+    if needs_password_change(student):
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Please change your password before starting an exam")
 
     attempt = db.query(Attempt).filter(Attempt.exam_id == exam.id, Attempt.student_id == student.id).first()
@@ -427,7 +429,8 @@ def submit_exam(attempt_id: int, x_exam_session: Optional[str] = Header(None),
     attempt = get_own_attempt(db, student, attempt_id)
     engine.require_active_attempt(db, attempt, x_exam_session)
     engine.finalize_attempt(db, attempt, AttemptStatus.SUBMITTED, "student_submitted")
-    return {"status": attempt.status.value, "result_available": can_view_result(attempt)}
+    return {"status": attempt.status.value, "result_available": can_view_result(attempt),
+            "leaderboard_available": attempt.exam.show_leaderboard}
 
 
 # ── Results ───────────────────────────────────────────────────────────────
@@ -522,7 +525,7 @@ def exam_leaderboard(exam_id: int, student: User = Depends(require_student), db:
     """Top 10 plus the student's own row; only after they've finished and if the college turned it on."""
     exam = db.get(Exam, exam_id)
     own = db.query(Attempt).filter(Attempt.exam_id == exam_id, Attempt.student_id == student.id).first()         if exam and exam.college_id == student.college_id else None
-    if not own or not can_view_result(own) or not exam.show_leaderboard:
+    if not own or own.status == AttemptStatus.IN_PROGRESS or not exam.show_leaderboard:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Leaderboard not available")
     ranked = engine.rank_attempts(db.query(Attempt).filter(Attempt.exam_id == exam.id).all())
 

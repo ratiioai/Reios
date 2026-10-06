@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { api } from "../../lib/api.js";
-import { Empty, Loading, useToast } from "../../components/ui.jsx";
-import { Stat, useAdmin } from "./context.jsx";
+import { Badge, Empty, Loading, useToast } from "../../components/ui.jsx";
+import { Stat, cap, orgNoun, useAdmin } from "./context.jsx";
 
 export default function Overview() {
   const { isSuper, collegeId, cq } = useAdmin();
@@ -38,7 +38,7 @@ export default function Overview() {
 
   if (loading) return <Loading />;
   if (!platform && !college) {
-    return <Empty title="No organizations yet" hint="Create your first one under Organizations." />;
+    return <Empty title="Nothing here yet" hint="Create your first college or event under Colleges & Events." />;
   }
 
   return (
@@ -47,8 +47,8 @@ export default function Overview() {
         <>
           <div className="page-head"><h1>Platform overview</h1></div>
           <div className="grid cols-4" style={{ marginBottom: 24 }}>
-            <Stat label="Organizations" value={`${platform.active_colleges} / ${platform.colleges}`} sub="active / total" />
-            <Stat label="Organization admins" value={platform.college_admins} tone="plain" />
+            <Stat label="Colleges & events" value={`${platform.active_colleges} / ${platform.colleges}`} sub="active / total" />
+            <Stat label="Admins" value={platform.college_admins} tone="plain" />
             <Stat label="Students" value={platform.students} tone="plain" />
             <Stat label="Exams" value={platform.exams} tone="plain" />
             <Stat label="Attempts" value={platform.attempts} tone="plain" />
@@ -63,13 +63,18 @@ export default function Overview() {
         <>
           <h2>
             {college.college.name}{" "}
-            <span className="muted small">code {college.college.code}</span>
+            {college.college.org_type === "event" && <Badge color="violet">Event</Badge>}
           </h2>
-          {college.college.access_until && (
-            <p className="muted small" style={{ marginTop: -6 }}>
-              Access until <strong>{new Date(college.college.access_until).toLocaleDateString()}</strong>
-            </p>
-          )}
+          <p className="muted small" style={{ marginTop: -6 }}>
+            {college.college.organizer && <>By <strong>{college.college.organizer}</strong> · </>}
+            {college.college.event_starts_at && <>
+              {new Date(college.college.event_starts_at).toLocaleDateString()} to{" "}
+            </>}
+            {college.college.access_until
+              ? <>{college.college.event_starts_at ? "" : "Access until "}<strong>{new Date(college.college.access_until).toLocaleDateString()}</strong></>
+              : "No end date"}
+          </p>
+          <SignInLink org={college.college} />
           <div className="grid cols-4">
             <Stat
               label="Students"
@@ -104,5 +109,23 @@ export default function Overview() {
         </>
       )}
     </>
+  );
+}
+
+/** The code students type at sign-in, and a link that has it filled in already. */
+function SignInLink({ org }) {
+  const toast = useToast();
+  const link = `${location.origin}${import.meta.env.BASE_URL}login?code=${encodeURIComponent(org.code)}`;
+  const noun = orgNoun(org);
+  return (
+    <div className="banner" style={{ margin: "0 0 16px", alignItems: "center", flexWrap: "wrap" }}>
+      <span><strong>{cap(noun)} code: {org.code}</strong>. Students enter it with their roll number at sign-in.</span>
+      <span className="grow" />
+      <button className="btn sm" onClick={() => navigator.clipboard.writeText(link)
+        .then(() => toast("Student sign-in link copied", "success"))
+        .catch(() => toast(link, "info", 12000))}>
+        Copy student sign-in link
+      </button>
+    </div>
   );
 }

@@ -66,7 +66,7 @@ def check_login(db: Session, user: Optional[User], password: str) -> User:
         raise HTTPException(status.HTTP_423_LOCKED,
                             f"Too many failed attempts. Try again after {locked_until.strftime('%H:%M UTC')}")
     if settings.FIREBASE_PROJECT_ID and user.role == Role.SUPER_ADMIN:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Super admins sign in with Firebase")
+        raise invalid  # looks exactly like a wrong password; these accounts sign in elsewhere
     if not verify_password(password, user.hashed_password):
         register_failed_login(db, user)
         raise invalid
@@ -82,16 +82,25 @@ def check_login(db: Session, user: Optional[User], password: str) -> User:
     return user
 
 
+def needs_password_change(user: User) -> bool:
+    """Event organizers hand out the passwords, so event students keep them; everyone else changes a temporary one."""
+    if not user.must_change_password:
+        return False
+    org = user.college if user.college_id else None
+    return not (user.role == Role.STUDENT and org is not None and org.org_type == "event")
+
+
 def check_org_access(user: User) -> None:
     org = user.college if user.college_id else None
     if org is None:
         return
+    noun = "event" if org.org_type == "event" else "college"
     if not org.is_active:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, "Your organization's account is disabled")
+        raise HTTPException(status.HTTP_403_FORBIDDEN, f"Your {noun}'s account is disabled")
     until = as_utc(org.access_until)
     if until and until < utcnow():
         raise HTTPException(status.HTTP_403_FORBIDDEN,
-                            f"Your organization's access ended on {until.strftime('%d %b %Y')}. "
+                            f"Your {noun}'s access ended on {until.strftime('%d %b %Y')}. "
                             "Contact the Reios team to renew")
 
 

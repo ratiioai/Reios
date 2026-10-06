@@ -14,7 +14,7 @@ from app.database import get_db
 from app.reios.features import branding
 from app.reios.firebase_auth import verify_id_token
 from app.reios.models import College, Role, User
-from app.reios.security import check_login, get_current_user, issue_token, utcnow
+from app.reios.security import check_login, get_current_user, issue_token, needs_password_change, utcnow
 
 router = APIRouter(prefix="/api/reios/auth", tags=["Reios Auth"])
 
@@ -41,7 +41,7 @@ def user_payload(user: User) -> dict:
         "section": user.section,
         "batch_year": user.batch_year,
         "phone": user.phone,
-        "must_change_password": user.must_change_password,
+        "must_change_password": needs_password_change(user),
         "college": {"id": user.college.id, "name": user.college.name, "code": user.college.code,
                     "org_type": user.college.org_type, "features": user.college.features or [],
                     "branding": branding(user.college)}
@@ -86,7 +86,7 @@ def org_branding(code: str = Query(..., min_length=1, max_length=32), db: Sessio
 @router.get("/config")
 def auth_config():
     """What the sign-in page should offer."""
-    return {"firebase_super_admin": bool(settings.FIREBASE_PROJECT_ID)}
+    return {"google_signin": bool(settings.FIREBASE_PROJECT_ID)}
 
 
 @router.post("/firebase")
@@ -96,16 +96,13 @@ def firebase_login(body: FirebaseLoginRequest, db: Session = Depends(get_db)):
     email = claims["email"].strip().lower()
     user = db.query(User).filter(func.lower(User.email) == email, User.role == Role.SUPER_ADMIN).first()
     if not user:
-        raise HTTPException(status.HTTP_403_FORBIDDEN,
-                            f"{email} isn't a Reios super admin. Add it to SUPER_ADMIN_EMAIL in backend/.env "
-                            "and restart the server")
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "This account isn't allowed to sign in here")
     if not user.is_active:
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Account is disabled")
     # The first Firebase account to sign in owns this super admin; a different account with the same
     # email (e.g. after the Firebase user was deleted and recreated) is refused.
     if user.firebase_uid and user.firebase_uid != claims["sub"]:
-        raise HTTPException(status.HTTP_403_FORBIDDEN,
-                            "This super admin is linked to a different Firebase account")
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "This account isn't allowed to sign in here")
     user.firebase_uid = claims["sub"]
     user.last_login_at = utcnow()
     user.failed_login_attempts = 0

@@ -12,6 +12,10 @@ export function makeCq(isSuper, collegeId) {
   return (params = {}) => qs(isSuper ? { college_id: collegeId, ...params } : params);
 }
 
+/** "event" or "college": what to call an account on screen. */
+export const orgNoun = (org) => (org?.org_type === "event" ? "event" : "college");
+export const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
 export const ICONS = {
   overview: '<path d="M3 9.5 10 4l7 5.5V16a1 1 0 0 1-1 1h-3v-5H7v5H4a1 1 0 0 1-1-1V9.5Z"/>',
   colleges: '<path d="M10 3 3 6.5 10 10l7-3.5L10 3Z"/><path d="M4.5 9v4.5c0 1 2.5 2.5 5.5 2.5s5.5-1.5 5.5-2.5V9"/>',

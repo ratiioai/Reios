@@ -31,6 +31,9 @@ export function Brand({ sub, light = false, style }) {
   );
 }
 
+/** Credit line shown on every screen. */
+export const Credit = ({ style }) => <div className="credit" style={style}>Developed by Ratiio</div>;
+
 /** The organization's own logo and name when its branding add-on is on, else the Reios mark. */
 export function OrgBrand({ branding, sub, style }) {
   if (!branding) return <Brand sub={sub} style={style} />;

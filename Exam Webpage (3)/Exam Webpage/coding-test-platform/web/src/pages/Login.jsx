@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../lib/auth.jsx";
 import { api, auth as tokenStore, homeFor, store } from "../lib/api.js";
 import { firebaseConfigured, firebaseSignIn } from "../lib/firebase.js";
-import { Brand, Mark, Spinner, ThemeToggle } from "../components/ui.jsx";
+import { Brand, Mark, Spinner, ThemeToggle, Credit } from "../components/ui.jsx";
 
 const FEATURES = [
   {
@@ -29,7 +29,7 @@ export default function Login() {
   const [params] = useSearchParams();
 
   const [mode, setMode] = useState(params.get("as") === "admin" ? "admin" : "student");
-  const [collegeCode, setCollegeCode] = useState(() => store.get("reios_college_code") || "");
+  const [collegeCode, setCollegeCode] = useState(() => params.get("code") || store.get("reios_college_code") || "");
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(params.get("expired") ? "Your session expired. Please sign in again." : "");
@@ -50,7 +50,7 @@ export default function Login() {
   useEffect(() => {
     if (!firebaseConfigured) return;
     api("GET", "/api/reios/auth/config", null, { noRedirect: true })
-      .then((c) => setFirebaseOn(!!c.firebase_super_admin))
+      .then((c) => setFirebaseOn(!!c.google_signin))
       .catch(() => {});
   }, []);
 
@@ -71,7 +71,7 @@ export default function Login() {
     setError("");
     const body = { identifier: identifier.trim(), password };
     if (mode === "student") {
-      if (!collegeCode.trim()) { setError("Enter your organization code"); return; }
+      if (!collegeCode.trim()) { setError("Enter your college or event code"); return; }
       body.college_code = collegeCode.trim();
     }
     setBusy(true);
@@ -80,9 +80,14 @@ export default function Login() {
       try {
         u = await login(body);
       } catch (err) {
-        // Super admins sign in through Firebase: same email and password, sent there instead
-        if (mode !== "admin" || !firebaseOn || !/Firebase/.test(err.message)) throw err;
-        u = await loginWithFirebase(await firebaseSignIn("password", body.identifier, password));
+        // Some staff accounts are checked by Firebase: try it quietly, and give the same
+        // "Invalid credentials" answer either way so nobody can tell which emails exist.
+        if (mode !== "admin" || !firebaseOn || err.status !== 401) throw err;
+        try {
+          u = await loginWithFirebase(await firebaseSignIn("password", body.identifier, password));
+        } catch (fbErr) {
+          throw fbErr.message === "Wrong email or password." ? err : fbErr;
+        }
       }
       if (mode === "student" && u.role !== "student") {
         throw new Error("Use the Staff tab to sign in as an admin");
@@ -148,11 +153,14 @@ export default function Login() {
             <form onSubmit={submit}>
               {mode === "student" && (
                 <div className="field">
-                  <label htmlFor="college_code">Organization code</label>
+                  <label htmlFor="college_code">College / event code</label>
                   <input id="college_code" value={collegeCode} placeholder="e.g. JNTU"
                          autoComplete="organization" style={{ textTransform: "uppercase" }}
                          onChange={(e) => setCollegeCode(e.target.value)} />
-                  <div className="hint">Given to you by your placement office.</div>
+                  <div className="hint">
+                    Given to you by your college or event organizer. Roll numbers can repeat between
+                    colleges, so this tells us which list you're on.
+                  </div>
                 </div>
               )}
               <div className="field">
@@ -175,7 +183,7 @@ export default function Login() {
             </form>
 
             {mode === "admin" && firebaseOn && (
-              <SuperAdminFirebase
+              <GoogleSignIn
                 onError={setError}
                 onSignedIn={async (idToken) => {
                   const u = await loginWithFirebase(idToken);
@@ -191,34 +199,32 @@ export default function Login() {
             </p>
             <ThemeToggle />
           </div>
+          <Credit />
         </div>
       </main>
     </div>
   );
 }
 
-function SuperAdminFirebase({ onSignedIn, onError }) {
-  const [showEmail, setShowEmail] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [busy, setBusy] = useState(null);
+function GoogleSignIn({ onSignedIn, onError }) {
+  const [busy, setBusy] = useState(false);
 
-  async function go(method) {
+  async function go() {
     onError("");
-    setBusy(method);
+    setBusy(true);
     try {
-      await onSignedIn(await firebaseSignIn(method, email.trim(), password));
+      await onSignedIn(await firebaseSignIn("google"));
     } catch (err) {
       onError(err.message);
-      setBusy(null);
+      setBusy(false);
     }
   }
 
   return (
-    <div style={{ marginTop: 18, paddingTop: 16, borderTop: "1px solid var(--border)" }}>
-      <div className="small strong" style={{ marginBottom: 8 }}>Super admin</div>
-      <button type="button" className="btn block" disabled={!!busy} onClick={() => go("google")}>
-        {busy === "google" ? <><Spinner /> Waiting for Google</> : (
+    <div style={{ marginTop: 16 }}>
+      <div className="small muted" style={{ textAlign: "center", marginBottom: 10 }}>or</div>
+      <button type="button" className="btn block" disabled={busy} onClick={go}>
+        {busy ? <><Spinner /> Waiting for Google</> : (
           <>
             <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
               <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/>
@@ -230,29 +236,6 @@ function SuperAdminFirebase({ onSignedIn, onError }) {
           </>
         )}
       </button>
-      {!showEmail ? (
-        <button type="button" className="btn ghost sm block" style={{ marginTop: 6 }} onClick={() => setShowEmail(true)}>
-          Use Firebase email and password instead
-        </button>
-      ) : (
-        <div style={{ marginTop: 10 }}>
-          <div className="field">
-            <label htmlFor="fb-email">Firebase email</label>
-            <input id="fb-email" type="email" autoComplete="username" value={email}
-                   onChange={(e) => setEmail(e.target.value)} />
-          </div>
-          <div className="field">
-            <label htmlFor="fb-pass">Firebase password</label>
-            <PasswordInput id="fb-pass" value={password}
-                           onChange={(e) => setPassword(e.target.value)}
-                           onKeyDown={(e) => e.key === "Enter" && go("password")} />
-          </div>
-          <button type="button" className="btn primary block" disabled={!!busy || !email || !password}
-                  onClick={() => go("password")}>
-            {busy === "password" ? <><Spinner /> Signing in</> : "Sign in as super admin"}
-          </button>
-        </div>
-      )}
     </div>
   );
 }

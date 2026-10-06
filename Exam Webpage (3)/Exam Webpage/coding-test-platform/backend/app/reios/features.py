@@ -31,7 +31,7 @@ def has_feature(org: Optional[College], key: str) -> bool:
 def require_feature(org: Optional[College], key: str) -> None:
     if not has_feature(org, key):
         raise HTTPException(status.HTTP_403_FORBIDDEN,
-                            f"{FEATURES[key]} isn't included in this organization's plan")
+                            f"{FEATURES[key]} isn't included in this event's plan")
 
 
 def clean_features(org_type: str, features) -> list:

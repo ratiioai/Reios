@@ -18,7 +18,7 @@ export default function Usage() {
 
   function exportCsv() {
     downloadCSV(`reios_usage_${data.month}.csv`,
-      ["Organization", "Code", "Type", "Add-ons", "Students", "Exams created this month", "Exams total", "Exam limit", "Attempts this month", "Status"],
+      ["Name", "Code", "Type", "Add-ons", "Students", "Exams created this month", "Exams total", "Exam limit", "Attempts this month", "Status"],
       data.organizations.map((o) => [o.name, o.code, o.org_type, o.features.join(" "), o.students, o.exams_created,
         o.exams_total, o.max_exams ?? "", o.attempts, !o.is_active ? "disabled" : o.expired ? "expired" : "active"]));
   }
@@ -28,7 +28,7 @@ export default function Usage() {
       <div className="row between" style={{ marginBottom: 6 }}>
         <div className="page-head" style={{ margin: 0 }}>
           <h1>Usage</h1>
-          <p className="lede">What each organization used in a month. Use it for invoices and renewals.</p>
+          <p className="lede">What each college and event used in a month. Use it for invoices and renewals.</p>
         </div>
         <div className="row tight">
           <input type="month" value={month} max={thisMonth()} onChange={(e) => e.target.value && setMonth(e.target.value)} />
@@ -39,7 +39,7 @@ export default function Usage() {
       {!data ? <Loading /> : (
         <>
           <div className="grid cols-3" style={{ margin: "14px 0 18px" }}>
-            <Stat label="Students (all organizations)" value={data.totals.students} tone="plain" />
+            <Stat label="Students (everyone)" value={data.totals.students} tone="plain" />
             <Stat label="Exams created this month" value={data.totals.exams_created} />
             <Stat label="Attempts this month" value={data.totals.attempts} tone="green" />
           </div>
@@ -47,14 +47,14 @@ export default function Usage() {
             <table>
               <thead>
                 <tr>
-                  <th>Organization</th><th>Add-ons</th><th className="num">Students</th>
+                  <th>Name</th><th>Add-ons</th><th className="num">Students</th>
                   <th className="num">Exams this month</th><th className="num">Exams used</th>
                   <th className="num">Attempts this month</th><th>Status</th>
                 </tr>
               </thead>
               <tbody>
                 {data.organizations.length === 0 ? (
-                  <tr><td colSpan={7} className="empty">No organizations yet</td></tr>
+                  <tr><td colSpan={7} className="empty">Nothing here yet</td></tr>
                 ) : data.organizations.map((o) => (
                   <tr key={o.id}>
                     <td><strong>{o.name}</strong> <code className="small">{o.code}</code>{" "}

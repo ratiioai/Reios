@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { NavLink, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { api, store } from "../../lib/api.js";
 import { useAuth } from "../../lib/auth.jsx";
-import { Brand, Empty, Loading, ThemeToggle, useToast } from "../../components/ui.jsx";
+import { Brand, Empty, Loading, ThemeToggle, useToast, Credit } from "../../components/ui.jsx";
 import { AdminCtx, NavIcon, makeCq, useAdmin } from "./context.jsx";
 
 import Overview from "./Overview.jsx";
@@ -83,8 +83,8 @@ export default function Console() {
   const NAV = [
     { group: "General" },
     { id: "overview", to: "/console", end: true, label: "Overview" },
-    ...(isSuper ? [{ id: "colleges", to: "/console/colleges", label: "Organizations" }, { id: "usage", to: "/console/usage", label: "Usage" }] : []),
-    { group: isSuper ? "Selected organization" : "Organization" },
+    ...(isSuper ? [{ id: "colleges", to: "/console/colleges", label: "Colleges & Events" }, { id: "usage", to: "/console/usage", label: "Usage" }] : []),
+    { group: isSuper ? "Selected college / event" : user.college?.org_type === "event" ? "Event" : "College" },
     { id: "students", to: "/console/students", label: "Students" },
     { id: "exams", to: "/console/exams", label: "Exams & Results" },
     { id: "leaderboard", to: "/console/leaderboard", label: "Leaderboard" },
@@ -100,7 +100,7 @@ export default function Console() {
     <AdminCtx.Provider value={ctx}>
       <div className="shell">
         <aside className={"sidebar" + (sidebarOpen ? " open" : "")}>
-          <Brand sub={isSuper ? "Super Admin" : "Admin"} />
+          <Brand sub={isSuper ? "Super Admin" : user.college?.org_type === "event" ? "Event Admin" : "College Admin"} />
           <nav className="nav">
             {NAV.map((n, i) =>
               n.group ? (
@@ -131,14 +131,14 @@ export default function Console() {
                       onClick={() => setSidebarOpen((o) => !o)}>☰</button>
               {isSuper && (
                 <div className="row tight">
-                  <label htmlFor="college-picker" style={{ margin: 0 }}>Organization</label>
+                  <label htmlFor="college-picker" style={{ margin: 0 }}>College / event</label>
                   <select id="college-picker" style={{ width: "auto", minWidth: 220 }}
                           value={collegeId ?? ""}
                           onChange={(e) => pickCollege(Number(e.target.value))}>
                     {colleges.length === 0
-                      ? <option value="">No organizations yet</option>
+                      ? <option value="">None yet</option>
                       : colleges.map((c) => (
-                          <option key={c.id} value={c.id}>{c.name} ({c.code})</option>
+                          <option key={c.id} value={c.id}>{c.org_type === "event" ? "Event · " : ""}{c.name} ({c.code})</option>
                         ))}
                   </select>
                 </div>
@@ -146,7 +146,8 @@ export default function Console() {
             </div>
             <div className="row tight">
               <span className="who">
-                {user.name} · {isSuper ? "Super Admin" : user.college.name}
+                {user.name} · {isSuper ? "Super Admin"
+                  : `${user.college.name} (${user.college.org_type === "event" ? "event" : "college"} code ${user.college.code})`}
               </span>
             </div>
           </div>
@@ -182,6 +183,7 @@ export default function Console() {
               <Route path="*" element={<Navigate to="/console" replace />} />
             </Routes>
           )}
+          <Credit />
         </main>
       </div>
     </AdminCtx.Provider>
@@ -193,7 +195,7 @@ function Scoped({ children }) {
   const { needCollege } = useAdmin();
   if (needCollege) {
     return (
-      <Empty title="No organization selected"
+      <Empty title="No college or event selected"
              hint="Create one under Colleges & Admins, then pick it from the dropdown above." />
     );
   }

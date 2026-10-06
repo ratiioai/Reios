@@ -5,6 +5,7 @@ import { useAuth } from "../../lib/auth.jsx";
 import { fmtDate, fmtDuration } from "../../lib/format.js";
 import { Badge, Loading, Markdown, Modal, OrgBrand, Spinner, useToast } from "../../components/ui.jsx";
 import CodingPanel from "./CodingPanel.jsx";
+import LeaderboardModal from "./LeaderboardModal.jsx";
 import {
   DEFAULT_CODE, VIOLATION_TEXT, buildAnswerState, enterFullscreen, exitFullscreen,
   isAnswered, isFullscreen,
@@ -21,6 +22,9 @@ export default function Exam() {
   const [paper, setPaper] = useState(null);
   const [error, setError] = useState("");
   const [doneMsg, setDoneMsg] = useState("");
+  const [boardOn, setBoardOn] = useState(false);
+  const [showBoard, setShowBoard] = useState(false);
+  const closeBoard = useCallback(() => setShowBoard(false), []);
   const [lock, setLock] = useState(null);
 
   const [index, setIndex] = useState(0);
@@ -118,6 +122,7 @@ export default function Exam() {
         const i = await api("GET", `/api/reios/student/exams/${examId}`);
         if (cancelled) return;
         if (i.must_change_password) { navigate("/student", { replace: true }); return; }
+        setBoardOn(!!i.leaderboard_enabled);
         if (i.attempt && i.attempt.status !== "in_progress") {
           attemptRef.current = i.attempt.id;
           setDoneMsg("You have already submitted this exam.");
@@ -351,12 +356,14 @@ export default function Exam() {
           <h1>{doneMsg}</h1>
           <p className="muted">You can close this window. Your results will be shared with you.</p>
           <div className="row" style={{ justifyContent: "center" }}>
+            {boardOn && <button className="btn" onClick={() => setShowBoard(true)}>View leaderboard</button>}
             <Link className="btn primary"
                   to={attemptRef.current ? `/student?result=${attemptRef.current}` : "/student"}>
               Go to dashboard
             </Link>
           </div>
         </div>
+        {showBoard && <LeaderboardModal examId={Number(examId)} onClose={closeBoard} />}
       </div>
     );
   }

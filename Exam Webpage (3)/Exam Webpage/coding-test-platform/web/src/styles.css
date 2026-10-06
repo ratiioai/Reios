@@ -703,3 +703,11 @@ body.no-select .cm-editor, body.no-select input, body.no-select textarea { -webk
   .content { padding: 16px 16px 100px; }
   .coding { grid-template-columns: 1fr; }
 }
+
+/* Credit line: a real element on sign-in, console and dashboard; generated text on the exam screens */
+.credit, .pre-start::after, .palette::after {
+  display: block; text-align: center; font-size: 12px; font-weight: 550; letter-spacing: .02em;
+  color: var(--muted); opacity: .75; padding: 20px 0 6px;
+}
+.pre-start::after { content: "Developed by Ratiio"; padding-top: 36px; }
+.palette::after { content: "Developed by Ratiio"; padding: 22px 0 4px; }

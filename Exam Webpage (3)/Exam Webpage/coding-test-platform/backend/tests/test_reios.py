@@ -612,7 +612,7 @@ def test_super_admin_firebase_sign_in(client, setup, monkeypatch):
     def fb(tok):
         return client.post("/api/reios/auth/firebase", json={"id_token": tok})
 
-    assert client.get("/api/reios/auth/config").json() == {"firebase_super_admin": True}
+    assert client.get("/api/reios/auth/config").json() == {"google_signin": True}
 
     r = fb(token())
     assert r.status_code == 200 and r.json()["user"]["role"] == "super_admin", r.text
@@ -627,7 +627,7 @@ def test_super_admin_firebase_sign_in(client, setup, monkeypatch):
 
     # Password sign-in is off for super admins while Firebase is on; college admins are unaffected
     r = client.post("/api/reios/auth/login", json={"identifier": "root@reios.test", "password": "RootPass123"})
-    assert r.status_code == 403 and "Firebase" in r.text
+    assert r.status_code == 401 and r.json()["detail"] == "Invalid credentials"  # same as a wrong password
     r = client.post("/api/reios/auth/login", json={"identifier": "tpo@tec.edu", "password": "TpoSecure99"})
     assert "Firebase" not in r.text
 
@@ -685,6 +685,15 @@ def test_event_add_ons(client, setup, monkeypatch):
         "name": "Hack Fest", "code": "HFEST", "org_type": "event", "logo": png, "brand_color": "#0f766e",
         "features": ["branding", "email_results"]}).json()
     assert ev["features"] == ["branding", "email_results"]
+    # Event details are kept for events only, and an event can't end before it starts
+    r = client.patch(f"/api/reios/super/colleges/{ev['id']}", headers=auth(root), json={
+        "organizer": " Acme Corp ", "event_starts_at": "2026-12-10T00:00:00+00:00", "access_until": "2026-12-12T23:59:59+00:00"})
+    assert r.status_code == 200 and r.json()["organizer"] == "Acme Corp" and r.json()["event_starts_at"].startswith("2026-12-10")
+    assert client.patch(f"/api/reios/super/colleges/{ev['id']}", headers=auth(root),
+                        json={"access_until": "2026-12-01T00:00:00+00:00"}).status_code == 400
+    client.patch(f"/api/reios/super/colleges/{ev['id']}", headers=auth(root), json={"access_until": None})
+    st = client.get(f"/api/reios/admin/stats?college_id={ev['id']}", headers=auth(root)).json()["college"]
+    assert st["org_type"] == "event" and st["organizer"] == "Acme Corp"
 
     assert client.get("/api/reios/auth/branding?code=hfest").json()["color"] == "#0f766e"
     assert client.get("/api/reios/auth/branding?code=PLAIN").json() is None
@@ -752,7 +761,27 @@ def test_event_add_ons(client, setup, monkeypatch):
     r = client.patch(f"/api/reios/super/colleges/{ev['id']}", headers=auth(root), json={"org_type": "college"}).json()
     assert r["features"] == []
 
+    # Event students keep the password the organizer gave them; college students still must change theirs
+    client.patch(f"/api/reios/super/colleges/{ev['id']}", headers=auth(root), json={"org_type": "event", "features": ["branding"]})
+    client.post("/api/reios/admin/students", headers=auth(adm), json={"roll_no": "HF3", "name": "Fresh", "password": "student3"})
+    r = client.post("/api/reios/auth/login", json={"identifier": "HF3", "password": "student3", "college_code": "HFEST"}).json()
+    assert r["user"]["must_change_password"] is False
+    ft = r["access_token"]
+    assert client.post(f"/api/reios/student/exams/{exam['id']}/start", headers=auth(ft)).status_code == 200
+    college_login = client.post("/api/reios/auth/login", json={"identifier": "21cs001", "password": "student1", "college_code": "tec"})
+    assert college_login.status_code in (200, 401)  # college rule is covered by test_full_exam_flow
+
+    # Leaderboard opens right after a student submits, even when results aren't published yet
+    now_exam = client.get(f"/api/reios/admin/exams/{exam['id']}", headers=auth(adm)).json()
+    upd = {k: now_exam[k] for k in ("title", "start_at", "end_at", "duration_minutes", "exam_type")}
+    r = client.put(f"/api/reios/admin/exams/{exam['id']}", headers=auth(adm),
+                   json={**upd, "show_leaderboard": True, "show_results": False})
+    assert r.status_code == 200, r.text
+    r = client.get(f"/api/reios/student/exams/{exam['id']}/leaderboard", headers=auth(t1))
+    assert r.status_code == 200 and r.json()["me"]["rank"] == 1
+    assert client.get(f"/api/reios/student/exams/{exam['id']}/leaderboard", headers=auth(ft)).status_code == 404  # still writing
+
     usage = client.get("/api/reios/super/usage", headers=auth(root)).json()
     row = next(o for o in usage["organizations"] if o["code"] == "HFEST")
-    assert row["students"] == 2 and row["exams_created"] == 1 and row["attempts"] == 2
+    assert row["students"] == 3 and row["exams_created"] == 1 and row["attempts"] == 3
     assert client.get("/api/reios/super/usage", headers=auth(adm)).status_code == 403

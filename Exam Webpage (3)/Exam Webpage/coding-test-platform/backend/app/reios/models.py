@@ -54,6 +54,8 @@ class College(Base):
     features = Column(JSON, nullable=True)  # paid add-ons switched on for an event, see features.FEATURES
     logo = Column(Text, nullable=True)  # data: URL, shown when branding is on
     brand_color = Column(String(16), nullable=True)
+    organizer = Column(String(255), nullable=True)  # events: the client or company that is running it
+    event_starts_at = Column(DateTime(timezone=True), nullable=True)  # events: first day
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

@@ -65,7 +65,7 @@ export default function Mcqs() {
           <p className="lede">
             {isSuper
               ? "Questions here are shared with every college."
-              : "Your organization's questions plus the shared global bank. Global questions can be used in exams but only edited by the super admin."}
+              : "Your own questions plus the shared global bank. Global questions can be used in exams but only edited by the super admin."}
           </p>
         </div>
         <div className="row tight">

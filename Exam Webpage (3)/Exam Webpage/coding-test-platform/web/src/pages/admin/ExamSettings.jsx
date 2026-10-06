@@ -21,7 +21,7 @@ export default function ExamSettings({ meta, exam, cq, onClose, onSaved }) {
     shuffle_questions: true, shuffle_options: true, negative_marking: false,
     require_fullscreen: true, block_copy_paste: true, max_violations: 3,
     show_results: true, show_answers: false, pass_percentage: 40,
-    allowed_languages: null, exam_type: "mcq", show_leaderboard: false,
+    allowed_languages: null, exam_type: "mcq", show_leaderboard: true,
   };
 
   const [f, setF] = useState({
@@ -159,7 +159,7 @@ export default function ExamSettings({ meta, exam, cq, onClose, onSaved }) {
       <Check name="negative_marking">Negative marking for wrong MCQ answers</Check>
       <Check name="show_results">Show score to students after they submit</Check>
       <Check name="show_answers">Show correct answers and explanations in the review</Check>
-      <Check name="show_leaderboard">Show students a leaderboard (top 10 and their own rank) after results</Check>
+      <Check name="show_leaderboard">Show students a leaderboard (top 10 and their own rank) as soon as they submit</Check>
 
       {f.exam_type !== "mcq" && (<>
       <h3>Coding languages allowed</h3>

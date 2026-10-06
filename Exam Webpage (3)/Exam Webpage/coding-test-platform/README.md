@@ -1,5 +1,7 @@
 # Reios
 
+*Developed by Ratiio.*
+
 Proctored assessment platform for colleges: MCQ and coding exams, question sets uploaded from
 Word / PDF / Excel, live monitoring, results and leaderboards. Full guide: **[REIOS.md](./REIOS.md)**.
 
