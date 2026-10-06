@@ -4,9 +4,9 @@ services:
   - type: web
     name: reios-api
     runtime: python
-    rootDir: "Exam Webpage (3)/Exam Webpage/coding-test-platform/backend"
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2 --no-access-log
+    # Render's rootDir can't contain "(" so the commands change into the backend folder themselves
+    buildCommand: cd "Exam Webpage (3)/Exam Webpage/coding-test-platform/backend" && pip install -r requirements.txt
+    startCommand: cd "Exam Webpage (3)/Exam Webpage/coding-test-platform/backend" && uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2 --no-access-log
     healthCheckPath: /api/health
     plan: free   # fine for trying it; use a paid plan (and more --workers) for real exams
     envVars:
