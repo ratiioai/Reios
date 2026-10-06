@@ -365,12 +365,22 @@ def test_time_expiry_auto_submits(client, setup):
     assert r.status_code == 201
     token = student_login(client, "21CS003", "student3", new_password="LatePass33")
     paper = client.post(f"/api/reios/student/exams/{setup['exam']['id']}/start", headers=auth(token)).json()
-    db = SessionLocal()
-    attempt = db.get(Attempt, paper["attempt_id"])
-    attempt.deadline_at = datetime.now(timezone.utc) - timedelta(seconds=1)
-    db.commit()
-    db.close()
+    def move_deadline(seconds_ago):
+        db = SessionLocal()
+        attempt = db.get(Attempt, paper["attempt_id"])
+        attempt.deadline_at = datetime.now(timezone.utc) - timedelta(seconds=seconds_ago)
+        db.commit()
+        db.close()
+
     hdr = {**auth(token), "X-Exam-Session": paper["session"]}
+    mcq = next(i for i in paper["items"] if i["type"] == "mcq")
+    # An answer still in transit when time ran out (30 s ago) is kept
+    move_deadline(30)
+    r = client.put(f"/api/reios/student/attempts/{paper['attempt_id']}/mcq/{mcq['item_id']}", headers=hdr,
+                   json={"selected": [mcq["options"][0]["id"]]})
+    assert r.status_code == 200, r.text
+    # After the grace period the exam is submitted automatically
+    move_deadline(100)
     r = client.post(f"/api/reios/student/attempts/{paper['attempt_id']}/heartbeat", headers=hdr)
     assert r.json()["status"] == "auto_submitted"
 

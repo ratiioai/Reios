@@ -49,7 +49,7 @@ export default function Exam() {
   const attemptRef = useRef(null);
   const finishedRef = useRef(false);
   const savingRef = useRef(Promise.resolve());
-  const retryRef = useRef(null);
+  const retryRef = useRef(new Map());
 
   /* ── API helpers ─────────────────────────────────────────────────── */
   const hdr = useCallback(() => ({ headers: { "X-Exam-Session": sessionRef.current } }), []);
@@ -89,9 +89,27 @@ export default function Exam() {
     [hdr, handleConflict]
   );
 
-  const retryLater = useCallback((fn) => {
-    clearTimeout(retryRef.current);
-    retryRef.current = setTimeout(() => { if (!finishedRef.current) fn(); }, 5000);
+  // One pending retry per answer (key), so a second failed save never cancels the first one's retry
+  const retryLater = useCallback((key, fn) => {
+    const pending = retryRef.current;
+    clearTimeout(pending.get(key)?.timer);
+    pending.set(key, {
+      fn,
+      timer: setTimeout(() => { pending.delete(key); if (!finishedRef.current) fn(); }, 5000),
+    });
+  }, []);
+
+  const cancelRetry = useCallback((key) => {
+    clearTimeout(retryRef.current.get(key)?.timer);
+    retryRef.current.delete(key);
+  }, []);
+
+  /** Re-send every answer still waiting to retry, then wait for all saves to finish. */
+  const flushSaves = useCallback(() => {
+    const pending = [...retryRef.current.values()];
+    retryRef.current.clear();
+    pending.forEach(({ timer, fn }) => { clearTimeout(timer); fn(); });
+    return savingRef.current.catch(() => {});
   }, []);
 
   /* ── Violations ──────────────────────────────────────────────────── */
@@ -185,16 +203,17 @@ export default function Exam() {
 
   /* ── Saving answers ──────────────────────────────────────────────── */
   const saveMcq = useCallback((itemId, next) => {
+    cancelRetry(`mcq:${itemId}`);  // this newer answer replaces any older one still waiting to retry
     savingRef.current = savingRef.current
       .then(() => examApi("PUT", `/mcq/${itemId}`,
         { selected: next.selected, marked_for_review: next.review }))
       .catch((err) => {
         if (err.status !== 409) {
           toast("Couldn't save your answer: " + err.message + ". It will retry.", "error");
-          retryLater(() => saveMcq(itemId, next));
+          retryLater(`mcq:${itemId}`, () => saveMcq(itemId, next));
         }
       });
-  }, [examApi, toast, retryLater]);
+  }, [examApi, toast, retryLater, cancelRetry]);
 
   const saveCode = useCallback((force) => {
     const { paper: p, index: i, code: c } = R.current;
@@ -212,7 +231,7 @@ export default function Exam() {
       .catch((err) => {
         setCode((prev) => ({ ...prev, [item.item_id]: { ...prev[item.item_id], dirty: true } }));
         setSaveLabel("Not saved");
-        if (err.status !== 409) retryLater(() => saveCode(false));
+        if (err.status !== 409) retryLater(`code:${item.item_id}`, () => saveCode(false));
       });
     return savingRef.current;
   }, [examApi, retryLater]);
@@ -244,17 +263,20 @@ export default function Exam() {
       setLeft(secs);
       if (secs <= 0 && !autoSubmitting.current) {
         autoSubmitting.current = true;
-        saveCode(true).finally(() =>
+        // Answers still being saved go first; the server accepts them for a short grace period
+        saveCode(true).finally(() => flushSaves().finally(() =>
           examApi("POST", "/submit")
             .then(() => finish("Time is up. Your exam was submitted automatically."))
             .catch(() => heartbeat())
-        );
+        ));
       }
     }, 500);
-    const hb = setInterval(heartbeat, 20000);
+    // Every open exam checks in once a minute: enough to resync the timer and show who's online,
+    // while keeping a full hall from loading the server with background traffic
+    const hb = setInterval(heartbeat, 60000);
     const autosave = setInterval(() => saveCode(false), 15000);
     return () => { clearInterval(tick); clearInterval(hb); clearInterval(autosave); };
-  }, [phase, saveCode, examApi, finish, heartbeat]);
+  }, [phase, saveCode, examApi, finish, heartbeat, flushSaves]);
 
   /* ── Anti-cheat listeners ────────────────────────────────────────── */
   useEffect(() => {
@@ -732,7 +754,7 @@ export default function Exam() {
           onConfirm={async () => {
             setSubmitting(true);
             try {
-              await savingRef.current.catch(() => {});
+              await flushSaves();
               await examApi("POST", "/submit");
               finish("Your exam has been submitted.");
             } catch (err) {

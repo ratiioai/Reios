@@ -141,8 +141,13 @@ def create_attempt(db: Session, exam: Exam, student: User, ip: Optional[str], ua
     return attempt
 
 
+# The exam page locks at 0:00 and submits, but on a busy server answers clicked in the last seconds can
+# still be in transit. Accept them for this long after the deadline before auto-submitting.
+DEADLINE_GRACE = timedelta(seconds=90)
+
+
 def is_expired(attempt: Attempt) -> bool:
-    return utcnow() >= as_utc(attempt.deadline_at)
+    return utcnow() >= as_utc(attempt.deadline_at) + DEADLINE_GRACE
 
 
 def finalize_if_expired(db: Session, attempt: Attempt) -> bool:

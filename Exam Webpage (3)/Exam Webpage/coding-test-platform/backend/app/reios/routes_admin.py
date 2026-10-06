@@ -1066,7 +1066,7 @@ def live_monitor(exam_id: int, college_id: int = Depends(scoped_college_id), db:
             "attempt_id": a.id, "roll_no": a.student.roll_no, "name": a.student.name,
             "status": a.status.value, "answered": answered, "total": len(a.item_order or []),
             "violations": a.violation_count, "max_violations": exam.max_violations,
-            "online": bool(heartbeat and (now - heartbeat).total_seconds() < 45)
+            "online": bool(heartbeat and (now - heartbeat).total_seconds() < 150)  # pages check in every 60 s
             and a.status == AttemptStatus.IN_PROGRESS,
             "seconds_left": max(0, int((as_utc(a.deadline_at) - now).total_seconds()))
             if a.status == AttemptStatus.IN_PROGRESS else 0,
