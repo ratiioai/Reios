@@ -2,6 +2,7 @@
 Reios API server. Also serves the built React app (web/dist) at /app/.
 """
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -57,7 +58,8 @@ app.add_middleware(
 
 @app.get("/api/health")
 def health_check():
-    return {"status": "healthy", "service": "Reios", "environment": settings.ENVIRONMENT}
+    return {"status": "healthy", "service": "Reios", "environment": settings.ENVIRONMENT,
+            "version": os.getenv("RENDER_GIT_COMMIT", "local")[:7]}
 
 
 @app.exception_handler(Exception)

@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     DATABASE_URL: str = _database_url()
     # Concurrent request handlers (and database connections). Size it to the largest class writing at once.
     WORKER_THREADS: int = int(os.getenv("WORKER_THREADS", "120"))
+    # PostgreSQL connections kept open per worker process, plus how many extra it may open in a rush
+    DB_POOL_SIZE: int = int(os.getenv("DB_POOL_SIZE", "10"))
+    DB_MAX_OVERFLOW: int = int(os.getenv("DB_MAX_OVERFLOW", "5"))
     # bcrypt cost. 10 is OWASP's minimum and ~4x cheaper than 12, which matters when a whole lab signs in at once
     BCRYPT_ROUNDS: int = int(os.getenv("BCRYPT_ROUNDS", "10"))
 
