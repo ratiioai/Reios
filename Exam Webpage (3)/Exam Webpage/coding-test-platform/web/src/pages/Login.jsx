@@ -29,7 +29,8 @@ export default function Login() {
   const [params] = useSearchParams();
 
   const [mode, setMode] = useState(params.get("as") === "admin" ? "admin" : "student");
-  const [collegeCode, setCollegeCode] = useState(() => params.get("code") || store.get("reios_college_code") || "");
+  const [collegeCode, setCollegeCode] = useState(() => params.get("code") || "");
+  const [needCode, setNeedCode] = useState(() => !!params.get("code"));
   const [identifier, setIdentifier] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(params.get("expired") ? "Your session expired. Please sign in again." : "");
@@ -71,8 +72,10 @@ export default function Login() {
     setError("");
     const body = { identifier: identifier.trim(), password };
     if (mode === "student") {
-      if (!collegeCode.trim()) { setError("Enter your college or event code"); return; }
-      body.college_code = collegeCode.trim();
+      if (needCode) {
+        if (!collegeCode.trim()) { setError("Enter your college or event code"); return; }
+        body.college_code = collegeCode.trim();
+      }
     }
     setBusy(true);
     try {
@@ -95,6 +98,7 @@ export default function Login() {
       if (body.college_code) store.set("reios_college_code", body.college_code.toUpperCase());
       navigate(homeFor(u.role), { replace: true });
     } catch (err) {
+      if (err.status === 409 && mode === "student") setNeedCode(true);
       setError(err.message);
       setBusy(false);
     }
@@ -151,20 +155,20 @@ export default function Login() {
             </div>
 
             <form onSubmit={submit}>
-              {mode === "student" && (
+              {mode === "student" && needCode && (
                 <div className="field">
                   <label htmlFor="college_code">College / event code</label>
                   <input id="college_code" value={collegeCode} placeholder="e.g. JNTU"
                          autoComplete="organization" style={{ textTransform: "uppercase" }}
                          onChange={(e) => setCollegeCode(e.target.value)} />
                   <div className="hint">
-                    Given to you by your college or event organizer. Roll numbers can repeat between
-                    colleges, so this tells us which list you're on.
+                    Your ID is also used somewhere else, so enter the code your college or event
+                    organizer gave you.
                   </div>
                 </div>
               )}
               <div className="field">
-                <label htmlFor="identifier">{mode === "admin" ? "Email" : "Roll number"}</label>
+                <label htmlFor="identifier">{mode === "admin" ? "Email" : "Roll number / Team ID"}</label>
                 <input id="identifier" required autoComplete="username"
                        type={mode === "admin" ? "email" : "text"} value={identifier}
                        onChange={(e) => setIdentifier(e.target.value)} />

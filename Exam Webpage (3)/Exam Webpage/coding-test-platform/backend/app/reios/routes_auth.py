@@ -49,6 +49,29 @@ def user_payload(user: User) -> dict:
     }
 
 
+MAX_ID_CANDIDATES = 20  # bounds the password checks one sign-in can trigger
+
+
+def _find_by_id_and_password(db: Session, identifier: str, password: str) -> Optional[User]:
+    """
+    Sign in with a roll number / team ID alone. IDs repeat between colleges and events, so when several
+    accounts share the ID, the password decides. Only if two of them also share the password is the
+    college / event code needed.
+    """
+    candidates = db.query(User).filter(User.role == Role.STUDENT,
+                                       func.lower(User.roll_no) == identifier.lower()).limit(MAX_ID_CANDIDATES).all()
+    if len(candidates) <= 1:
+        return candidates[0] if candidates else None  # check_login verifies and counts failures as usual
+    matches = [u for u in candidates if verify_password(password, u.hashed_password)]
+    if len(matches) > 1:
+        raise HTTPException(status.HTTP_409_CONFLICT,
+                            "More than one account uses this ID. Enter your college or event code as well")
+    # No match: a wrong password. Don't count it against any one of them, as we can't tell whose it was.
+    if not matches:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Invalid credentials")
+    return matches[0]
+
+
 @router.post("/login")
 def login(body: LoginRequest, db: Session = Depends(get_db)):
     identifier = body.identifier.strip()
@@ -66,7 +89,7 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
     elif "@" in identifier:
         user = db.query(User).filter(func.lower(User.email) == identifier.lower()).first()
     else:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Enter your college code to log in with a roll number")
+        user = _find_by_id_and_password(db, identifier, body.password)
 
     user = check_login(db, user, body.password)
     return {"access_token": issue_token(user), "token_type": "bearer", "user": user_payload(user)}

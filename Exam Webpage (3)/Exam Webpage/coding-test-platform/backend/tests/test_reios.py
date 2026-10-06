@@ -165,9 +165,43 @@ def test_isolation_between_colleges(client, setup):
 
 
 def test_login_errors(client, setup):
-    assert client.post("/api/reios/auth/login", json={"identifier": "21CS001", "password": "student1"}).status_code == 400
     assert client.post("/api/reios/auth/login", json={"identifier": "21CS001", "password": "wrong",
                                                     "college_code": "TEC"}).status_code == 401
+    assert client.post("/api/reios/auth/login", json={"identifier": "NOSUCHID", "password": "x"}).status_code == 401
+
+
+def test_sign_in_with_id_only(client, setup):
+    """No code needed; when two places reuse an ID the password picks the account."""
+    root = setup["root"]
+    ids = {}
+    for code in ("IDA", "IDB"):
+        org = client.post("/api/reios/super/colleges", headers=auth(root),
+                          json={"name": f"Event {code}", "code": code, "org_type": "event"}).json()
+        client.post(f"/api/reios/super/colleges/{org['id']}/admins", headers=auth(root),
+                    json={"name": "Admin", "email": f"admin@{code.lower()}.com", "password": "AdminPass1"})
+        ids[code] = client.post("/api/reios/auth/login", json={
+            "identifier": f"admin@{code.lower()}.com", "password": "AdminPass1"}).json()["access_token"]
+    client.post("/api/reios/admin/students", headers=auth(ids["IDA"]), json={"roll_no": "T01", "name": "Alpha", "password": "alpha-pass"})
+    client.post("/api/reios/admin/students", headers=auth(ids["IDB"]), json={"roll_no": "T01", "name": "Beta", "password": "beta-pass"})
+    client.post("/api/reios/admin/students", headers=auth(ids["IDA"]), json={"roll_no": "SOLO7", "name": "Solo", "password": "solo-pass"})
+
+    def login(i, p, code=None):
+        body = {"identifier": i, "password": p, **({"college_code": code} if code else {})}
+        return client.post("/api/reios/auth/login", json=body)
+
+    assert login("solo7", "solo-pass").json()["user"]["college"]["code"] == "IDA"
+    assert login("T01", "alpha-pass").json()["user"]["name"] == "Alpha"
+    assert login("T01", "beta-pass").json()["user"]["name"] == "Beta"
+    assert login("T01", "nope").status_code == 401
+    # Same ID and same password in two events: only then is the code needed
+    client.post("/api/reios/admin/students", headers=auth(ids["IDA"]), json={"roll_no": "T02", "name": "A2", "password": "same-pass"})
+    client.post("/api/reios/admin/students", headers=auth(ids["IDB"]), json={"roll_no": "T02", "name": "B2", "password": "same-pass"})
+    assert login("T02", "same-pass").status_code == 409
+    assert login("T02", "same-pass", "IDB").json()["user"]["name"] == "B2"
+
+    for c in client.get("/api/reios/super/colleges", headers=auth(root)).json():
+        if c["code"] in ("IDA", "IDB"):
+            client.delete(f"/api/reios/super/colleges/{c['id']}?confirm={c['code']}", headers=auth(root))
 
 
 def test_full_exam_flow(client, setup):

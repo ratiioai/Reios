@@ -133,17 +133,19 @@ export default function Dashboard() {
   );
   const active = exams.filter((e) => ["in_progress", "live", "upcoming"].includes(e.state));
   const past = exams.filter((e) => ["completed", "missed"].includes(e.state));
+  const isEvent = user?.college?.org_type === "event";
   const liveCount = active.filter((e) => e.state === "live" || e.state === "in_progress").length;
 
   return (
     <div className="wrap">
       <header className="bar">
         <OrgBrand branding={user?.college?.branding} style={{ padding: 0 }}
-                  sub={user?.college?.branding
-                    ? `${user.college.code} · Powered by Reios`
-                    : user?.college ? `${user.college.name} · ${user.college.code}` : "Student"} />
+                  sub={user?.college?.branding ? "Powered by Reios" : user?.college?.name || "Student"} />
         <div className="row tight">
-          <span className="muted small">{user?.name} · {user?.roll_no}</span>
+          <span className="muted small">
+            {user?.name} · {isEvent ? "Team ID" : "Roll no"} <strong>{user?.roll_no}</strong>
+            {user?.college && <> · {isEvent ? "Event" : "College"} code <strong>{user.college.code}</strong></>}
+          </span>
           <button className="btn sm" onClick={() => setShowPwd(true)}>Change password</button>
           <ThemeToggle className="btn ghost sm" />
           <button className="btn sm" onClick={logout}>Sign out</button>

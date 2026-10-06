@@ -119,7 +119,10 @@ function SignInLink({ org }) {
   const noun = orgNoun(org);
   return (
     <div className="banner" style={{ margin: "0 0 16px", alignItems: "center", flexWrap: "wrap" }}>
-      <span><strong>{cap(noun)} code: {org.code}</strong>. Students enter it with their roll number at sign-in.</span>
+      <span>
+        <strong>{cap(noun)} code: {org.code}</strong>. {noun === "event" ? "Teams sign in with their Team ID" : "Students sign in with their roll number"} and
+        password; the code is only asked for if their ID is also used elsewhere.
+      </span>
       <span className="grow" />
       <button className="btn sm" onClick={() => navigator.clipboard.writeText(link)
         .then(() => toast("Student sign-in link copied", "success"))
