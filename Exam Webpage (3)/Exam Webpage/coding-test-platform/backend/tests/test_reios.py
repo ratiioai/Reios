@@ -663,3 +663,98 @@ def test_organization_plan_limits(client, setup):
     client.patch(f"/api/reios/super/colleges/{org['id']}", headers=auth(root),
                  json={"access_until": (now + timedelta(days=30)).isoformat()})
     assert client.get("/api/reios/admin/exams", headers=auth(adm)).status_code == 200
+
+
+def test_event_add_ons(client, setup, monkeypatch):
+    import base64
+    from datetime import datetime, timedelta, timezone
+    from app.config import settings
+    from app.reios import features as feat
+    root = setup["root"]
+    png = "data:image/png;base64," + base64.b64encode(bytes.fromhex(
+        "89504e470d0a1a0a0000000d4948445200000001000000010806000000"
+        "1f15c4890000000d49444154789c6360f8cfc0f01f0005fe02fea735819b0000000049454e44ae426082")).decode()
+
+    # A college can't be given add-ons; an event can
+    col = client.post("/api/reios/super/colleges", headers=auth(root),
+                      json={"name": "Plain College", "code": "PLAIN", "features": ["certificates"]}).json()
+    assert col["org_type"] == "college" and col["features"] == []
+    assert client.post("/api/reios/super/colleges", headers=auth(root), json={
+        "name": "Bad", "code": "BADEV", "org_type": "event", "features": ["teleport"]}).status_code == 400
+    ev = client.post("/api/reios/super/colleges", headers=auth(root), json={
+        "name": "Hack Fest", "code": "HFEST", "org_type": "event", "logo": png, "brand_color": "#0f766e",
+        "features": ["certificates", "branding", "email_results"]}).json()
+    assert ev["features"] == ["branding", "certificates", "email_results"]
+
+    assert client.get("/api/reios/auth/branding?code=hfest").json()["color"] == "#0f766e"
+    assert client.get("/api/reios/auth/branding?code=PLAIN").json() is None
+
+    client.post(f"/api/reios/super/colleges/{ev['id']}/admins", headers=auth(root),
+                json={"name": "Fest HR", "email": "hr@hackfest.com", "password": "FestPass1"})
+    adm = client.post("/api/reios/auth/login", json={"identifier": "hr@hackfest.com", "password": "FestPass1"}).json()["access_token"]
+    client.post("/api/reios/admin/students", headers=auth(adm), json={
+        "roll_no": "HF1", "name": "Priya Winner", "email": "priya@mail.com", "password": "student1"})
+    client.post("/api/reios/admin/students", headers=auth(adm), json={"roll_no": "HF2", "name": "No Email", "password": "student2"})
+    q = client.post("/api/reios/admin/mcqs", headers=auth(adm), json={
+        "section": "GK", "question_text": "2+2?", "options": ["4", "5"], "correct_options": [0]}).json()
+    now = datetime.now(timezone.utc)
+    exam = client.post("/api/reios/admin/exams", headers=auth(adm), json={
+        "title": "Fest Quiz", "exam_type": "mcq", "start_at": (now - timedelta(minutes=1)).isoformat(),
+        "end_at": (now + timedelta(hours=1)).isoformat()}).json()
+    client.put(f"/api/reios/admin/exams/{exam['id']}/items", headers=auth(adm),
+               json={"items": [{"item_type": "mcq", "question_id": q["id"]}]})
+    client.post(f"/api/reios/admin/exams/{exam['id']}/publish", headers=auth(adm))
+
+    def take(roll, pw, right):
+        t = client.post("/api/reios/auth/login", json={"identifier": roll, "password": pw, "college_code": "HFEST"}).json()
+        t = client.post("/api/reios/auth/change-password", headers=auth(t["access_token"]),
+                        json={"current_password": pw, "new_password": pw + "xyz1"}).json()["access_token"]
+        p = client.post(f"/api/reios/student/exams/{exam['id']}/start", headers=auth(t)).json()
+        item = p["items"][0]
+        opt = next(o["id"] for o in item["options"] if (o["text"] == "4") == right)
+        h = {**auth(t), "X-Exam-Session": p["session"]}
+        client.put(f"/api/reios/student/attempts/{p['attempt_id']}/mcq/{item['item_id']}", headers=h, json={"selected": [opt]})
+        client.post(f"/api/reios/student/attempts/{p['attempt_id']}/submit", headers=h)
+        return t, p["attempt_id"]
+
+    t1, a1 = take("HF1", "student1", True)
+    t2, a2 = take("HF2", "student2", False)
+    me = client.get("/api/reios/auth/me", headers=auth(t1)).json()
+    assert me["college"]["branding"]["color"] == "#0f766e"
+
+    r = client.get(f"/api/reios/student/attempts/{a1}/result", headers=auth(t1)).json()
+    assert r["certificate_available"] is True
+    pdf = client.get(f"/api/reios/student/attempts/{a1}/certificate", headers=auth(t1))
+    assert pdf.status_code == 200 and pdf.content[:5] == b"%PDF-" and len(pdf.content) > 1000
+    assert client.get(f"/api/reios/student/attempts/{a2}/certificate", headers=auth(t2)).status_code == 403  # failed
+
+    # Email results through a stand-in mail server
+    sent = []
+
+    class FakeSMTP:
+        def __init__(self, *a, **k): pass
+        def __enter__(self): return self
+        def __exit__(self, *a): pass
+        def starttls(self): pass
+        def login(self, *a): pass
+        def send_message(self, msg): sent.append((msg["To"], msg.get_content()))
+    assert client.post(f"/api/reios/admin/exams/{exam['id']}/email-results", headers=auth(adm)).status_code == 503
+    monkeypatch.setattr(settings, "SMTP_HOST", "smtp.example.com")
+    monkeypatch.setattr(settings, "SMTP_FROM", "results@reios.app")
+    monkeypatch.setattr(feat.smtplib, "SMTP", FakeSMTP)
+    r = client.post(f"/api/reios/admin/exams/{exam['id']}/email-results", headers=auth(adm)).json()
+    assert r == {"sent": 1, "skipped": 1, "failed": []}
+    assert sent[0][0] == "priya@mail.com" and "Rank: 1 of 2" in sent[0][1] and "certificate" in sent[0][1]
+
+    # Turning the add-on off takes it away
+    client.patch(f"/api/reios/super/colleges/{ev['id']}", headers=auth(root), json={"features": ["branding"]})
+    assert client.get(f"/api/reios/student/attempts/{a1}/certificate", headers=auth(t1)).status_code == 403
+    assert client.post(f"/api/reios/admin/exams/{exam['id']}/email-results", headers=auth(adm)).status_code == 403
+    # Switching to a college clears them
+    r = client.patch(f"/api/reios/super/colleges/{ev['id']}", headers=auth(root), json={"org_type": "college"}).json()
+    assert r["features"] == []
+
+    usage = client.get("/api/reios/super/usage", headers=auth(root)).json()
+    row = next(o for o in usage["organizations"] if o["code"] == "HFEST")
+    assert row["students"] == 2 and row["exams_created"] == 1 and row["attempts"] == 2
+    assert client.get("/api/reios/super/usage", headers=auth(adm)).status_code == 403

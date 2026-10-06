@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../../lib/api.js";
 import { useAuth } from "../../lib/auth.jsx";
 import { fmtDate, fmtDuration } from "../../lib/format.js";
-import { Badge, Brand, Loading, Markdown, Modal, Spinner, useToast } from "../../components/ui.jsx";
+import { Badge, Loading, Markdown, Modal, OrgBrand, Spinner, useToast } from "../../components/ui.jsx";
 import CodingPanel from "./CodingPanel.jsx";
 import {
   DEFAULT_CODE, VIOLATION_TEXT, buildAnswerState, enterFullscreen, exitFullscreen,
@@ -391,7 +391,7 @@ export default function Exam() {
 
     return (
       <div className="pre-start">
-        <Brand sub="Proctored exam" />
+        <OrgBrand branding={user?.college?.branding} sub="Proctored exam" />
         <Link to="/student" className="small">← Dashboard</Link>
         <div className="page-head" style={{ marginTop: 10 }}>
           <h1>{i.title}</h1>

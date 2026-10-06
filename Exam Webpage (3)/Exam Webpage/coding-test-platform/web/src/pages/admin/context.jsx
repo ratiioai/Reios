@@ -18,6 +18,7 @@ export const ICONS = {
   students: '<circle cx="7.5" cy="7" r="2.6"/><path d="M3 16c0-2.5 2-4.2 4.5-4.2S12 13.5 12 16"/><circle cx="14.5" cy="8" r="2"/><path d="M13 16c0-1.9 1-3.1 2.6-3.1 1.1 0 1.9.5 2.4 1.3"/>',
   exams: '<path d="M5 3h7l3.5 3.5V17H5V3Z"/><path d="M12 3v3.5h3.5"/><path d="m7.8 11.4 1.4 1.4 3-3.2"/>',
   leaderboard: '<path d="M7 17V9h6v8"/><path d="M3 17v-5h4"/><path d="M13 17v-7h4v7"/><path d="M2 17h16"/><path d="m10 3 .9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2L7.1 5.1l2-.3L10 3Z"/>',
+  usage: '<path d="M3 17h14"/><path d="M5 14V9"/><path d="M9 14V5"/><path d="M13 14v-3"/><path d="M17 14V7"/>',
   announcements: '<path d="M4 8v4h2.5L11 15.5v-11L6.5 8H4Z"/><path d="M14 8.2a3 3 0 0 1 0 3.6"/>',
   mcqs: '<circle cx="5.5" cy="6" r="2"/><circle cx="5.5" cy="14" r="2"/><path d="M10 6h7M10 14h7"/>',
   problems: '<path d="m7 7-3.5 3L7 13"/><path d="m13 7 3.5 3L13 13"/>',

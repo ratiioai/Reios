@@ -60,7 +60,11 @@ export default function Colleges() {
               {colleges.map((c) => (
                 <tr key={c.id}>
                   <td>
-                    <strong>{c.name}</strong>
+                    <strong>{c.name}</strong>{" "}
+                    {c.org_type === "event" && <Badge color="violet">Event</Badge>}
+                    {c.features?.length > 0 && (
+                      <div className="muted small">Add-ons: {c.features.map((k) => k.replace("_", " ")).join(", ")}</div>
+                    )}
                     {c.city && <div className="muted small">{c.city}</div>}
                   </td>
                   <td><code>{c.code}</code></td>
@@ -174,6 +178,10 @@ function CollegeForm({ college, onClose, onSaved }) {
     city: college?.city || "",
     max_students: college?.max_students || "",
     max_exams: college?.max_exams || "",
+    org_type: college?.org_type || "college",
+    features: college?.features || [],
+    logo: college?.logo || "",
+    brand_color: college?.brand_color || "#4f46e5",
     // stored as end of that day, local time
     access_until: college?.access_until ? toDateInput(college.access_until) : "",
     contact_email: college?.contact_email || "",
@@ -191,6 +199,10 @@ function CollegeForm({ college, onClose, onSaved }) {
       contact_phone: nullIfBlank(f.contact_phone),
       max_students: f.max_students ? Number(f.max_students) : null,
       max_exams: f.max_exams ? Number(f.max_exams) : null,
+      org_type: f.org_type,
+      features: f.org_type === "event" ? f.features : [],
+      logo: f.org_type === "event" && f.features.includes("branding") ? f.logo || null : null,
+      brand_color: f.brand_color || null,
       access_until: f.access_until ? new Date(`${f.access_until}T23:59:59`).toISOString() : null,
     };
     try {
@@ -219,8 +231,15 @@ function CollegeForm({ college, onClose, onSaved }) {
         </>
       }
     >
+      <label>Type</label>
+      <div className="segment" style={{ marginBottom: 14 }}>
+        {[["college", "College"], ["event", "Event / paid client"]].map(([id, label]) => (
+          <button key={id} type="button" className={f.org_type === id ? "active" : ""}
+                  onClick={() => setF((v) => ({ ...v, org_type: id }))}>{label}</button>
+        ))}
+      </div>
       <div className="form-grid">
-        <Field label="Organization name * (college, company or event)">
+        <Field label="Organization name *">
           <input value={f.name} onChange={set("name")} />
         </Field>
         <Field label="Code * (students type this at login)">
@@ -244,6 +263,9 @@ function CollegeForm({ college, onClose, onSaved }) {
           <input value={f.contact_phone} onChange={set("contact_phone")} />
         </Field>
       </div>
+      {f.org_type === "event" && (
+        <EventAddOns f={f} setF={setF} />
+      )}
       {college && (
         <label className="check">
           <input type="checkbox" checked={f.is_active} onChange={set("is_active")} />
@@ -361,4 +383,53 @@ function CollegeAdmins({ college, onClose, onCreds }) {
 function toDateInput(iso) {
   const d = new Date(iso);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+const ADD_ONS = [
+  ["certificates", "Certificates", "PDF certificate for every student who passes"],
+  ["branding", "Branding", "Their logo and colour on their students' sign-in, dashboard, exam and certificates"],
+  ["email_results", "Email results", "Admin can email every student their score and rank"],
+];
+
+function EventAddOns({ f, setF }) {
+  const toast = useToast();
+  const toggle = (key) => setF((v) => ({
+    ...v, features: v.features.includes(key) ? v.features.filter((k) => k !== key) : [...v.features, key],
+  }));
+
+  function pickLogo(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!/^image\/(png|jpe?g)$/.test(file.type)) return toast("Use a PNG or JPG image", "error");
+    if (file.size > 300 * 1024) return toast("The logo must be smaller than 300 KB", "error");
+    const reader = new FileReader();
+    reader.onload = () => setF((v) => ({ ...v, logo: reader.result }));
+    reader.readAsDataURL(file);
+  }
+
+  return (
+    <div className="card pad-sm" style={{ margin: "4px 0 14px" }}>
+      <strong className="small">Paid add-ons for this event</strong>
+      <p className="muted small" style={{ margin: "2px 0 8px" }}>Only what you tick is available to them.</p>
+      {ADD_ONS.map(([key, label, hint]) => (
+        <label key={key} className="check" style={{ alignItems: "flex-start" }}>
+          <input type="checkbox" checked={f.features.includes(key)} onChange={() => toggle(key)} />
+          <span><strong>{label}</strong> <span className="muted small">— {hint}</span></span>
+        </label>
+      ))}
+      {f.features.includes("branding") && (
+        <div className="row" style={{ marginTop: 10, gap: 16, alignItems: "flex-end" }}>
+          <Field label="Logo (PNG or JPG, under 300 KB)">
+            <input type="file" accept="image/png,image/jpeg" onChange={pickLogo} />
+          </Field>
+          {f.logo && <img src={f.logo} alt="Logo preview"
+                          style={{ height: 44, maxWidth: 140, objectFit: "contain", marginBottom: 16 }} />}
+          <Field label="Brand colour">
+            <input type="color" value={f.brand_color} style={{ width: 64, padding: 2, height: 40 }}
+                   onChange={(e) => setF((v) => ({ ...v, brand_color: e.target.value }))} />
+          </Field>
+        </div>
+      )}
+    </div>
+  );
 }

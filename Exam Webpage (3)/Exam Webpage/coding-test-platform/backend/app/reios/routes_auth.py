@@ -3,7 +3,7 @@ Reios login and account endpoints, shared by all roles.
 """
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 from app.auth import hash_password, verify_password
 from app.config import settings
 from app.database import get_db
+from app.reios.features import branding
 from app.reios.firebase_auth import verify_id_token
 from app.reios.models import College, Role, User
 from app.reios.security import check_login, get_current_user, issue_token, utcnow
@@ -41,7 +42,9 @@ def user_payload(user: User) -> dict:
         "batch_year": user.batch_year,
         "phone": user.phone,
         "must_change_password": user.must_change_password,
-        "college": {"id": user.college.id, "name": user.college.name, "code": user.college.code}
+        "college": {"id": user.college.id, "name": user.college.name, "code": user.college.code,
+                    "org_type": user.college.org_type, "features": user.college.features or [],
+                    "branding": branding(user.college)}
         if user.college else None,
     }
 
@@ -71,6 +74,13 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
 
 class FirebaseLoginRequest(BaseModel):
     id_token: str = Field(..., min_length=20, max_length=8192)
+
+
+@router.get("/branding")
+def org_branding(code: str = Query(..., min_length=1, max_length=32), db: Session = Depends(get_db)):
+    """Public: logo and colour for an organization code, so the sign-in page can show them."""
+    org = db.query(College).filter(func.lower(College.code) == code.strip().lower(), College.is_active.is_(True)).first()
+    return branding(org)
 
 
 @router.get("/config")

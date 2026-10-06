@@ -10,6 +10,24 @@ export default function Results() {
   const { examId } = useParams();
   const { collegeId, cq } = useAdmin();
   const toast = useToast();
+  const confirmBox = useConfirm();
+  const [orgFeatures, setOrgFeatures] = useState([]);
+
+  useEffect(() => {
+    api("GET", "/api/reios/admin/stats" + cq()).then((s) => setOrgFeatures(s.college.features || [])).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [collegeId]);
+
+  async function emailResults() {
+    if (!(await confirmBox("Email results",
+      "Send every student who finished their score, rank and pass/fail by email? Students without an email are skipped.",
+      "Send emails"))) return;
+    try {
+      const r = await api("POST", `/api/reios/admin/exams/${examId}/email-results` + cq());
+      toast(`Sent ${r.sent} emails` + (r.skipped ? `, ${r.skipped} students have no email` : "")
+            + (r.failed.length ? `, ${r.failed.length} failed` : ""), r.failed.length ? "error" : "success", 7000);
+    } catch (err) { toast(err.message, "error", 7000); }
+  }
   const confirm = useConfirm();
 
   const [data, setData] = useState(null);
@@ -81,6 +99,9 @@ export default function Results() {
             <Link className="btn success" to={`/console/exams/${examId}/live`}>Live monitor</Link>
           )}
           <Link className="btn" to="/console/leaderboard">Leaderboard</Link>
+          {orgFeatures.includes("email_results") && (
+            <button className="btn" onClick={emailResults}>Email results</button>
+          )}
           {data.exam.coding_count > 0 && <button className="btn" onClick={openSimilarity}>Code similarity</button>}
           <button className="btn primary" onClick={() =>
             download(`/api/reios/admin/exams/${examId}/export` + cq(),

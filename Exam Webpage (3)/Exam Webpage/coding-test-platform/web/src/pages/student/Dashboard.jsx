@@ -3,7 +3,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../../lib/api.js";
 import { useAuth } from "../../lib/auth.jsx";
 import { fmtDate, fmtDuration } from "../../lib/format.js";
-import { Badge, Brand, Empty, Loading, ThemeToggle, useToast } from "../../components/ui.jsx";
+import { Badge, Empty, Loading, OrgBrand, ThemeToggle, useToast } from "../../components/ui.jsx";
 import ChangePassword from "./ChangePassword.jsx";
 import ResultModal from "./ResultModal.jsx";
 import LeaderboardModal from "./LeaderboardModal.jsx";
@@ -138,7 +138,8 @@ export default function Dashboard() {
   return (
     <div className="wrap">
       <header className="bar">
-        <Brand sub={user?.college?.name || "Student"} style={{ padding: 0 }} />
+        <OrgBrand branding={user?.college?.branding} style={{ padding: 0 }}
+                  sub={user?.college?.branding ? "Powered by Reios" : user?.college?.name || "Student"} />
         <div className="row tight">
           <span className="muted small">{user?.name} · {user?.roll_no}</span>
           <button className="btn sm" onClick={() => setShowPwd(true)}>Change password</button>

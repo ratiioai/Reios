@@ -20,6 +20,7 @@ from app.reios.models import (
     DIFFICULTIES, EXAM_TYPES, LANGUAGES, SECTIONS, Announcement, Attempt, AttemptStatus, CodingProblem,
     College, Exam, ExamItem, ItemType, MCQQuestion, ProctorEvent, QuestionSet, Role, SetAssignment, User,
 )
+from app.reios.features import has_feature, require_feature, send_emails
 from app.reios.parsers import ParseError, student_rows
 from app.reios.security import (
     as_utc, bank_scope, generate_password, require_admin, scoped_college_id, utcnow,
@@ -385,7 +386,8 @@ def college_stats(college_id: int = Depends(scoped_college_id), db: Session = De
     return {
         "college": {"id": college.id, "name": college.name, "code": college.code,
                     "max_students": college.max_students, "max_exams": college.max_exams,
-                    "access_until": as_utc(college.access_until)},
+                    "access_until": as_utc(college.access_until), "org_type": college.org_type,
+                    "features": college.features or []},
         "students": db.query(func.count(User.id)).filter(
             User.college_id == college_id, User.role == Role.STUDENT).scalar(),
         "active_students": db.query(func.count(User.id)).filter(
@@ -1206,3 +1208,32 @@ def delete_announcement(announcement_id: int, user: User = Depends(require_admin
     db.delete(a)
     db.commit()
     return {"deleted": announcement_id}
+
+
+@router.post("/exams/{exam_id}/email-results")
+def email_results(exam_id: int, college_id: int = Depends(scoped_college_id), db: Session = Depends(get_db)):
+    """Email every finished student their score (and certificate note). Students without an email are skipped."""
+    exam = get_exam(db, college_id, exam_id)
+    require_feature(exam.college, "email_results")
+    finished = engine.rank_attempts(db.query(Attempt).filter(Attempt.exam_id == exam.id).all())
+    certs = has_feature(exam.college, "certificates")
+    messages, skipped = [], 0
+    for rank, a in enumerate(finished, start=1):
+        if not a.student.email:
+            skipped += 1
+            continue
+        pct = engine.percentage(a)
+        passed = pct >= exam.pass_percentage
+        text = (f"Hello {a.student.name},\n\n"
+                f"Your result for {exam.title} ({exam.college.name}):\n\n"
+                f"  Score: {a.total_score:g} / {a.max_score:g} ({pct:g}%)\n"
+                f"  Rank: {rank} of {len(finished)}\n"
+                f"  Result: {'Passed' if passed else 'Not passed'} (pass mark {exam.pass_percentage:g}%)\n")
+        if certs and passed:
+            text += "\nYour certificate is ready to download from your Reios dashboard.\n"
+        text += "\nSign in to Reios to see section-wise scores.\n"
+        messages.append((a.student.email, f"Your result: {exam.title}", text))
+    if not messages:
+        return {"sent": 0, "skipped": skipped, "failed": []}
+    sent, failed = send_emails(messages)
+    return {"sent": sent, "skipped": skipped, "failed": [{"email": e, "error": err} for e, err in failed]}

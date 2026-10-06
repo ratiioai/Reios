@@ -18,6 +18,7 @@ import Announcements from "./Announcements.jsx";
 import Account from "./Account.jsx";
 import Preview from "./Preview.jsx";
 import Leaderboard from "./Leaderboard.jsx";
+import Usage from "./Usage.jsx";
 
 export default function Console() {
   const { user, logout } = useAuth();
@@ -82,7 +83,7 @@ export default function Console() {
   const NAV = [
     { group: "General" },
     { id: "overview", to: "/console", end: true, label: "Overview" },
-    ...(isSuper ? [{ id: "colleges", to: "/console/colleges", label: "Organizations" }] : []),
+    ...(isSuper ? [{ id: "colleges", to: "/console/colleges", label: "Organizations" }, { id: "usage", to: "/console/usage", label: "Usage" }] : []),
     { group: isSuper ? "Selected organization" : "Organization" },
     { id: "students", to: "/console/students", label: "Students" },
     { id: "exams", to: "/console/exams", label: "Exams & Results" },
@@ -174,6 +175,7 @@ export default function Console() {
               <Route path="exams/:examId/results" element={<Scoped><Results /></Scoped>} />
               <Route path="exams/:examId/live" element={<Scoped><Live /></Scoped>} />
               <Route path="exams/:examId/preview" element={<Scoped><Preview /></Scoped>} />
+              <Route path="usage" element={isSuper ? <Usage /> : <Navigate to="/console" replace />} />
               <Route path="leaderboard" element={<Scoped><Leaderboard /></Scoped>} />
               <Route path="announcements" element={<Announcements />} />
               <Route path="account" element={<Account onChanged={() => setMustChange(false)} />} />

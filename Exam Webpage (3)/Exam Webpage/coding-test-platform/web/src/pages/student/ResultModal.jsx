@@ -1,4 +1,5 @@
-import { Badge, Markdown, Modal, Progress } from "../../components/ui.jsx";
+import { Badge, Markdown, Modal, Progress, useToast } from "../../components/ui.jsx";
+import { download } from "../../lib/api.js";
 
 const REASONS = {
   time_up: "Submitted automatically when time ran out.",
@@ -50,6 +51,7 @@ export default function ResultModal({ result: r, onClose }) {
   const reason = REASONS[r.submit_reason] || "";
   return (
     <Modal title={r.exam.title} wide onClose={onClose}>
+      {r.certificate_available && <CertificateBanner r={r} />}
       <div className="grid cols-4" style={{ marginBottom: 16 }}>
         <div className="stat">
           <div className="label">Score</div>
@@ -100,5 +102,18 @@ export default function ResultModal({ result: r, onClose }) {
         </>
       )}
     </Modal>
+  );
+}
+
+function CertificateBanner({ r }) {
+  const toast = useToast();
+  return (
+    <div className="banner" style={{ marginBottom: 16, alignItems: "center" }}>
+      <span className="grow">🎉 You passed. Your certificate is ready.</span>
+      <button className="btn primary sm" onClick={() =>
+        download(`/api/reios/student/attempts/${r.attempt_id}/certificate`,
+                 `${r.exam.title.replace(/\W+/g, "_")}_certificate.pdf`).catch((e) => toast(e.message, "error"))
+      }>Download certificate</button>
+    </div>
   );
 }

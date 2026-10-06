@@ -31,6 +31,21 @@ export function Brand({ sub, light = false, style }) {
   );
 }
 
+/** The organization's own logo and name when its branding add-on is on, else the Reios mark. */
+export function OrgBrand({ branding, sub, style }) {
+  if (!branding) return <Brand sub={sub} style={style} />;
+  return (
+    <div className="brand" style={style}>
+      {branding.logo
+        ? <img src={branding.logo} alt="" style={{ height: 34, maxWidth: 120, objectFit: "contain", borderRadius: 6 }} />
+        : <Mark />}
+      <span className="wordmark" style={branding.color ? { color: branding.color } : undefined}>
+        {branding.name}{sub && <span className="sub">{sub}</span>}
+      </span>
+    </div>
+  );
+}
+
 /* ── Small primitives ──────────────────────────────────────────────── */
 export const Spinner = ({ lg }) => <span className={"spinner" + (lg ? " lg" : "")} />;
 

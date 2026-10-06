@@ -50,6 +50,10 @@ class College(Base):
     max_students = Column(Integer, nullable=True)  # licence limit, None = unlimited
     max_exams = Column(Integer, nullable=True)  # exams the plan includes, None = unlimited
     access_until = Column(DateTime(timezone=True), nullable=True)  # account locks after this, None = no end
+    org_type = Column(String(16), default="college", nullable=False)  # college | event
+    features = Column(JSON, nullable=True)  # paid add-ons switched on for an event, see features.FEATURES
+    logo = Column(Text, nullable=True)  # data: URL, shown when branding is on
+    brand_color = Column(String(16), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -163,6 +167,7 @@ class Exam(Base):
     auto_assign_sets = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    college = relationship("College")
     items = relationship("ExamItem", back_populates="exam", cascade="all, delete-orphan",
                          order_by="ExamItem.order", lazy="selectin")
     sets = relationship("QuestionSet", back_populates="exam", cascade="all, delete-orphan",

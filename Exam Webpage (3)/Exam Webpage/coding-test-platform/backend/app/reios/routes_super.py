@@ -2,8 +2,8 @@
 Super admin endpoints: colleges, college admins and platform-wide stats.
 """
 import re
-from datetime import datetime
-from typing import Optional
+from datetime import datetime, timezone
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, EmailStr, Field
@@ -16,6 +16,7 @@ from app.reios.models import (
     Announcement, Attempt, AttemptStatus, CodeAnswer, CodingProblem, College, Exam, ExamItem, MCQAnswer,
     MCQQuestion, ProctorEvent, QuestionSet, Role, SetAssignment, User,
 )
+from app.reios.features import FEATURES, check_logo, clean_features
 from app.reios.security import as_utc, generate_password, require_super_admin, utcnow
 
 router = APIRouter(prefix="/api/reios/super", tags=["Reios Super Admin"])
@@ -32,6 +33,10 @@ class CollegeIn(BaseModel):
     max_students: Optional[int] = Field(None, ge=1)
     max_exams: Optional[int] = Field(None, ge=1)
     access_until: Optional[datetime] = None
+    org_type: str = Field("college", pattern="^(college|event)$")
+    features: List[str] = []
+    logo: Optional[str] = None
+    brand_color: Optional[str] = Field(None, pattern="^#[0-9a-fA-F]{6}$")
 
 
 class CollegeUpdate(BaseModel):
@@ -42,6 +47,10 @@ class CollegeUpdate(BaseModel):
     max_students: Optional[int] = Field(None, ge=1)
     max_exams: Optional[int] = Field(None, ge=1)
     access_until: Optional[datetime] = None
+    org_type: Optional[str] = Field(None, pattern="^(college|event)$")
+    features: Optional[List[str]] = None
+    logo: Optional[str] = None
+    brand_color: Optional[str] = Field(None, pattern="^#[0-9a-fA-F]{6}$")
     is_active: Optional[bool] = None
 
 
@@ -70,6 +79,8 @@ def college_payload(college: College, db: Session) -> dict:
         "max_students": college.max_students, "is_active": college.is_active,
         "max_exams": college.max_exams, "access_until": as_utc(college.access_until),
         "expired": bool(college.access_until and as_utc(college.access_until) < utcnow()),
+        "org_type": college.org_type, "features": college.features or [],
+        "logo": college.logo, "brand_color": college.brand_color,
         "created_at": college.created_at,
         "student_count": student_count, "admin_count": admin_count, "exam_count": exam_count,
     }
@@ -121,7 +132,9 @@ def create_college(body: CollegeIn, db: Session = Depends(get_db), _=Depends(req
         raise HTTPException(status.HTTP_409_CONFLICT, f"The code {code} is already in use")
     college = College(name=body.name.strip(), code=code, city=body.city, contact_email=body.contact_email,
                       contact_phone=body.contact_phone, max_students=body.max_students,
-                      max_exams=body.max_exams, access_until=body.access_until)
+                      max_exams=body.max_exams, access_until=body.access_until, org_type=body.org_type,
+                      features=clean_features(body.org_type, body.features), logo=check_logo(body.logo),
+                      brand_color=body.brand_color)
     db.add(college)
     db.commit()
     db.refresh(college)
@@ -132,8 +145,12 @@ def create_college(body: CollegeIn, db: Session = Depends(get_db), _=Depends(req
 def update_college(college_id: int, body: CollegeUpdate, db: Session = Depends(get_db),
                    _=Depends(require_super_admin)):
     college = get_college_or_404(db, college_id)
-    for field, value in body.model_dump(exclude_unset=True).items():
+    data = body.model_dump(exclude_unset=True)
+    if "logo" in data:
+        data["logo"] = check_logo(data["logo"])
+    for field, value in data.items():
         setattr(college, field, value)
+    college.features = clean_features(college.org_type, college.features)
     db.commit()
     return college_payload(college, db)
 
@@ -230,3 +247,34 @@ def reset_college_admin_password(admin_id: int, db: Session = Depends(get_db), _
     admin.locked_until = None
     db.commit()
     return {"id": admin.id, "temporary_password": password}
+
+
+@router.get("/features")
+def list_features(_=Depends(require_super_admin)):
+    return [{"key": k, "label": v} for k, v in FEATURES.items()]
+
+
+@router.get("/usage")
+def usage_report(month: Optional[str] = Query(None, pattern=r"^\d{4}-\d{2}$"), db: Session = Depends(get_db),
+                 _=Depends(require_super_admin)):
+    """Per organization: students, exams created and attempts taken in the month (UTC). Default: this month."""
+    now = utcnow()
+    year, mon = (int(x) for x in month.split("-")) if month else (now.year, now.month)
+    start = datetime(year, mon, 1, tzinfo=timezone.utc)
+    end = datetime(year + (mon == 12), mon % 12 + 1, 1, tzinfo=timezone.utc)
+    rows = []
+    for c in db.query(College).order_by(College.name).all():
+        exam_ids = select(Exam.id).where(Exam.college_id == c.id)
+        rows.append({
+            "id": c.id, "name": c.name, "code": c.code, "org_type": c.org_type, "features": c.features or [],
+            "is_active": c.is_active, "expired": bool(c.access_until and as_utc(c.access_until) < now),
+            "students": db.query(User).filter(User.college_id == c.id, User.role == Role.STUDENT).count(),
+            "exams_total": db.query(Exam).filter(Exam.college_id == c.id).count(),
+            "max_exams": c.max_exams,
+            "exams_created": db.query(Exam).filter(Exam.college_id == c.id, Exam.created_at >= start,
+                                                   Exam.created_at < end).count(),
+            "attempts": db.query(Attempt).filter(Attempt.exam_id.in_(exam_ids), Attempt.started_at >= start,
+                                                 Attempt.started_at < end).count(),
+        })
+    return {"month": f"{year:04d}-{mon:02d}", "organizations": rows,
+            "totals": {k: sum(r[k] for r in rows) for k in ("students", "exams_created", "attempts")}}

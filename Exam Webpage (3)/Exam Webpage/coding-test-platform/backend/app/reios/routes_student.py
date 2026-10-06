@@ -4,11 +4,12 @@ Student endpoints: dashboard, taking an exam, results and history.
 Every write during an exam must send the X-Exam-Session header received from /start.
 Starting the exam again from another tab or device issues a new session and the old one stops working.
 """
+import re
 import secrets
 import time
 from typing import Dict, List, Optional, Tuple
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, HTTPException, Request, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
@@ -18,6 +19,7 @@ from app.reios import engine
 from app.reios.models import (
     LANGUAGES, Announcement, Attempt, AttemptStatus, CodeAnswer, Exam, ExamItem, ItemType, MCQAnswer, User,
 )
+from app.reios.features import certificate_pdf, has_feature, require_feature
 from app.reios.security import as_utc, require_student, utcnow
 
 router = APIRouter(prefix="/api/reios/student", tags=["Reios Student"])
@@ -487,6 +489,7 @@ def get_result(attempt_id: int, student: User = Depends(require_student), db: Se
     rank = next((i + 1 for i, a in enumerate(finished) if a.id == attempt.id), len(finished))
     pct = round(attempt.total_score / attempt.max_score * 100, 1) if attempt.max_score else 0
     return {
+        "attempt_id": attempt.id,
         "exam": {"id": exam.id, "title": exam.title, "pass_percentage": exam.pass_percentage},
         "status": attempt.status.value, "submit_reason": attempt.submit_reason,
         "started_at": as_utc(attempt.started_at), "submitted_at": as_utc(attempt.submitted_at),
@@ -495,7 +498,23 @@ def get_result(attempt_id: int, student: User = Depends(require_student), db: Se
         "violations": attempt.violation_count,
         "sections": list(sections.values()), "review": review, "answers_visible": exam.show_answers,
         "leaderboard_available": exam.show_leaderboard,
+        "certificate_available": has_feature(exam.college, "certificates") and pct >= exam.pass_percentage,
     }
+
+
+@router.get("/attempts/{attempt_id}/certificate")
+def download_certificate(attempt_id: int, student: User = Depends(require_student), db: Session = Depends(get_db)):
+    attempt = get_own_attempt(db, student, attempt_id)
+    if not can_view_result(attempt):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Results for this exam are not published")
+    require_feature(attempt.exam.college, "certificates")
+    pct = engine.percentage(attempt)
+    if pct < attempt.exam.pass_percentage:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Certificates are given to students who pass")
+    pdf = certificate_pdf(attempt, pct)
+    filename = re.sub(r"\W+", "_", f"{attempt.exam.title}_{student.roll_no}") + "_certificate.pdf"
+    return Response(pdf, media_type="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
 
 @router.get("/exams/{exam_id}/leaderboard")

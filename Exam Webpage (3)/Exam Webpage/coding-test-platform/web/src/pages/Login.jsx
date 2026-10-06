@@ -35,6 +35,17 @@ export default function Login() {
   const [error, setError] = useState(params.get("expired") ? "Your session expired. Please sign in again." : "");
   const [busy, setBusy] = useState(false);
   const [firebaseOn, setFirebaseOn] = useState(false);
+  const [orgBrand, setOrgBrand] = useState(null);
+
+  useEffect(() => {
+    const code = collegeCode.trim();
+    if (mode !== "student" || code.length < 2) { setOrgBrand(null); return; }
+    const t = setTimeout(() => {
+      api("GET", `/api/reios/auth/branding?code=${encodeURIComponent(code)}`, null, { noRedirect: true })
+        .then(setOrgBrand).catch(() => setOrgBrand(null));
+    }, 400);
+    return () => clearTimeout(t);
+  }, [collegeCode, mode]);
 
   useEffect(() => {
     if (!firebaseConfigured) return;
@@ -113,6 +124,12 @@ export default function Login() {
 
       <main className="auth-main">
         <div className="auth-card">
+          {orgBrand && (
+            <div className="row" style={{ gap: 12, marginBottom: 14 }}>
+              {orgBrand.logo && <img src={orgBrand.logo} alt="" style={{ height: 44, maxWidth: 140, objectFit: "contain" }} />}
+              <strong style={{ fontSize: 18, color: orgBrand.color || undefined }}>{orgBrand.name}</strong>
+            </div>
+          )}
           <h1>Sign in</h1>
           <p className="lede">Welcome back. Choose how you're signing in.</p>
 
