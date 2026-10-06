@@ -16,7 +16,6 @@ from app.config import settings
 from app.reios.models import Attempt, College
 
 FEATURES = {
-    "certificates": "Certificates for students who pass",
     "branding": "Organization logo and colour on its students' screens",
     "email_results": "Email each student their result",
 }

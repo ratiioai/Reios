@@ -386,8 +386,7 @@ function toDateInput(iso) {
 }
 
 const ADD_ONS = [
-  ["certificates", "Certificates", "PDF certificate for every student who passes"],
-  ["branding", "Branding", "Their logo and colour on their students' sign-in, dashboard, exam and certificates"],
+  ["branding", "Branding", "Their logo and colour on their students' sign-in, dashboard and exam screens"],
   ["email_results", "Email results", "Admin can email every student their score and rank"],
 ];
 

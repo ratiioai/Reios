@@ -677,14 +677,14 @@ def test_event_add_ons(client, setup, monkeypatch):
 
     # A college can't be given add-ons; an event can
     col = client.post("/api/reios/super/colleges", headers=auth(root),
-                      json={"name": "Plain College", "code": "PLAIN", "features": ["certificates"]}).json()
+                      json={"name": "Plain College", "code": "PLAIN", "features": ["branding"]}).json()
     assert col["org_type"] == "college" and col["features"] == []
     assert client.post("/api/reios/super/colleges", headers=auth(root), json={
         "name": "Bad", "code": "BADEV", "org_type": "event", "features": ["teleport"]}).status_code == 400
     ev = client.post("/api/reios/super/colleges", headers=auth(root), json={
         "name": "Hack Fest", "code": "HFEST", "org_type": "event", "logo": png, "brand_color": "#0f766e",
-        "features": ["certificates", "branding", "email_results"]}).json()
-    assert ev["features"] == ["branding", "certificates", "email_results"]
+        "features": ["branding", "email_results"]}).json()
+    assert ev["features"] == ["branding", "email_results"]
 
     assert client.get("/api/reios/auth/branding?code=hfest").json()["color"] == "#0f766e"
     assert client.get("/api/reios/auth/branding?code=PLAIN").json() is None
@@ -723,10 +723,9 @@ def test_event_add_ons(client, setup, monkeypatch):
     assert me["college"]["branding"]["color"] == "#0f766e"
 
     r = client.get(f"/api/reios/student/attempts/{a1}/result", headers=auth(t1)).json()
-    assert r["certificate_available"] is True
-    pdf = client.get(f"/api/reios/student/attempts/{a1}/certificate", headers=auth(t1))
-    assert pdf.status_code == 200 and pdf.content[:5] == b"%PDF-" and len(pdf.content) > 1000
-    assert client.get(f"/api/reios/student/attempts/{a2}/certificate", headers=auth(t2)).status_code == 403  # failed
+    assert r["certificate_available"] is False
+    assert client.post("/api/reios/super/colleges", headers=auth(root), json={
+        "name": "Cert", "code": "CERTX", "org_type": "event", "features": ["certificates"]}).status_code == 400
 
     # Email results through a stand-in mail server
     sent = []
@@ -744,11 +743,10 @@ def test_event_add_ons(client, setup, monkeypatch):
     monkeypatch.setattr(feat.smtplib, "SMTP", FakeSMTP)
     r = client.post(f"/api/reios/admin/exams/{exam['id']}/email-results", headers=auth(adm)).json()
     assert r == {"sent": 1, "skipped": 1, "failed": []}
-    assert sent[0][0] == "priya@mail.com" and "Rank: 1 of 2" in sent[0][1] and "certificate" in sent[0][1]
+    assert sent[0][0] == "priya@mail.com" and "Rank: 1 of 2" in sent[0][1]
 
     # Turning the add-on off takes it away
     client.patch(f"/api/reios/super/colleges/{ev['id']}", headers=auth(root), json={"features": ["branding"]})
-    assert client.get(f"/api/reios/student/attempts/{a1}/certificate", headers=auth(t1)).status_code == 403
     assert client.post(f"/api/reios/admin/exams/{exam['id']}/email-results", headers=auth(adm)).status_code == 403
     # Switching to a college clears them
     r = client.patch(f"/api/reios/super/colleges/{ev['id']}", headers=auth(root), json={"org_type": "college"}).json()
