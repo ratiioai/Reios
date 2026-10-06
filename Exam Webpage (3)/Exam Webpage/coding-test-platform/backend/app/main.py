@@ -12,7 +12,7 @@ from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
-from app.database import SessionLocal, create_tables
+from app.database import SessionLocal, create_tables, startup_lock
 from app.reios import (
     routes_admin as reios_admin, routes_auth as reios_auth, routes_sets as reios_sets,
     routes_student as reios_student, routes_super as reios_super,
@@ -28,16 +28,17 @@ logger = logging.getLogger("reios")
 
 @asynccontextmanager
 async def lifespan(_app: FastAPI):
-    create_tables()
     # Route handlers run on worker threads; the default 40 queues a lab of students behind each other
     anyio.to_thread.current_default_thread_limiter().total_tokens = settings.WORKER_THREADS
-    db = SessionLocal()
-    try:
-        ensure_super_admin(db)
-    except Exception:
-        logger.exception("Super admin setup failed")
-    finally:
-        db.close()
+    with startup_lock():
+        create_tables()
+        db = SessionLocal()
+        try:
+            ensure_super_admin(db)
+        except Exception:
+            logger.exception("Super admin setup failed")
+        finally:
+            db.close()
     logger.info("Reios ready (environment: %s)", settings.ENVIRONMENT)
     yield
 

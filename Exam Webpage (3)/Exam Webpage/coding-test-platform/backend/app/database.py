@@ -1,7 +1,9 @@
 """
 Database configuration and session management
 """
-from sqlalchemy import create_engine, event
+from contextlib import contextmanager
+
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import sessionmaker
 
 from app.config import settings
@@ -44,6 +46,23 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+@contextmanager
+def startup_lock():
+    """
+    Several worker processes start at once; on PostgreSQL only one may create tables and seed data at a
+    time, or they collide ("type already exists"). Others wait here, then find everything already done.
+    """
+    if is_sqlite:
+        yield
+        return
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
+        conn.execute(text("SELECT pg_advisory_lock(727001)"))
+        try:
+            yield
+        finally:
+            conn.execute(text("SELECT pg_advisory_unlock(727001)"))
 
 
 def create_tables():
