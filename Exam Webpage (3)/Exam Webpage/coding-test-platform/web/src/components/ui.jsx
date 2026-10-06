@@ -3,7 +3,12 @@ import { createPortal } from "react-dom";
 import { markdownToHtml } from "../lib/format.js";
 
 /* ── Brand ─────────────────────────────────────────────────────────── */
-export function Mark({ size = 30, light = false }) {
+export function Mark({ size = 30 }) {
+  return <img src={`${import.meta.env.BASE_URL}reios-logo.png`} alt="" width={size} height={size}
+               className="mark" style={{ borderRadius: 8, objectFit: "contain" }} />;
+}
+
+function LegacyMark({ size = 30, light = false }) {
   const id = useMemo(() => "rg" + Math.random().toString(36).slice(2, 8), []);
   return (
     <svg className={"mark" + (light ? " mark-light" : "")} width={size} height={size}
