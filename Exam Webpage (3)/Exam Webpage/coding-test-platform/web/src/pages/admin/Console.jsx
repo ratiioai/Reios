@@ -32,7 +32,7 @@ export default function Console() {
   );
   const [ready, setReady] = useState(!isSuper);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [mustChange, setMustChange] = useState(false);
+  const mustChange = !!user.must_change_password; // kept fresh by AuthProvider
 
   // Super admins pick which college they are acting inside.
   useEffect(() => {
@@ -53,12 +53,6 @@ export default function Console() {
       }
     })();
   }, [isSuper, toast]);
-
-  useEffect(() => {
-    api("GET", "/api/reios/auth/me")
-      .then((me) => setMustChange(!!me.must_change_password))
-      .catch(() => {});
-  }, []);
 
   useEffect(() => { setSidebarOpen(false); }, [location.pathname]);
 
@@ -185,7 +179,7 @@ export default function Console() {
               <Route path="usage" element={isSuper ? <Usage /> : <Navigate to="/console" replace />} />
               <Route path="leaderboard" element={<Scoped><Leaderboard /></Scoped>} />
               <Route path="announcements" element={<Announcements />} />
-              <Route path="account" element={<Account onChanged={() => setMustChange(false)} />} />
+              <Route path="account" element={<Account />} />
               <Route path="*" element={<Navigate to="/console" replace />} />
             </Routes>
           )}

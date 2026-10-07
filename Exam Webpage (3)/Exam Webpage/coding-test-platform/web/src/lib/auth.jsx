@@ -9,6 +9,19 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => store.user());
   const navigate = useNavigate();
 
+  // The signed-in profile (name, must_change_password, and the organization's name/branding/
+  // org_type) is cached at login and otherwise never changes on its own. Refresh it once per
+  // load so a rename, a logo change, or a forced password reset shows up without a re-login.
+  // A real 401 still bounces to the sign-in screen via the usual handler below; anything else
+  // (offline, a slow server) just leaves the cached profile in place.
+  useEffect(() => {
+    if (!store.token()) return;
+    api("GET", "/api/reios/auth/me").then((me) => {
+      store.save(store.token(), me);
+      setUser(me);
+    }).catch(() => {});
+  }, []);
+
   // A 401 anywhere drops the session and returns to the login screen.
   useEffect(() => {
     onUnauthorized.handler = () => {

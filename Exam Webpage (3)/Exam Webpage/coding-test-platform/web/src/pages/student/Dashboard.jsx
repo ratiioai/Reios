@@ -96,16 +96,14 @@ export default function Dashboard() {
 
   const [data, setData] = useState(null);
   const [error, setError] = useState("");
-  const [mustChange, setMustChange] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
   const [result, setResult] = useState(null);
   const [boardExam, setBoardExam] = useState(null);
   const closeBoard = useCallback(() => setBoardExam(null), []);
+  const mustChange = !!user?.must_change_password; // kept fresh by AuthProvider, incl. after a reset elsewhere
 
   const load = useCallback(async () => {
     try {
-      const me = await api("GET", "/api/reios/auth/me");
-      setMustChange(!!me.must_change_password);
       setData(await api("GET", "/api/reios/student/dashboard"));
     } catch (err) {
       setError(err.message);
@@ -232,7 +230,7 @@ export default function Dashboard() {
         <ChangePassword
           forced={mustChange}
           onClose={() => setShowPwd(false)}
-          onDone={() => { setMustChange(false); setShowPwd(false); load(); }}
+          onDone={() => { setShowPwd(false); load(); }}
         />
       )}
       {result && <ResultModal result={result} onClose={() => setResult(null)} />}
