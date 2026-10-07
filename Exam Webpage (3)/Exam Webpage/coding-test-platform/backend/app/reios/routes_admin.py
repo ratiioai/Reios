@@ -587,14 +587,20 @@ def bulk_status(body: BulkIds, active: bool, college_id: int = Depends(scoped_co
 
 
 @router.delete("/students/{student_id}")
-def delete_student(student_id: int, college_id: int = Depends(scoped_college_id), db: Session = Depends(get_db)):
+def delete_student(student_id: int, force: bool = Query(False, description="Also erase their exam attempts and results"),
+                   college_id: int = Depends(scoped_college_id), db: Session = Depends(get_db)):
     student = get_student(db, college_id, student_id)
-    if db.query(Attempt).filter(Attempt.student_id == student.id).first():
+    attempts = db.query(Attempt).filter(Attempt.student_id == student.id).all()
+    if attempts and not force:
         raise HTTPException(status.HTTP_409_CONFLICT,
-                            "This student has exam attempts. Deactivate the account instead of deleting it")
+                            "This student has exam attempts. Deactivate the account, or delete again to "
+                            "also erase their results, instead of deleting it")
+    db.query(SetAssignment).filter(SetAssignment.student_id == student.id).delete(synchronize_session=False)
+    for attempt in attempts:  # loaded as objects so mcq/code answers and proctor events cascade with them
+        db.delete(attempt)
     db.delete(student)
     db.commit()
-    return {"deleted": student_id}
+    return {"deleted": student_id, "attempts_removed": len(attempts)}
 
 
 @router.get("/students/{student_id}/report")

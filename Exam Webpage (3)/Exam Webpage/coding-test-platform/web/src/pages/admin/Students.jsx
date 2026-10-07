@@ -89,18 +89,29 @@ export default function Students() {
   }
 
   async function remove(s) {
-    const ok = await confirm(
-      `Delete ${noun}`,
-      `Delete this ${noun} permanently? Those with exam attempts can only be deactivated.`,
-      "Delete", true
-    );
+    const ok = await confirm(`Delete ${noun}`, `Delete this ${noun} permanently?`, "Delete", true);
     if (!ok) return;
     try {
       await api("DELETE", `/api/reios/admin/students/${s.id}` + cq());
       toast(`${noun[0].toUpperCase()}${noun.slice(1)} deleted`, "success");
       load();
     } catch (err) {
-      toast(err.message, "error");
+      if (err.status !== 409) return toast(err.message, "error");
+      // Has exam attempts: offer to wipe those along with the account
+      const force = await confirm(
+        `Delete ${noun} and its results`,
+        `This ${noun} has exam attempts. Deleting it will also erase those results permanently — this ` +
+          "can't be undone. Deactivating instead keeps the account disabled but its results intact.",
+        "Delete everything", true
+      );
+      if (!force) return;
+      try {
+        await api("DELETE", `/api/reios/admin/students/${s.id}` + cq({ force: true }));
+        toast(`${noun[0].toUpperCase()}${noun.slice(1)} and its results deleted`, "success");
+        load();
+      } catch (err2) {
+        toast(err2.message, "error");
+      }
     }
   }
 

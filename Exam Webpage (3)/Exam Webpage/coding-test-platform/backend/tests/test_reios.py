@@ -864,3 +864,52 @@ def test_event_teams_default_password_to_team_name(client, setup):
                     json={"roll_no": "21CS099", "name": "Regular Student", "branch": "CSE"})
     assert r.status_code == 201
     assert r.json()["temporary_password"] != "Regular Student" and len(r.json()["temporary_password"]) == 8
+
+
+def test_delete_blocked_then_force_deletes_attempts_too(client, setup):
+    """Deleting a team/student with exam attempts is blocked by default; force=true wipes both."""
+    from datetime import datetime, timedelta, timezone
+    root = setup["root"]
+    ev = client.post("/api/reios/super/colleges", headers=auth(root),
+                     json={"name": "Delete Test Event", "code": "DELTEST", "org_type": "event"}).json()
+    client.post(f"/api/reios/super/colleges/{ev['id']}/admins", headers=auth(root),
+                json={"name": "Del HR", "email": "hr@deltest.com", "password": "DelPass1"})
+    adm = client.post("/api/reios/auth/login",
+                      json={"identifier": "hr@deltest.com", "password": "DelPass1"}).json()["access_token"]
+    team = client.post("/api/reios/admin/students", headers=auth(adm),
+                       json={"roll_no": "TS-DEL", "name": "DeleteMe"}).json()
+
+    q = client.post("/api/reios/admin/mcqs", headers=auth(adm), json={
+        "section": "GK", "question_text": "1+1?", "options": ["2", "3"], "correct_options": [0]}).json()
+    now = datetime.now(timezone.utc)
+    exam = client.post("/api/reios/admin/exams", headers=auth(adm), json={
+        "title": "Del Quiz", "exam_type": "mcq", "start_at": (now - timedelta(minutes=1)).isoformat(),
+        "end_at": (now + timedelta(hours=1)).isoformat()}).json()
+    client.put(f"/api/reios/admin/exams/{exam['id']}/items", headers=auth(adm),
+               json={"items": [{"item_type": "mcq", "question_id": q["id"]}]})
+    client.post(f"/api/reios/admin/exams/{exam['id']}/publish", headers=auth(adm))
+
+    t = client.post("/api/reios/auth/login", json={
+        "identifier": "TS-DEL", "password": "DeleteMe", "college_code": "DELTEST"}).json()["access_token"]
+    p = client.post(f"/api/reios/student/exams/{exam['id']}/start", headers=auth(t)).json()
+    client.post(f"/api/reios/student/attempts/{p['attempt_id']}/submit",
+                headers={**auth(t), "X-Exam-Session": p["session"]})
+
+    # Blocked without force
+    r = client.delete(f"/api/reios/admin/students/{team['id']}", headers=auth(adm))
+    assert r.status_code == 409 and "exam attempts" in r.text
+
+    # The team is still there, visible in results
+    results = client.get(f"/api/reios/admin/exams/{exam['id']}/results", headers=auth(adm)).json()
+    assert any(row["roll_no"] == "TS-DEL" for row in results["results"])
+
+    # Force wipes the team AND its attempt
+    r = client.delete(f"/api/reios/admin/students/{team['id']}?force=true", headers=auth(adm))
+    assert r.status_code == 200 and r.json() == {"deleted": team["id"], "attempts_removed": 1}
+    assert client.get("/api/reios/admin/students", headers=auth(adm)).json()["total"] == 0
+    results = client.get(f"/api/reios/admin/exams/{exam['id']}/results", headers=auth(adm)).json()
+    assert not any(row["roll_no"] == "TS-DEL" for row in results["results"])
+
+    # A fresh team can now reuse the same roll number, confirming the old row is really gone
+    r = client.post("/api/reios/admin/students", headers=auth(adm), json={"roll_no": "TS-DEL", "name": "Reused"})
+    assert r.status_code == 201
