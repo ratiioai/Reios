@@ -1,11 +1,11 @@
 /* Reios design system */
 :root {
-  /* Brand */
-  --primary: #4f46e5;
-  --primary-hover: #4338ca;
-  --primary-active: #3730a3;
-  --primary-soft: #eef0ff;
-  --primary-ring: rgba(79, 70, 229, .32);
+  /* Brand (from the Reios by Ratiio logo's red-orange) */
+  --primary: #e12616;
+  --primary-hover: #c82214;
+  --primary-active: #bc2012;
+  --primary-soft: #fef1f0;
+  --primary-ring: rgba(225, 38, 22, .32);
   --on-primary: #ffffff;
 
   /* Neutrals */
@@ -55,8 +55,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --primary: #8b8cf7; --primary-hover: #a0a0fa; --primary-active: #b4b4fc;
-    --primary-soft: #23264a; --primary-ring: rgba(139, 140, 247, .34); --on-primary: #10132b;
+    --primary: #ef675b; --primary-hover: #f37a70; --primary-active: #f68d85;
+    --primary-soft: #2c151c; --primary-ring: rgba(239, 103, 91, .34); --on-primary: #1a0d0b;
     --bg: #0b0f1a; --bg-accent: #111728; --surface: #141a29; --surface-2: #1b2234; --surface-3: #232b40;
     --border: #28314a; --border-strong: #3a4563;
     --text: #e9edf7; --text-soft: #c3cbdd; --muted: #96a0ba; --faint: #7a849e;
@@ -70,8 +70,8 @@
   }
 }
 :root[data-theme="dark"] {
-  --primary: #8b8cf7; --primary-hover: #a0a0fa; --primary-active: #b4b4fc;
-  --primary-soft: #23264a; --primary-ring: rgba(139, 140, 247, .34); --on-primary: #10132b;
+  --primary: #ef675b; --primary-hover: #f37a70; --primary-active: #f68d85;
+  --primary-soft: #2c151c; --primary-ring: rgba(239, 103, 91, .34); --on-primary: #1a0d0b;
   --bg: #0b0f1a; --bg-accent: #111728; --surface: #141a29; --surface-2: #1b2234; --surface-3: #232b40;
   --border: #28314a; --border-strong: #3a4563;
   --text: #e9edf7; --text-soft: #c3cbdd; --muted: #96a0ba; --faint: #7a849e;
@@ -453,7 +453,7 @@ td strong, td .strong { color: var(--text); font-weight: 650; }
 .auth-aside {
   position: relative; overflow: hidden; padding: 46px 52px;
   display: flex; flex-direction: column; justify-content: space-between;
-  background: linear-gradient(145deg, #3f38c9 0%, #4f46e5 42%, #7c4ddb 100%);
+  background: linear-gradient(145deg, #1f0f0d 0%, #9a1d12 32%, #e12616 68%, #f0603f 100%);
   color: #fff;
 }
 .auth-aside::before, .auth-aside::after {
@@ -470,7 +470,6 @@ td strong, td .strong { color: var(--text); font-weight: 650; }
 .auth-aside > * { position: relative; z-index: 1; }
 .auth-aside .brand { color: #fff; padding: 0; font-size: 19px; }
 .auth-aside .brand .sub { color: rgba(255, 255, 255, .72); }
-.auth-aside .mark-light { background: rgba(255, 255, 255, .16); border-radius: 9px; }
 .auth-pitch h2 {
   font-size: 30px; line-height: 1.2; letter-spacing: -.032em;
   margin: 0 0 12px; max-width: 15em; font-weight: 750;

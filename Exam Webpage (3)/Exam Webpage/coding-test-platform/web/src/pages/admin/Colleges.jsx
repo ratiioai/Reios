@@ -188,7 +188,7 @@ function CollegeForm({ college, initialType, onClose, onSaved }) {
     event_starts_at: college?.event_starts_at ? toDateInput(college.event_starts_at) : "",
     features: college?.features || [],
     logo: college?.logo || "",
-    brand_color: college?.brand_color || "#4f46e5",
+    brand_color: college?.brand_color || "#e12616",
     // stored as end of that day, local time
     access_until: college?.access_until ? toDateInput(college.access_until) : "",
     contact_email: college?.contact_email || "",

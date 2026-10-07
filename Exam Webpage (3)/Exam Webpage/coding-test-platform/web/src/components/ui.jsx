@@ -8,29 +8,10 @@ export function Mark({ size = 30 }) {
                className="mark" style={{ borderRadius: 8, objectFit: "contain" }} />;
 }
 
-function LegacyMark({ size = 30, light = false }) {
-  const id = useMemo(() => "rg" + Math.random().toString(36).slice(2, 8), []);
-  return (
-    <svg className={"mark" + (light ? " mark-light" : "")} width={size} height={size}
-         viewBox="0 0 32 32" aria-hidden="true">
-      {!light && <rect width="32" height="32" rx="9" fill={`url(#${id})`} />}
-      <circle cx="16" cy="16" r="8" fill="none" stroke="#fff" strokeWidth="2.6" opacity=".5" />
-      <circle cx="16" cy="16" r="3.6" fill="#fff" />
-      {!light && (
-        <defs>
-          <linearGradient id={id} x1="0" y1="0" x2="32" y2="32">
-            <stop stopColor="#6366f1" /><stop offset="1" stopColor="#4338ca" />
-          </linearGradient>
-        </defs>
-      )}
-    </svg>
-  );
-}
-
-export function Brand({ sub, light = false, style }) {
+export function Brand({ sub, style }) {
   return (
     <div className="brand" style={style}>
-      <Mark light={light} />
+      <Mark />
       <span className="wordmark">Reios{sub && <span className="sub">{sub}</span>}</span>
     </div>
   );
