@@ -67,6 +67,10 @@ export default function Console() {
     store.set("reios_console_college", String(id));
   }, []);
 
+  // What the currently-selected college/event is, so any page can adapt its wording and fields
+  const org = isSuper ? colleges.find((c) => c.id === collegeId) : user.college;
+  const isEvent = org?.org_type === "event";
+
   const ctx = useMemo(
     () => ({
       isSuper,
@@ -76,8 +80,10 @@ export default function Console() {
       pickCollege,
       cq: makeCq(isSuper, collegeId),
       needCollege: isSuper && !collegeId,
+      org,
+      isEvent,
     }),
-    [isSuper, collegeId, colleges, pickCollege]
+    [isSuper, collegeId, colleges, pickCollege, org, isEvent]
   );
 
   const NAV = [

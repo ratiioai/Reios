@@ -158,8 +158,9 @@ def table_rows(data: bytes, kind: str) -> List[Dict[str, str]]:
 # Students: accept the column names colleges actually use
 STUDENT_ALIASES = {
     "roll_no": ["roll_no", "roll_number", "rollno", "roll", "username", "user_name", "hall_ticket",
-                "hall_ticket_no", "htno", "reg_no", "registration_no", "register_no", "student_id", "id"],
-    "name": ["name", "student_name", "full_name", "candidate_name"],
+                "hall_ticket_no", "htno", "reg_no", "registration_no", "register_no", "student_id", "id",
+                "team_code", "team_id", "teamcode", "teamid", "team_no", "team_number"],
+    "name": ["name", "student_name", "full_name", "candidate_name", "team_name", "teamname", "team"],
     "email": ["email", "email_id", "mail", "e_mail"],
     "phone": ["phone", "mobile", "phone_no", "mobile_no", "phone_number", "mobile_number", "contact"],
     "branch": ["branch", "department", "dept", "course"],

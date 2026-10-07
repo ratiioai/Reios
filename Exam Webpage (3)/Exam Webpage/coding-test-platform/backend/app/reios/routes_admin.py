@@ -441,27 +441,34 @@ def list_students(
             "items": [student_payload(s) for s in students]}
 
 
+def _is_event(db: Session, college_id: int) -> bool:
+    org = db.get(College, college_id)
+    return bool(org and org.org_type == "event")
+
+
 def _forces_change(db: Session, college_id: int) -> bool:
     """Colleges get generated temporary passwords; an event's organizer shares the passwords itself."""
-    org = db.get(College, college_id)
-    return not (org and org.org_type == "event")
+    return not _is_event(db, college_id)
 
 
 def _add_student(db: Session, college_id: int, data: StudentIn) -> Tuple[User, str]:
+    is_event = _is_event(db, college_id)
     roll = data.roll_no.strip().upper()
     if db.query(User).filter(User.college_id == college_id, func.upper(User.roll_no) == roll).first():
-        raise ValueError(f"Roll number {roll} already exists")
+        raise ValueError(f"{'Team code' if is_event else 'Roll number'} {roll} already exists")
     email = clean(data.email)
     if email:
         email = email.lower()
         if db.query(User).filter(func.lower(User.email) == email).first():
             raise ValueError(f"Email {email} is already registered")
-    password = data.password or generate_password(8)
+    # Events commonly use the team name itself as the password (team code + team name, nothing else to share)
+    default_password = data.name.strip() if is_event else generate_password(8)
+    password = data.password or default_password
     student = User(
         role=Role.STUDENT, college_id=college_id, roll_no=roll, name=data.name.strip(), email=email,
         phone=clean(data.phone), branch=clean(data.branch) and data.branch.strip().upper(),
         section=clean(data.section) and data.section.strip().upper(), batch_year=data.batch_year,
-        hashed_password=hash_password(password), must_change_password=_forces_change(db, college_id),
+        hashed_password=hash_password(password), must_change_password=not is_event,
     )
     db.add(student)
     db.flush()

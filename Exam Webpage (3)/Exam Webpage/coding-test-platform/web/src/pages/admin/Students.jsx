@@ -11,9 +11,10 @@ import AttemptDetail from "./AttemptDetail.jsx";
 const PAGE_SIZE = 50;
 
 export default function Students() {
-  const { collegeId, cq } = useAdmin();
+  const { collegeId, cq, isEvent } = useAdmin();
   const toast = useToast();
   const confirm = useConfirm();
+  const noun = isEvent ? "team" : "student";
 
   const [filters, setFilters] = useState({ q: "", branch: "", section: "", batch_year: "", page: 1 });
   const [draft, setDraft] = useState({ q: "", branch: "", section: "", batch_year: "" });
@@ -64,7 +65,7 @@ export default function Students() {
     if (!ids.length) return;
     try {
       if (action === "reset") {
-        if (!(await confirm("Reset passwords", `Generate new passwords for ${ids.length} students?`))) return;
+        if (!(await confirm("Reset passwords", `Generate new passwords for ${ids.length} ${noun}s?`))) return;
         const r = await api("POST", "/api/reios/admin/students/bulk-reset-passwords" + cq(), { ids });
         setCreds({ title: "New passwords", creds: r.credentials });
       } else {
@@ -78,7 +79,7 @@ export default function Students() {
   }
 
   async function resetOne(s) {
-    if (!(await confirm("Reset password", "Generate a new temporary password for this student?"))) return;
+    if (!(await confirm("Reset password", `Generate a new temporary password for this ${noun}?`))) return;
     try {
       const r = await api("POST", `/api/reios/admin/students/${s.id}/reset-password` + cq());
       setCreds({ title: "Password reset", creds: [{ roll_no: r.roll_no, name: s.name, password: r.temporary_password }] });
@@ -89,14 +90,14 @@ export default function Students() {
 
   async function remove(s) {
     const ok = await confirm(
-      "Delete student",
-      "Delete this student permanently? Students with exam attempts can only be deactivated.",
+      `Delete ${noun}`,
+      `Delete this ${noun} permanently? Those with exam attempts can only be deactivated.`,
       "Delete", true
     );
     if (!ok) return;
     try {
       await api("DELETE", `/api/reios/admin/students/${s.id}` + cq());
-      toast("Student deleted", "success");
+      toast(`${noun[0].toUpperCase()}${noun.slice(1)} deleted`, "success");
       load();
     } catch (err) {
       toast(err.message, "error");
@@ -114,25 +115,33 @@ export default function Students() {
   return (
     <>
       <div className="row between" style={{ marginBottom: 10 }}>
-        <h1 style={{ margin: 0 }}>Students</h1>
+        <h1 style={{ margin: 0 }}>{isEvent ? "Teams" : "Students"}</h1>
         <div className="row tight">
-          <button className="btn" onClick={() => setImporting(true)}>Upload student list</button>
-          <button className="btn primary" onClick={() => setEditing({})}>+ Add student</button>
+          <button className="btn" onClick={() => setImporting(true)}>
+            {isEvent ? "Upload teams" : "Upload student list"}
+          </button>
+          <button className="btn primary" onClick={() => setEditing({})}>
+            {isEvent ? "+ Add team" : "+ Add student"}
+          </button>
         </div>
       </div>
 
       <div className="toolbar">
-        <input placeholder="Search name, roll no, email" value={draft.q}
+        <input placeholder={isEvent ? "Search team name or code" : "Search name, roll no, email"} value={draft.q}
                onChange={(e) => setDraft((d) => ({ ...d, q: e.target.value }))}
                onKeyDown={(e) => e.key === "Enter" && applyFilters()} />
-        <select value={draft.branch} onChange={(e) => setDraft((d) => ({ ...d, branch: e.target.value }))}>
-          <option value="">All branches</option>
-          {branches.map((b) => <option key={b}>{b}</option>)}
-        </select>
-        <input placeholder="Section" style={{ minWidth: 90, width: 90 }} value={draft.section}
-               onChange={(e) => setDraft((d) => ({ ...d, section: e.target.value }))} />
-        <input placeholder="Batch year" style={{ minWidth: 110, width: 110 }} value={draft.batch_year}
-               onChange={(e) => setDraft((d) => ({ ...d, batch_year: e.target.value }))} />
+        {!isEvent && (
+          <>
+            <select value={draft.branch} onChange={(e) => setDraft((d) => ({ ...d, branch: e.target.value }))}>
+              <option value="">All branches</option>
+              {branches.map((b) => <option key={b}>{b}</option>)}
+            </select>
+            <input placeholder="Section" style={{ minWidth: 90, width: 90 }} value={draft.section}
+                   onChange={(e) => setDraft((d) => ({ ...d, section: e.target.value }))} />
+            <input placeholder="Batch year" style={{ minWidth: 110, width: 110 }} value={draft.batch_year}
+                   onChange={(e) => setDraft((d) => ({ ...d, batch_year: e.target.value }))} />
+          </>
+        )}
         <button className="btn" onClick={applyFilters}>Filter</button>
         <span className="grow" />
         {selected.size > 0 && (
@@ -157,13 +166,14 @@ export default function Students() {
                            onChange={(e) =>
                              setSelected(e.target.checked ? new Set(data.items.map((s) => s.id)) : new Set())} />
                   </th>
-                  <th>Roll no</th><th>Name</th><th>Branch</th><th>Section</th>
-                  <th>Batch</th><th>Status</th><th />
+                  <th>{isEvent ? "Team code" : "Roll no"}</th><th>{isEvent ? "Team name" : "Name"}</th>
+                  {!isEvent && <><th>Branch</th><th>Section</th><th>Batch</th></>}
+                  <th>Status</th><th />
                 </tr>
               </thead>
               <tbody>
                 {data.items.length === 0 ? (
-                  <tr><td colSpan={8} className="empty">No students found</td></tr>
+                  <tr><td colSpan={isEvent ? 5 : 8} className="empty">No {noun}s found</td></tr>
                 ) : data.items.map((s) => (
                   <tr key={s.id}>
                     <td>
@@ -171,9 +181,7 @@ export default function Students() {
                     </td>
                     <td><strong>{s.roll_no}</strong></td>
                     <td>{s.name}{s.email && <div className="muted small">{s.email}</div>}</td>
-                    <td>{s.branch || "—"}</td>
-                    <td>{s.section || "—"}</td>
-                    <td>{s.batch_year || "—"}</td>
+                    {!isEvent && <><td>{s.branch || "—"}</td><td>{s.section || "—"}</td><td>{s.batch_year || "—"}</td></>}
                     <td>
                       {!s.is_active ? <Badge color="red">Disabled</Badge>
                         : s.must_change_password ? <Badge color="amber">Not logged in yet</Badge>
@@ -192,7 +200,7 @@ export default function Students() {
               </tbody>
             </table>
           </div>
-          <Pager page={data.page} pages={pages} total={data.total} noun="students"
+          <Pager page={data.page} pages={pages} total={data.total} noun={`${noun}s`}
                  onPage={(p) => setFilters((f) => ({ ...f, page: p }))} />
         </>
       )}
@@ -201,6 +209,7 @@ export default function Students() {
         <StudentForm
           student={editing.id ? editing : null}
           cq={cq}
+          isEvent={isEvent}
           onClose={() => setEditing(null)}
           onCreds={setCreds}
           onSaved={() => { setEditing(null); load(); }}
@@ -208,13 +217,13 @@ export default function Students() {
       )}
 
       {importing && (
-        <ImportStudents cq={cq} onClose={() => setImporting(false)} onCreds={setCreds} onDone={load} />
+        <ImportStudents cq={cq} isEvent={isEvent} onClose={() => setImporting(false)} onCreds={setCreds} onDone={load} />
       )}
 
       {creds && <CredentialsModal {...creds} onClose={() => setCreds(null)} />}
 
       {report && (
-        <StudentReport report={report} onClose={() => setReport(null)} onAttempt={setAttemptId} />
+        <StudentReport report={report} isEvent={isEvent} onClose={() => setReport(null)} onAttempt={setAttemptId} />
       )}
 
       {attemptId && (
@@ -224,7 +233,7 @@ export default function Students() {
   );
 }
 
-function StudentForm({ student, cq, onClose, onSaved, onCreds }) {
+function StudentForm({ student, cq, isEvent, onClose, onSaved, onCreds }) {
   const toast = useToast();
   const [f, setF] = useState(() => ({
     roll_no: student?.roll_no || "", name: student?.name || "", email: student?.email || "",
@@ -234,23 +243,27 @@ function StudentForm({ student, cq, onClose, onSaved, onCreds }) {
   }));
   const set = (k) => (e) =>
     setF((v) => ({ ...v, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value }));
+  const noun = isEvent ? "team" : "student";
 
   async function save() {
-    const body = {
-      name: f.name, email: nullIfBlank(f.email), phone: nullIfBlank(f.phone),
-      branch: nullIfBlank(f.branch), section: nullIfBlank(f.section),
-      batch_year: f.batch_year ? Number(f.batch_year) : null,
-    };
+    const body = isEvent
+      ? { name: f.name }
+      : {
+          name: f.name, email: nullIfBlank(f.email), phone: nullIfBlank(f.phone),
+          branch: nullIfBlank(f.branch), section: nullIfBlank(f.section),
+          batch_year: f.batch_year ? Number(f.batch_year) : null,
+        };
     try {
       if (student) {
         await api("PATCH", `/api/reios/admin/students/${student.id}` + cq(), { ...body, is_active: f.is_active });
         toast("Saved", "success");
       } else {
         const r = await api("POST", "/api/reios/admin/students" + cq(),
-          { ...body, roll_no: f.roll_no, password: nullIfBlank(f.password) });
+          { ...body, roll_no: f.roll_no, password: isEvent ? null : nullIfBlank(f.password) });
         onCreds({
-          title: "Student added",
+          title: `${isEvent ? "Team" : "Student"} added`,
           creds: [{ roll_no: r.roll_no, name: r.name, password: r.temporary_password }],
+          note: isEvent ? "The team name is their sign-in password." : undefined,
         });
       }
       onSaved();
@@ -261,7 +274,7 @@ function StudentForm({ student, cq, onClose, onSaved, onCreds }) {
 
   return (
     <Modal
-      title={student ? "Edit student" : "Add student"}
+      title={student ? `Edit ${noun}` : `Add ${noun}`}
       onClose={onClose}
       actions={
         <>
@@ -271,23 +284,32 @@ function StudentForm({ student, cq, onClose, onSaved, onCreds }) {
       }
     >
       <div className="form-grid">
-        <Field label="Roll number *">
+        <Field label={isEvent ? "Team code *" : "Roll number *"}>
           <input value={f.roll_no} onChange={set("roll_no")} disabled={!!student} />
         </Field>
-        <Field label="Full name *"><input value={f.name} onChange={set("name")} /></Field>
-        <Field label="Email"><input type="email" value={f.email} onChange={set("email")} /></Field>
-        <Field label="Phone"><input value={f.phone} onChange={set("phone")} /></Field>
-        <Field label="Branch (e.g. CSE, ECE)"><input value={f.branch} onChange={set("branch")} /></Field>
-        <Field label="Section"><input value={f.section} onChange={set("section")} /></Field>
-        <Field label="Batch / passing year">
-          <input type="number" value={f.batch_year} onChange={set("batch_year")} />
+        <Field label={isEvent ? "Team name *" : "Full name *"}>
+          <input value={f.name} onChange={set("name")} />
         </Field>
-        {!student && (
-          <Field label="Password (blank = generate)">
-            <input value={f.password} onChange={set("password")} />
-          </Field>
+        {!isEvent && (
+          <>
+            <Field label="Email"><input type="email" value={f.email} onChange={set("email")} /></Field>
+            <Field label="Phone"><input value={f.phone} onChange={set("phone")} /></Field>
+            <Field label="Branch (e.g. CSE, ECE)"><input value={f.branch} onChange={set("branch")} /></Field>
+            <Field label="Section"><input value={f.section} onChange={set("section")} /></Field>
+            <Field label="Batch / passing year">
+              <input type="number" value={f.batch_year} onChange={set("batch_year")} />
+            </Field>
+            {!student && (
+              <Field label="Password (blank = generate)">
+                <input value={f.password} onChange={set("password")} />
+              </Field>
+            )}
+          </>
         )}
       </div>
+      {isEvent && !student && (
+        <p className="muted small">The team name doubles as the sign-in password.</p>
+      )}
       {student && (
         <label className="check">
           <input type="checkbox" checked={f.is_active} onChange={set("is_active")} /> Account active
@@ -298,11 +320,13 @@ function StudentForm({ student, cq, onClose, onSaved, onCreds }) {
 }
 
 const TEMPLATE_COLS = ["roll_no", "name", "email", "phone", "branch", "section", "batch_year", "password"];
+const EVENT_TEMPLATE_COLS = ["team_code", "team_name"];
 
-function ImportStudents({ cq, onClose, onCreds, onDone }) {
+function ImportStudents({ cq, isEvent, onClose, onCreds, onDone }) {
   const toast = useToast();
   const [file, setFile] = useState(null);
   const [result, setResult] = useState(null);
+  const noun = isEvent ? "team" : "student";
 
   async function upload() {
     if (!file) return toast("Choose a file", "error");
@@ -312,7 +336,10 @@ function ImportStudents({ cq, onClose, onCreds, onDone }) {
       const r = await api("POST", "/api/reios/admin/students/import" + cq(), fd);
       setResult(r);
       if (r.credentials.length) {
-        onCreds({ title: `${r.created} students imported`, creds: r.credentials });
+        onCreds({
+          title: `${r.created} ${noun}s imported`, creds: r.credentials,
+          note: isEvent ? "Each team's name is also its sign-in password." : undefined,
+        });
       }
       onDone();
     } catch (err) {
@@ -322,7 +349,7 @@ function ImportStudents({ cq, onClose, onCreds, onDone }) {
 
   return (
     <Modal
-      title="Upload student logins"
+      title={isEvent ? "Upload team logins" : "Upload student logins"}
       onClose={onClose}
       actions={
         <>
@@ -331,25 +358,47 @@ function ImportStudents({ cq, onClose, onCreds, onDone }) {
         </>
       }
     >
-      <p>
-        Upload an <strong>Excel (.xlsx)</strong>, <strong>CSV</strong> or a <strong>Word</strong> file
-        with a table. The first row is the header. Students sign in with their roll number (username)
-        and the password from the sheet; leave the password blank and Reios generates one.
-        They must change it at first sign-in.
-      </p>
-      <p className="small muted">
-        Only roll number and name are required. Common header names work: "Roll Number",
-        "Username", "Hall Ticket", "Student Name", "Department", "Password". PDF lists work only if
-        the table's columns are clearly separated; Excel or CSV is more reliable.
-      </p>
-      <pre>{`roll_no,name,email,phone,branch,section,batch_year,password
+      {isEvent ? (
+        <>
+          <p>
+            Upload an <strong>Excel (.xlsx)</strong>, <strong>CSV</strong> or a <strong>Word</strong> file
+            with a table. The first row is the header. Each team's <strong>Team Name is also its
+            sign-in password</strong> — nothing else to generate or share.
+          </p>
+          <p className="small muted">
+            Only the team code and team name are required. Common header names work: "Team Code",
+            "Team ID", "Team Name". PDF lists work only if the table's columns are clearly separated;
+            Excel or CSV is more reliable.
+          </p>
+          <pre>{`team_code,team_name\nTS-001,REBELS\nTS-002,Neon Paradox`}</pre>
+          <button className="btn sm" onClick={() => downloadCSV("teams_template.csv", EVENT_TEMPLATE_COLS,
+            [["TS-001", "REBELS"], ["TS-002", "Neon Paradox"]])}>
+            Download template
+          </button>
+        </>
+      ) : (
+        <>
+          <p>
+            Upload an <strong>Excel (.xlsx)</strong>, <strong>CSV</strong> or a <strong>Word</strong> file
+            with a table. The first row is the header. Students sign in with their roll number (username)
+            and the password from the sheet; leave the password blank and Reios generates one.
+            They must change it at first sign-in.
+          </p>
+          <p className="small muted">
+            Only roll number and name are required. Common header names work: "Roll Number",
+            "Username", "Hall Ticket", "Student Name", "Department", "Password". PDF lists work only if
+            the table's columns are clearly separated; Excel or CSV is more reliable.
+          </p>
+          <pre>{`roll_no,name,email,phone,branch,section,batch_year,password
 21A91A0501,Anil Kumar,anil@example.com,9876543210,CSE,A,2025,
 21A91A0502,Bhavya Sri,,,CSE,A,2025,`}</pre>
-      <button className="btn sm" onClick={() => downloadCSV("students_template.csv", TEMPLATE_COLS,
-        [["21A91A0501", "Anil Kumar", "anil@example.com", "9876543210", "CSE", "A", "2025", ""]])}>
-        Download template
-      </button>
-      <Field label="Student list" style={{ marginTop: 14 }}>
+          <button className="btn sm" onClick={() => downloadCSV("students_template.csv", TEMPLATE_COLS,
+            [["21A91A0501", "Anil Kumar", "anil@example.com", "9876543210", "CSE", "A", "2025", ""]])}>
+            Download template
+          </button>
+        </>
+      )}
+      <Field label={isEvent ? "Team list" : "Student list"} style={{ marginTop: 14 }}>
         <input type="file" accept=".xlsx,.csv,.docx,.pdf" onChange={(e) => setFile(e.target.files[0])} />
       </Field>
       {result && (
@@ -358,7 +407,7 @@ function ImportStudents({ cq, onClose, onCreds, onDone }) {
           {result.errors.length > 0 && (
             <div className="table-wrap compact">
               <table>
-                <thead><tr><th>Line</th><th>Roll no</th><th>Error</th></tr></thead>
+                <thead><tr><th>Line</th><th>{isEvent ? "Team code" : "Roll no"}</th><th>Error</th></tr></thead>
                 <tbody>
                   {result.errors.map((e, i) => (
                     <tr key={i}><td>{e.line}</td><td>{e.roll_no || ""}</td><td>{e.error}</td></tr>
@@ -373,14 +422,18 @@ function ImportStudents({ cq, onClose, onCreds, onDone }) {
   );
 }
 
-function StudentReport({ report: r, onClose, onAttempt }) {
+function StudentReport({ report: r, isEvent, onClose, onAttempt }) {
   const s = r.student;
   return (
     <Modal title={`${s.name} (${s.roll_no})`} wide onClose={onClose}>
       <dl className="kv">
-        <dt>Branch</dt><dd>{s.branch || "—"} {s.section || ""}</dd>
-        <dt>Batch</dt><dd>{s.batch_year || "—"}</dd>
-        <dt>Email</dt><dd>{s.email || "—"}</dd>
+        {!isEvent && (
+          <>
+            <dt>Branch</dt><dd>{s.branch || "—"} {s.section || ""}</dd>
+            <dt>Batch</dt><dd>{s.batch_year || "—"}</dd>
+            <dt>Email</dt><dd>{s.email || "—"}</dd>
+          </>
+        )}
         <dt>Last login</dt><dd>{fmtDate(s.last_login_at)}</dd>
       </dl>
       <h3 style={{ marginTop: 16 }}>Exam history</h3>

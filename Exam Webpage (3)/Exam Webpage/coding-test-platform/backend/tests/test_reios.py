@@ -829,3 +829,38 @@ def test_event_add_ons(client, setup, monkeypatch):
     row = next(o for o in usage["organizations"] if o["code"] == "HFEST")
     assert row["students"] == 3 and row["exams_created"] == 1 and row["attempts"] == 3
     assert client.get("/api/reios/super/usage", headers=auth(adm)).status_code == 403
+
+
+def test_event_teams_default_password_to_team_name(client, setup):
+    """Events skip roll numbers/branches entirely: a team code + team name, and the name IS the password."""
+    root, admin = setup["root"], setup["admin"]
+    ev = client.post("/api/reios/super/colleges", headers=auth(root),
+                     json={"name": "Hack Night", "code": "HNIGHT", "org_type": "event"}).json()
+    client.post(f"/api/reios/super/colleges/{ev['id']}/admins", headers=auth(root),
+                json={"name": "Night HR", "email": "hr@hacknight.com", "password": "NightPass1"})
+    adm = client.post("/api/reios/auth/login",
+                      json={"identifier": "hr@hacknight.com", "password": "NightPass1"}).json()["access_token"]
+
+    # Adding one team with no password: the team name becomes the password, no forced change
+    r = client.post("/api/reios/admin/students", headers=auth(adm), json={"roll_no": "TS-001", "name": "REBELS"})
+    assert r.status_code == 201 and r.json()["temporary_password"] == "REBELS"
+    login = client.post("/api/reios/auth/login",
+                        json={"identifier": "TS-001", "password": "REBELS", "college_code": "HNIGHT"})
+    assert login.status_code == 200 and login.json()["user"]["must_change_password"] is False
+
+    # Bulk upload with only "Team Code,Team Name" columns (no password column at all)
+    csv = "Team Code,Team Name\nTS-002,Neon Paradox\nTS-003,Skillx\n"
+    r = client.post("/api/reios/admin/students/import", headers=auth(adm),
+                    files={"file": ("teams.csv", csv, "text/csv")})
+    assert r.status_code == 200, r.text
+    assert r.json()["created"] == 2 and r.json()["failed"] == 0
+    creds = {c["roll_no"]: c["password"] for c in r.json()["credentials"]}
+    assert creds == {"TS-002": "Neon Paradox", "TS-003": "Skillx"}
+    assert client.post("/api/reios/auth/login", json={
+        "identifier": "TS-003", "password": "Skillx", "college_code": "HNIGHT"}).status_code == 200
+
+    # A college is unaffected: no password still gets a random generated one, not the student's name
+    r = client.post("/api/reios/admin/students", headers=auth(admin),
+                    json={"roll_no": "21CS099", "name": "Regular Student", "branch": "CSE"})
+    assert r.status_code == 201
+    assert r.json()["temporary_password"] != "Regular Student" and len(r.json()["temporary_password"]) == 8
