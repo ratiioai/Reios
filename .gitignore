@@ -10,6 +10,8 @@
 **/exports/
 **/uploads/
 *.db
+*.db-shm
+*.db-wal
 *.sqlite3
 **/logs/
 **/submissions/

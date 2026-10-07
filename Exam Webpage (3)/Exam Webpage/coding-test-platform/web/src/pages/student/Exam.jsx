@@ -731,7 +731,7 @@ export default function Exam() {
                actions={<button className="btn primary" onClick={() => setWarning(null)}>I understand</button>}>
           <p><strong>{VIOLATION_TEXT[warning.type] || warning.type}.</strong></p>
           <p>
-            This has been recorded and reported to your college.{" "}
+            This has been recorded and reported to the organizers.{" "}
             {warning.left > 0 && (
               <><strong>{warning.left}</strong> more violation{warning.left === 1 ? "" : "s"} and your
               exam will be submitted automatically.</>

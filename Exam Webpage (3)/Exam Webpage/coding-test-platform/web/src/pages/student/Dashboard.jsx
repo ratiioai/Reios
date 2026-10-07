@@ -136,11 +136,16 @@ export default function Dashboard() {
   const isEvent = user?.college?.org_type === "event";
   const liveCount = active.filter((e) => e.state === "live" || e.state === "in_progress").length;
 
+  useEffect(() => {
+    if (isEvent && user?.college?.name) document.title = user.college.name;
+    return () => { document.title = "Reios"; };
+  }, [isEvent, user?.college?.name]);
+
   return (
     <div className="wrap">
       <header className="bar">
         <OrgBrand branding={user?.college?.branding} style={{ padding: 0 }}
-                  sub={user?.college?.branding ? "Powered by Reios" : user?.college?.name || "Student"} />
+                  sub={user?.college?.branding ? "Powered by Reios" : isEvent ? user?.college?.name : "Student"} />
         <div className="row tight">
           <span className="muted small">
             {user?.name} · {isEvent ? "Team ID" : "Roll no"} <strong>{user?.roll_no}</strong>
@@ -158,8 +163,9 @@ export default function Dashboard() {
       {data && (
         <>
           <div className="page-head">
-            <h1>Hi, {user?.name?.split(" ")[0]}</h1>
+            <h1>{isEvent ? `Welcome to ${user.college.name}` : `Hi, ${user?.name?.split(" ")[0]}`}</h1>
             <p className="lede">
+              {isEvent && <>Signed in as <strong>{user?.name}</strong>. </>}
               {liveCount
                 ? `You have ${liveCount} exam${liveCount > 1 ? "s" : ""} open right now.`
                 : "Nothing open at the moment. Scheduled exams appear below."}
@@ -182,11 +188,11 @@ export default function Dashboard() {
               <div className="value">{data.stats.upcoming}</div>
             </div>
             <div className="stat plain">
-              <div className="label">Branch</div>
+              <div className="label">{isEvent ? "Team ID" : "Branch"}</div>
               <div className="value" style={{ fontSize: 19 }}>
-                {user?.branch || "—"} {user?.section || ""}
+                {isEvent ? user?.roll_no : (user?.branch || "—")} {!isEvent && (user?.section || "")}
               </div>
-              <div className="sub">{user?.roll_no}</div>
+              {!isEvent && <div className="sub">{user?.roll_no}</div>}
             </div>
           </div>
 
