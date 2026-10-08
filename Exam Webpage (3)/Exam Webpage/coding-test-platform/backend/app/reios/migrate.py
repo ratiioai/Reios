@@ -16,11 +16,12 @@ NEW_COLUMNS = {
     ],
     "reios_exam_items": [("set_id", "INTEGER")],
     "reios_attempts": [("set_id", "INTEGER")],
-    "reios_users": [("firebase_uid", "VARCHAR(128)")],
+    "reios_users": [("firebase_uid", "VARCHAR(128)"), ("active_session_expires_at", "TIMESTAMP")],
     "reios_colleges": [("max_exams", "INTEGER"), ("access_until", "TIMESTAMP"),
                        ("org_type", "VARCHAR(16) NOT NULL DEFAULT 'college'"), ("features", "JSON"),
                        ("logo", "TEXT"), ("brand_color", "VARCHAR(16)"),
-                       ("organizer", "VARCHAR(255)"), ("event_starts_at", "TIMESTAMP")],
+                       ("organizer", "VARCHAR(255)"), ("event_starts_at", "TIMESTAMP"),
+                       ("single_login", "BOOLEAN NOT NULL DEFAULT FALSE")],
 }
 
 

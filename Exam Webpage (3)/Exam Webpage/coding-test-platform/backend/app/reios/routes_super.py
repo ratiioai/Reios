@@ -40,6 +40,7 @@ class CollegeIn(BaseModel):
     brand_color: Optional[str] = Field(None, pattern="^#[0-9a-fA-F]{6}$")
     organizer: Optional[str] = Field(None, max_length=255)
     event_starts_at: Optional[datetime] = None
+    single_login: bool = False
 
 
 class CollegeUpdate(BaseModel):
@@ -56,6 +57,7 @@ class CollegeUpdate(BaseModel):
     brand_color: Optional[str] = Field(None, pattern="^#[0-9a-fA-F]{6}$")
     organizer: Optional[str] = Field(None, max_length=255)
     event_starts_at: Optional[datetime] = None
+    single_login: Optional[bool] = None
     is_active: Optional[bool] = None
 
 
@@ -96,6 +98,7 @@ def college_payload(college: College, db: Session) -> dict:
         "expired": bool(college.access_until and as_utc(college.access_until) < utcnow()),
         "org_type": college.org_type, "features": college.features or [],
         "organizer": college.organizer, "event_starts_at": as_utc(college.event_starts_at),
+        "single_login": college.single_login,
         "logo": college.logo, "brand_color": college.brand_color,
         "created_at": college.created_at,
         "student_count": student_count, "admin_count": admin_count, "exam_count": exam_count,
@@ -151,7 +154,8 @@ def create_college(body: CollegeIn, db: Session = Depends(get_db), _=Depends(req
                       max_exams=body.max_exams, access_until=body.access_until, org_type=body.org_type,
                       features=clean_features(body.org_type, body.features), logo=check_logo(body.logo),
                       brand_color=body.brand_color, organizer=clean_text(body.organizer),
-                      event_starts_at=body.event_starts_at if body.org_type == "event" else None)
+                      event_starts_at=body.event_starts_at if body.org_type == "event" else None,
+                      single_login=body.single_login)
     check_event_dates(college)
     db.add(college)
     db.commit()

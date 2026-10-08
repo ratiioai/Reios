@@ -56,6 +56,7 @@ class College(Base):
     brand_color = Column(String(16), nullable=True)
     organizer = Column(String(255), nullable=True)  # events: the client or company that is running it
     event_starts_at = Column(DateTime(timezone=True), nullable=True)  # events: first day
+    single_login = Column(Boolean, default=False, nullable=False)  # block a 2nd concurrent login per account
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -80,6 +81,8 @@ class User(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     firebase_uid = Column(String(128), nullable=True, index=True)  # bound at first Firebase sign-in
     token_version = Column(Integer, default=0, nullable=False)  # bump to invalidate all tokens
+    # Set at login when the college/event enforces one login at a time; cleared on logout or once it lapses
+    active_session_expires_at = Column(DateTime(timezone=True), nullable=True)
     failed_login_attempts = Column(Integer, default=0, nullable=False)
     locked_until = Column(DateTime(timezone=True), nullable=True)
     last_login_at = Column(DateTime(timezone=True), nullable=True)

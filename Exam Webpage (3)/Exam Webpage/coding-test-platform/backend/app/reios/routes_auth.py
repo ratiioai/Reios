@@ -14,7 +14,10 @@ from app.database import get_db
 from app.reios.features import branding
 from app.reios.firebase_auth import verify_id_token
 from app.reios.models import College, Role, User
-from app.reios.security import check_login, get_current_user, issue_token, needs_password_change, utcnow
+from app.reios.security import (
+    check_login, claim_single_login_session, get_current_user, issue_token, needs_password_change,
+    release_login_session, utcnow,
+)
 
 router = APIRouter(prefix="/api/reios/auth", tags=["Reios Auth"])
 
@@ -92,6 +95,7 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
         user = _find_by_id_and_password(db, identifier, body.password)
 
     user = check_login(db, user, body.password)
+    claim_single_login_session(db, user)
     return {"access_token": issue_token(user), "token_type": "bearer", "user": user_payload(user)}
 
 
@@ -150,6 +154,13 @@ def change_password(body: ChangePasswordRequest, user: User = Depends(get_curren
     user.token_version += 1  # log out other sessions
     db.commit()
     return {"access_token": issue_token(user), "token_type": "bearer", "user": user_payload(user)}
+
+
+@router.post("/logout")
+def logout(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Free up this account's login slot immediately, instead of waiting for it to lapse on its own."""
+    release_login_session(db, user)
+    return {"message": "Logged out"}
 
 
 @router.post("/logout-all")

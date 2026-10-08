@@ -82,6 +82,25 @@ def check_login(db: Session, user: Optional[User], password: str) -> User:
     return user
 
 
+def claim_single_login_session(db: Session, user: User) -> None:
+    """When the account's college/event enforces one login at a time, refuse this one if an earlier
+    session is still within its window, otherwise claim a fresh window for it."""
+    if user.role != Role.STUDENT or not (user.college and user.college.single_login):
+        return
+    expires_at = as_utc(user.active_session_expires_at)
+    if expires_at and expires_at > utcnow():
+        raise HTTPException(status.HTTP_409_CONFLICT,
+                            "This account is already logged in elsewhere. Log out there first, or wait for "
+                            "that session to expire.")
+    user.active_session_expires_at = utcnow() + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    db.commit()
+
+
+def release_login_session(db: Session, user: User) -> None:
+    user.active_session_expires_at = None
+    db.commit()
+
+
 def needs_password_change(user: User) -> bool:
     """Event organizers hand out the passwords, so event students keep them; everyone else changes a temporary one."""
     if not user.must_change_password:

@@ -200,6 +200,7 @@ function CollegeForm({ college, initialType, onClose, onSaved }) {
     access_until: college?.access_until ? toDateInput(college.access_until) : "",
     contact_email: college?.contact_email || "",
     contact_phone: college?.contact_phone || "",
+    single_login: college?.single_login || false,
     is_active: college ? college.is_active : true,
   }));
   const set = (k) => (e) =>
@@ -229,6 +230,7 @@ function CollegeForm({ college, initialType, onClose, onSaved }) {
       logo: f.org_type === "event" && f.features.includes("branding") ? f.logo || null : null,
       brand_color: f.brand_color || null,
       access_until: f.access_until ? new Date(`${f.access_until}T23:59:59`).toISOString() : null,
+      single_login: f.single_login,
     };
     try {
       if (college) {
@@ -303,6 +305,11 @@ function CollegeForm({ college, initialType, onClose, onSaved }) {
       {f.org_type === "event" && (
         <EventAddOns f={f} setF={setF} />
       )}
+      <label className="check">
+        <input type="checkbox" checked={f.single_login} onChange={set("single_login")} />
+        One login at a time per {noun === "event" ? "team" : "student"} (a second device is blocked
+        while the first is still signed in)
+      </label>
       {college && (
         <label className="check">
           <input type="checkbox" checked={f.is_active} onChange={set("is_active")} />

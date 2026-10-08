@@ -46,6 +46,9 @@ export function AuthProvider({ children }) {
   }, []);
 
   const logout = useCallback(() => {
+    // Best-effort: frees this account's login slot right away instead of making the
+    // next device wait for it to lapse on its own. Never blocks signing out locally.
+    if (store.token()) api("POST", "/api/reios/auth/logout").catch(() => {});
     store.clear();
     setUser(null);
     navigate("/login", { replace: true });

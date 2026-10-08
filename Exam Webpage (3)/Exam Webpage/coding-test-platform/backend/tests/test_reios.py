@@ -1011,3 +1011,39 @@ def test_super_admin_force_deletes_event_with_live_attempts(client, setup):
 
     r = client.delete(f"/api/reios/super/colleges/{ev['id']}?confirm=SUPERDEL&force=true", headers=auth(root))
     assert r.status_code == 200 and r.json()["deleted"] == "SUPERDEL"
+
+
+def test_single_login_blocks_a_second_device_until_logout(client, setup):
+    """With single_login on, one team can't be signed in on two devices at once; off, they can."""
+    root = setup["root"]
+    ev = client.post("/api/reios/super/colleges", headers=auth(root), json={
+        "name": "One Login Event", "code": "ONELOGIN", "org_type": "event", "single_login": True}).json()
+    assert ev["single_login"] is True
+    client.post(f"/api/reios/super/colleges/{ev['id']}/admins", headers=auth(root),
+               json={"name": "OL HR", "email": "hr@onelogin.com", "password": "OlPass123"})
+    adm = client.post("/api/reios/auth/login",
+                      json={"identifier": "hr@onelogin.com", "password": "OlPass123"}).json()["access_token"]
+    client.post("/api/reios/admin/students", headers=auth(adm), json={"roll_no": "TS-ONE", "name": "Solo"})
+
+    login_body = {"identifier": "TS-ONE", "password": "Solo", "college_code": "ONELOGIN"}
+    r1 = client.post("/api/reios/auth/login", json=login_body)
+    assert r1.status_code == 200
+    token1 = r1.json()["access_token"]
+
+    # A second device with the same credentials is refused while the first is still active
+    r2 = client.post("/api/reios/auth/login", json=login_body)
+    assert r2.status_code == 409 and "already logged in elsewhere" in r2.text
+
+    # Logging out of the first device frees the slot immediately
+    assert client.post("/api/reios/auth/logout", headers=auth(token1)).status_code == 200
+    r3 = client.post("/api/reios/auth/login", json=login_body)
+    assert r3.status_code == 200
+
+    # Turning the rule off lets both sessions coexist
+    client.patch(f"/api/reios/super/colleges/{ev['id']}", headers=auth(root), json={"single_login": False})
+    r4 = client.post("/api/reios/auth/login", json=login_body)
+    assert r4.status_code == 200
+
+    # An admin login is never subject to the student-only rule
+    assert client.post("/api/reios/auth/login", json={
+        "identifier": "hr@onelogin.com", "password": "OlPass123"}).status_code == 200
