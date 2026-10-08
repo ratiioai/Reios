@@ -1,16 +1,43 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "../../lib/api.js";
 import { useAuth } from "../../lib/auth.jsx";
 import { Field, Spinner, useToast } from "../../components/ui.jsx";
 import { PasswordInput } from "../Login.jsx";
+import { useAdmin } from "./context.jsx";
 
 export default function Account({ onChanged }) {
   const { user, refresh } = useAuth();
+  const { cq, isEvent, needCollege } = useAdmin();
   const toast = useToast();
   const [cur, setCur] = useState("");
   const [n1, setN1] = useState("");
   const [n2, setN2] = useState("");
   const [busy, setBusy] = useState(false);
+  const [singleLogin, setSingleLogin] = useState(null);
+  const noun = isEvent ? "team" : "student";
+
+  const loadSettings = useCallback(async () => {
+    if (needCollege) return;
+    try {
+      setSingleLogin((await api("GET", "/api/reios/admin/settings" + cq())).single_login);
+    } catch (err) {
+      toast(err.message, "error");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cq, needCollege]);
+
+  useEffect(() => { loadSettings(); }, [loadSettings]);
+
+  async function toggleSingleLogin(next) {
+    setSingleLogin(next);  // optimistic
+    try {
+      await api("PATCH", "/api/reios/admin/settings" + cq(), { single_login: next });
+      toast(next ? "Single login turned on" : "Single login turned off", "success");
+    } catch (err) {
+      setSingleLogin(!next);
+      toast(err.message, "error");
+    }
+  }
 
   async function submit(e) {
     e.preventDefault();
@@ -76,6 +103,27 @@ export default function Account({ onChanged }) {
         </p>
         <button className="btn" onClick={logoutAll}>Sign out of all other devices</button>
       </div>
+
+      {!needCollege && (
+        <div className="card" style={{ maxWidth: 480 }}>
+          <h3>{isEvent ? "Event" : "College"} security</h3>
+          {singleLogin === null ? (
+            <p className="muted small">Loading…</p>
+          ) : (
+            <>
+              <label className="check">
+                <input type="checkbox" checked={singleLogin}
+                       onChange={(e) => toggleSingleLogin(e.target.checked)} />
+                One login at a time per {noun}
+              </label>
+              <p className="muted small" style={{ marginTop: 6 }}>
+                When on, a {noun} signed in on one device is refused on a second device until they log
+                out there, or that session lapses on its own after a few hours.
+              </p>
+            </>
+          )}
+        </div>
+      )}
     </>
   );
 }

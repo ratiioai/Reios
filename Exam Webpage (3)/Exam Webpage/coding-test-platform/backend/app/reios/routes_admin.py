@@ -413,6 +413,26 @@ def meta():
     return {"sections": SECTIONS, "difficulties": DIFFICULTIES, "languages": LANGUAGES}
 
 
+class AdminSettingsUpdate(BaseModel):
+    single_login: bool
+
+
+@router.get("/settings")
+def get_admin_settings(college_id: int = Depends(scoped_college_id), db: Session = Depends(get_db)):
+    college = db.get(College, college_id)
+    return {"single_login": college.single_login}
+
+
+@router.patch("/settings")
+def update_admin_settings(body: AdminSettingsUpdate, college_id: int = Depends(scoped_college_id),
+                          db: Session = Depends(get_db)):
+    """The event/college admin's own security settings, no super admin needed."""
+    college = db.get(College, college_id)
+    college.single_login = body.single_login
+    db.commit()
+    return {"single_login": college.single_login}
+
+
 # ══════════════════════════════════════════════════════════════════════════
 # Students
 # ══════════════════════════════════════════════════════════════════════════

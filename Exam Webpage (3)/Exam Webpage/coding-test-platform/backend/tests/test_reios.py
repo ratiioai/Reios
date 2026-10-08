@@ -1044,6 +1044,13 @@ def test_single_login_blocks_a_second_device_until_logout(client, setup):
     r4 = client.post("/api/reios/auth/login", json=login_body)
     assert r4.status_code == 200
 
+    # The event admin can flip it right back on themselves, no super admin needed
+    assert client.get("/api/reios/admin/settings", headers=auth(adm)).json() == {"single_login": False}
+    r = client.patch("/api/reios/admin/settings", headers=auth(adm), json={"single_login": True})
+    assert r.status_code == 200 and r.json() == {"single_login": True}
+    r5 = client.post("/api/reios/auth/login", json=login_body)
+    assert r5.status_code == 409 and "already logged in elsewhere" in r5.text
+
     # An admin login is never subject to the student-only rule
     assert client.post("/api/reios/auth/login", json={
         "identifier": "hr@onelogin.com", "password": "OlPass123"}).status_code == 200
