@@ -17,8 +17,9 @@ from app.auth import hash_password
 from app.database import get_db
 from app.reios import engine
 from app.reios.models import (
-    DIFFICULTIES, EXAM_TYPES, LANGUAGES, SECTIONS, Announcement, Attempt, AttemptStatus, CodingProblem,
-    College, Exam, ExamItem, ItemType, MCQQuestion, ProctorEvent, QuestionSet, Role, SetAssignment, User,
+    DIFFICULTIES, EXAM_TYPES, LANGUAGES, SECTIONS, Announcement, Attempt, AttemptStatus, CodeAnswer,
+    CodingProblem, College, Exam, ExamItem, ItemType, MCQAnswer, MCQQuestion, ProctorEvent, QuestionSet,
+    Role, SetAssignment, User,
 )
 from app.reios.features import has_feature, require_feature, send_emails
 from app.reios.parsers import ParseError, student_rows
@@ -585,6 +586,36 @@ def bulk_status(body: BulkIds, active: bool, college_id: int = Depends(scoped_co
             student.token_version += 1
     db.commit()
     return {"updated": len(students)}
+
+
+@router.delete("/students")
+def delete_all_students(confirm: str = Query(..., description="The college/event code, typed to confirm"),
+                        force: bool = Query(False, description="Also erase exam attempts and results"),
+                        college_id: int = Depends(scoped_college_id), db: Session = Depends(get_db)):
+    """Wipe every student/team in this college/event in one go (e.g. clearing test data before a real event)."""
+    college = db.get(College, college_id)
+    if not college or confirm.strip().upper() != college.code.upper():
+        raise HTTPException(status.HTTP_400_BAD_REQUEST,
+                            f"Type the {'event' if college and college.org_type == 'event' else 'college'} "
+                            f"code ({college.code if college else '?'}) to confirm")
+    student_ids = [uid for (uid,) in db.query(User.id).filter(
+        User.college_id == college_id, User.role == Role.STUDENT).all()]
+    if not student_ids:
+        return {"deleted": 0, "attempts_removed": 0}
+    attempts = db.query(Attempt).filter(Attempt.student_id.in_(student_ids)).all()
+    if attempts and not force:
+        raise HTTPException(status.HTTP_409_CONFLICT,
+                            f"{len({a.student_id for a in attempts})} of them have exam attempts. Delete again "
+                            "to also erase those results, instead of deleting them")
+    attempt_ids = [a.id for a in attempts]
+    gone = dict(synchronize_session=False)
+    for model in (MCQAnswer, CodeAnswer, ProctorEvent):
+        db.query(model).filter(model.attempt_id.in_(attempt_ids)).delete(**gone)
+    db.query(Attempt).filter(Attempt.id.in_(attempt_ids)).delete(**gone)
+    db.query(SetAssignment).filter(SetAssignment.student_id.in_(student_ids)).delete(**gone)
+    deleted = db.query(User).filter(User.id.in_(student_ids)).delete(**gone)
+    db.commit()
+    return {"deleted": deleted, "attempts_removed": len(attempt_ids)}
 
 
 @router.delete("/students/{student_id}")

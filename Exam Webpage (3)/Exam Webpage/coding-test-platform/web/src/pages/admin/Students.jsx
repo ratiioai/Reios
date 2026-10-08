@@ -11,10 +11,11 @@ import AttemptDetail from "./AttemptDetail.jsx";
 const PAGE_SIZE = 50;
 
 export default function Students() {
-  const { collegeId, cq, isEvent } = useAdmin();
+  const { collegeId, cq, isEvent, org } = useAdmin();
   const toast = useToast();
   const confirm = useConfirm();
   const noun = isEvent ? "team" : "student";
+  const [deletingAll, setDeletingAll] = useState(false);
 
   const [filters, setFilters] = useState({ q: "", branch: "", section: "", batch_year: "", page: 1 });
   const [draft, setDraft] = useState({ q: "", branch: "", section: "", batch_year: "" });
@@ -134,6 +135,11 @@ export default function Students() {
           <button className="btn primary" onClick={() => setEditing({})}>
             {isEvent ? "+ Add team" : "+ Add student"}
           </button>
+          {data?.total > 0 && (
+            <button className="btn danger" onClick={() => setDeletingAll(true)}>
+              Delete all {noun}s
+            </button>
+          )}
         </div>
       </div>
 
@@ -231,6 +237,12 @@ export default function Students() {
         <ImportStudents cq={cq} isEvent={isEvent} onClose={() => setImporting(false)} onCreds={setCreds} onDone={load} />
       )}
 
+      {deletingAll && (
+        <DeleteAllStudents cq={cq} isEvent={isEvent} org={org} total={data?.total || 0}
+                           onClose={() => setDeletingAll(false)}
+                           onDeleted={() => { setDeletingAll(false); load(); }} />
+      )}
+
       {creds && <CredentialsModal {...creds} onClose={() => setCreds(null)} />}
 
       {report && (
@@ -241,6 +253,58 @@ export default function Students() {
         <AttemptDetail attemptId={attemptId} cq={cq} onClose={() => setAttemptId(null)} />
       )}
     </>
+  );
+}
+
+/** Typing the college/event code guards against wiping the wrong one by mistake. */
+function DeleteAllStudents({ cq, isEvent, org, total, onClose, onDeleted }) {
+  const toast = useToast();
+  const confirm = useConfirm();
+  const noun = isEvent ? "team" : "student";
+  const [typed, setTyped] = useState("");
+  const code = org?.code || "";
+  const matches = typed.trim().toUpperCase() === code.toUpperCase();
+
+  async function remove(force = false) {
+    const url = "/api/reios/admin/students" + cq({ confirm: typed.trim(), ...(force ? { force: true } : {}) });
+    try {
+      const r = await api("DELETE", url);
+      toast(`${r.deleted} ${noun}${r.deleted === 1 ? "" : "s"} deleted`, "success", 6000);
+      onDeleted();
+    } catch (err) {
+      if (err.status !== 409 || force) return toast(err.message, "error", 6000);
+      if (await confirm("End exams and delete all",
+        err.message + " — end them and delete everyone anyway?", "Delete everyone", true)) {
+        remove(true);
+      }
+    }
+  }
+
+  return (
+    <Modal
+      title={`Delete all ${noun}s?`}
+      onClose={onClose}
+      actions={
+        <>
+          <button className="btn" onClick={onClose}>Cancel</button>
+          {matches
+            ? <ModalButton cls="danger solid" onClick={() => remove()}>Delete all {total} {noun}s</ModalButton>
+            : <button className="btn danger solid" disabled>Delete all {total} {noun}s</button>}
+        </>
+      }
+    >
+      <div className="banner danger" style={{ marginBottom: 14 }}>
+        <span>
+          This permanently deletes all <strong>{total} {noun}s</strong> in this {isEvent ? "event" : "college"},
+          along with every result and answer they have. It can't be undone. Export any results you need first.
+        </span>
+      </div>
+      <Field label={`Type the ${isEvent ? "event" : "college"} code ${code} to confirm`}>
+        <input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={code}
+               style={{ textTransform: "uppercase" }} autoFocus />
+      </Field>
+      {!matches && typed && <p className="small" style={{ color: "var(--danger)" }}>That doesn't match.</p>}
+    </Modal>
   );
 }
 

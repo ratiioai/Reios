@@ -1047,3 +1047,49 @@ def test_single_login_blocks_a_second_device_until_logout(client, setup):
     # An admin login is never subject to the student-only rule
     assert client.post("/api/reios/auth/login", json={
         "identifier": "hr@onelogin.com", "password": "OlPass123"}).status_code == 200
+
+
+def test_delete_all_students_requires_code_then_force_for_attempts(client, setup):
+    """The admin-side 'Delete all teams' button: typed-code confirm, then force for anyone mid-exam."""
+    root = setup["root"]
+    ev = client.post("/api/reios/super/colleges", headers=auth(root),
+                     json={"name": "Wipe Event", "code": "WIPEALL", "org_type": "event"}).json()
+    client.post(f"/api/reios/super/colleges/{ev['id']}/admins", headers=auth(root),
+               json={"name": "Wipe HR", "email": "hr@wipeall.com", "password": "WipePass1"})
+    adm = client.post("/api/reios/auth/login",
+                      json={"identifier": "hr@wipeall.com", "password": "WipePass1"}).json()["access_token"]
+    for code, name in [("TS-A", "Alpha"), ("TS-B", "Beta"), ("TS-C", "Gamma")]:
+        client.post("/api/reios/admin/students", headers=auth(adm), json={"roll_no": code, "name": name})
+
+    q = client.post("/api/reios/admin/mcqs", headers=auth(adm), json={
+        "section": "GK", "question_text": "3+3?", "options": ["5", "6"], "correct_options": [1]}).json()
+    now = datetime.now(timezone.utc)
+    exam = client.post("/api/reios/admin/exams", headers=auth(adm), json={
+        "title": "Wipe Quiz", "exam_type": "mcq", "start_at": (now - timedelta(minutes=1)).isoformat(),
+        "end_at": (now + timedelta(hours=1)).isoformat()}).json()
+    client.put(f"/api/reios/admin/exams/{exam['id']}/items", headers=auth(adm),
+              json={"items": [{"item_type": "mcq", "question_id": q["id"]}]})
+    client.post(f"/api/reios/admin/exams/{exam['id']}/publish", headers=auth(adm))
+
+    # Team Alpha starts the exam and never finishes it
+    ta = client.post("/api/reios/auth/login", json={
+        "identifier": "TS-A", "password": "Alpha", "college_code": "WIPEALL"}).json()["access_token"]
+    client.post(f"/api/reios/student/exams/{exam['id']}/start", headers=auth(ta))
+
+    # Wrong code is refused outright
+    r = client.delete("/api/reios/admin/students?confirm=NOPE", headers=auth(adm))
+    assert r.status_code == 400
+
+    # Right code, but someone's mid-exam: blocked without force
+    r = client.delete("/api/reios/admin/students?confirm=WIPEALL", headers=auth(adm))
+    assert r.status_code == 409 and "exam attempts" in r.text
+    assert client.get("/api/reios/admin/students", headers=auth(adm)).json()["total"] == 3
+
+    # Force wipes everyone, attempts included
+    r = client.delete("/api/reios/admin/students?confirm=WIPEALL&force=true", headers=auth(adm))
+    assert r.status_code == 200 and r.json() == {"deleted": 3, "attempts_removed": 1}
+    assert client.get("/api/reios/admin/students", headers=auth(adm)).json()["total"] == 0
+
+    # Deleting again with nobody left is a clean no-op, not an error
+    r = client.delete("/api/reios/admin/students?confirm=WIPEALL", headers=auth(adm))
+    assert r.status_code == 200 and r.json() == {"deleted": 0, "attempts_removed": 0}
