@@ -52,6 +52,7 @@ export function windowBadgeProps(exam) {
   return {
     live: { color: "green", text: "Live" },
     upcoming: { color: "blue", text: "Scheduled" },
+    paused: { color: "amber", text: "Paused" },
     ended: { color: "", text: "Ended" },
   }[exam.window] || { color: "", text: exam.window };
 }

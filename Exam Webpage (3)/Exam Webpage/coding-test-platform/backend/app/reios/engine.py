@@ -57,10 +57,15 @@ def matches_audience(exam: Exam, student: User) -> bool:
 
 def exam_window(exam: Exam) -> str:
     now = utcnow()
+    # end_at is always a hard cap, even if the organizer forced the exam live or paused
+    if exam.control_state == "ended" or now >= as_utc(exam.end_at):
+        return "ended"
+    if exam.control_state == "paused":
+        return "paused"
+    if exam.control_state == "live":
+        return "live"
     if now < as_utc(exam.start_at):
         return "upcoming"
-    if now >= as_utc(exam.end_at):
-        return "ended"
     return "live"
 
 
@@ -164,6 +169,9 @@ def require_active_attempt(db: Session, attempt: Attempt, nonce: Optional[str]) 
         raise HTTPException(status.HTTP_409_CONFLICT, "This exam has already been submitted")
     if finalize_if_expired(db, attempt):
         raise HTTPException(status.HTTP_409_CONFLICT, "Time is up. Your exam was submitted automatically")
+    if attempt.exam.control_state == "paused":
+        raise HTTPException(status.HTTP_409_CONFLICT,
+                            "This exam is paused by the organizers. Please wait — your progress is safe")
     if not nonce or not secrets.compare_digest(nonce, attempt.session_nonce):
         raise HTTPException(status.HTTP_409_CONFLICT,
                             "This exam is open in another window or device. Only one session is allowed")
@@ -175,6 +183,28 @@ def record_event(db: Session, attempt: Attempt, event_type: str, details: Option
                          details=(details or "")[:500] or None, counted=counted)
     db.add(event)
     return event
+
+
+def resume_from_pause(db: Session, exam: Exam) -> None:
+    """Push every in-progress attempt's deadline out by however long the exam was paused, so
+    nobody loses exam time while the organizers had it on hold."""
+    if not exam.paused_at:
+        return
+    elapsed = utcnow() - as_utc(exam.paused_at)
+    if elapsed.total_seconds() > 0:
+        attempts = db.query(Attempt).filter(Attempt.exam_id == exam.id,
+                                            Attempt.status == AttemptStatus.IN_PROGRESS).all()
+        for attempt in attempts:
+            attempt.deadline_at = as_utc(attempt.deadline_at) + elapsed
+    exam.paused_at = None
+
+
+def force_submit_in_progress(db: Session, exam_id: int, reason: str) -> int:
+    """End every attempt still writing this exam right now (admin pressed End, or a forced delete). Returns how many."""
+    attempts = db.query(Attempt).filter(Attempt.exam_id == exam_id, Attempt.status == AttemptStatus.IN_PROGRESS).all()
+    for attempt in attempts:
+        finalize_attempt(db, attempt, AttemptStatus.AUTO_SUBMITTED, reason)
+    return len(attempts)
 
 
 def finalize_attempt(db: Session, attempt: Attempt, final_status: AttemptStatus, reason: str) -> Attempt:

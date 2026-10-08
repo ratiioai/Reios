@@ -137,12 +137,19 @@ function DeleteCollege({ college, onClose, onDeleted }) {
   const [typed, setTyped] = useState("");
   const matches = typed.trim().toUpperCase() === college.code.toUpperCase();
 
-  async function remove() {
+  async function remove(force = false) {
+    const url = `/api/reios/super/colleges/${college.id}?confirm=${encodeURIComponent(typed.trim())}`
+      + (force ? "&force=true" : "");
     try {
-      const r = await api("DELETE", `/api/reios/super/colleges/${college.id}?confirm=${encodeURIComponent(typed.trim())}`);
+      const r = await api("DELETE", url);
       toast(`${college.name} deleted: ${r.students} students, ${r.exams} exams, ${r.attempts} attempts removed`, "success", 6000);
       onDeleted();
-    } catch (err) { toast(err.message, "error", 6000); }
+    } catch (err) {
+      if (err.status !== 409 || force) return toast(err.message, "error", 6000);
+      if (await confirm("End exams and delete", err.message + " — end them and delete anyway?", "End and delete", true)) {
+        remove(true);
+      }
+    }
   }
 
   return (
@@ -153,7 +160,7 @@ function DeleteCollege({ college, onClose, onDeleted }) {
         <>
           <button className="btn" onClick={onClose}>Cancel</button>
           {matches
-            ? <ModalButton cls="danger solid" onClick={remove}>Delete permanently</ModalButton>
+            ? <ModalButton cls="danger solid" onClick={() => remove()}>Delete permanently</ModalButton>
             : <button className="btn danger solid" disabled>Delete permanently</button>}
         </>
       }

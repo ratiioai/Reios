@@ -913,3 +913,101 @@ def test_delete_blocked_then_force_deletes_attempts_too(client, setup):
     # A fresh team can now reuse the same roll number, confirming the old row is really gone
     r = client.post("/api/reios/admin/students", headers=auth(adm), json={"roll_no": "TS-DEL", "name": "Reused"})
     assert r.status_code == 201
+
+
+def test_exam_control_start_pause_resume_end(client, setup):
+    """The organizer's Start/Pause/Resume/End buttons, and that pausing doesn't cost a student exam time."""
+    import time
+    from datetime import datetime, timedelta, timezone
+    admin = setup["admin"]
+    mcq = setup["mcqs"][0]
+
+    now = datetime.now(timezone.utc)
+    exam = client.post("/api/reios/admin/exams", headers=auth(admin), json={
+        "title": "Control Test", "exam_type": "mcq", "start_at": (now + timedelta(hours=1)).isoformat(),
+        "end_at": (now + timedelta(hours=2)).isoformat(), "duration_minutes": 30}).json()
+    client.put(f"/api/reios/admin/exams/{exam['id']}/items", headers=auth(admin),
+              json={"items": [{"item_type": "mcq", "question_id": mcq["id"]}]})
+    client.post(f"/api/reios/admin/exams/{exam['id']}/publish", headers=auth(admin))
+
+    r = client.post("/api/reios/admin/students", headers=auth(admin),
+                    json={"roll_no": "21CS777", "name": "Control", "branch": "CSE", "password": "ControlPw1"})
+    assert r.status_code == 201
+    token = student_login(client, "21CS777", "ControlPw1", new_password="ControlPw2")
+
+    # Scheduled an hour out: a student can't start it yet, and the dashboard doesn't leak the clock time
+    assert client.get(f"/api/reios/student/exams/{exam['id']}", headers=auth(token)).json()["window"] == "upcoming"
+    assert client.post(f"/api/reios/student/exams/{exam['id']}/start", headers=auth(token)).status_code == 400
+
+    # The organizer presses Start: the exam opens right now, regardless of its scheduled start_at
+    r = client.post(f"/api/reios/admin/exams/{exam['id']}/control?action=start", headers=auth(admin))
+    assert r.status_code == 200 and r.json()["window"] == "live"
+    p = client.post(f"/api/reios/student/exams/{exam['id']}/start", headers=auth(token))
+    assert p.status_code == 200, p.text
+    paper = p.json()
+    attempt_id, session = paper["attempt_id"], paper["session"]
+    hdr = {**auth(token), "X-Exam-Session": session}
+    item_id = paper["items"][0]["item_id"]
+    before_pause = client.get(f"/api/reios/student/exams/{exam['id']}", headers=auth(token)).json()
+    seconds_before = before_pause["attempt"]["seconds_left"]
+
+    # Pause: the student can no longer save answers, with a clear non-destructive message
+    r = client.post(f"/api/reios/admin/exams/{exam['id']}/control?action=pause", headers=auth(admin))
+    assert r.status_code == 200 and r.json()["window"] == "paused"
+    r = client.put(f"/api/reios/student/attempts/{attempt_id}/mcq/{item_id}", headers=hdr,
+                   json={"selected": [0]})
+    assert r.status_code == 409 and "paused" in r.json()["detail"]
+
+    time.sleep(2)  # the exam is paused for a couple of real seconds
+
+    # Resume: the pause doesn't eat into the student's time — seconds_left is at least what it was
+    r = client.post(f"/api/reios/admin/exams/{exam['id']}/control?action=resume", headers=auth(admin))
+    assert r.status_code == 200 and r.json()["window"] == "live"
+    after_resume = client.get(f"/api/reios/student/exams/{exam['id']}", headers=auth(token)).json()
+    assert after_resume["attempt"]["seconds_left"] >= seconds_before - 1  # clock shifted forward by the pause
+
+    r = client.put(f"/api/reios/student/attempts/{attempt_id}/mcq/{item_id}", headers=hdr, json={"selected": [0]})
+    assert r.status_code == 200, r.text
+
+    # End: force-submits everyone still writing, and the exam can't be reopened afterwards
+    r = client.post(f"/api/reios/admin/exams/{exam['id']}/control?action=end", headers=auth(admin))
+    assert r.status_code == 200 and r.json()["window"] == "ended"
+    results = client.get(f"/api/reios/admin/exams/{exam['id']}/results", headers=auth(admin)).json()
+    row = next(x for x in results["results"] if x["roll_no"] == "21CS777")
+    assert row["status"] in ("auto_submitted", "submitted")
+    assert client.post(f"/api/reios/admin/exams/{exam['id']}/control?action=start",
+                       headers=auth(admin)).status_code == 409
+
+
+def test_super_admin_force_deletes_event_with_live_attempts(client, setup):
+    """Mirrors the per-student force-delete: a super admin can end live attempts to finish deleting an event."""
+    from datetime import datetime, timedelta, timezone
+    root = setup["root"]
+    ev = client.post("/api/reios/super/colleges", headers=auth(root),
+                     json={"name": "Super Del Event", "code": "SUPERDEL", "org_type": "event"}).json()
+    client.post(f"/api/reios/super/colleges/{ev['id']}/admins", headers=auth(root),
+                json={"name": "SD HR", "email": "hr@superdel.com", "password": "SdPass123"})
+    adm = client.post("/api/reios/auth/login",
+                      json={"identifier": "hr@superdel.com", "password": "SdPass123"}).json()["access_token"]
+    team = client.post("/api/reios/admin/students", headers=auth(adm),
+                       json={"roll_no": "TS-SD", "name": "StillWriting"}).json()
+    q = client.post("/api/reios/admin/mcqs", headers=auth(adm), json={
+        "section": "GK", "question_text": "2+2?", "options": ["3", "4"], "correct_options": [1]}).json()
+    now = datetime.now(timezone.utc)
+    exam = client.post("/api/reios/admin/exams", headers=auth(adm), json={
+        "title": "SD Quiz", "exam_type": "mcq", "start_at": (now - timedelta(minutes=1)).isoformat(),
+        "end_at": (now + timedelta(hours=1)).isoformat()}).json()
+    client.put(f"/api/reios/admin/exams/{exam['id']}/items", headers=auth(adm),
+              json={"items": [{"item_type": "mcq", "question_id": q["id"]}]})
+    client.post(f"/api/reios/admin/exams/{exam['id']}/publish", headers=auth(adm))
+
+    t = client.post("/api/reios/auth/login", json={
+        "identifier": "TS-SD", "password": "StillWriting", "college_code": "SUPERDEL"}).json()["access_token"]
+    client.post(f"/api/reios/student/exams/{exam['id']}/start", headers=auth(t))  # never submits
+
+    # Blocked without force, same message pattern as the student-level delete
+    r = client.delete(f"/api/reios/super/colleges/{ev['id']}?confirm=SUPERDEL", headers=auth(root))
+    assert r.status_code == 409 and "writing an exam right now" in r.text
+
+    r = client.delete(f"/api/reios/super/colleges/{ev['id']}?confirm=SUPERDEL&force=true", headers=auth(root))
+    assert r.status_code == 200 and r.json()["deleted"] == "SUPERDEL"

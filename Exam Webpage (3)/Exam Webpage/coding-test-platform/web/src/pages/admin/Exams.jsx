@@ -2,13 +2,14 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { api } from "../../lib/api.js";
 import { fmtDate } from "../../lib/format.js";
-import { Badge, Loading, useToast } from "../../components/ui.jsx";
+import { Badge, Loading, useConfirm, useToast } from "../../components/ui.jsx";
 import { useAdmin, windowBadgeProps } from "./context.jsx";
 import ExamSettings, { EXAM_TYPES } from "./ExamSettings.jsx";
 
 export default function Exams() {
   const { collegeId, cq } = useAdmin();
   const toast = useToast();
+  const confirm = useConfirm();
   const navigate = useNavigate();
 
   const [exams, setExams] = useState(null);
@@ -30,6 +31,22 @@ export default function Exams() {
     load();
     api("GET", "/api/reios/admin/meta").then(setMeta).catch(() => {});
   }, [load]);
+
+  async function control(e, action) {
+    if (action === "end" && e.attempts.in_progress > 0) {
+      const ok = await confirm("End exam now",
+        `${e.attempts.in_progress} student${e.attempts.in_progress > 1 ? "s" : ""} still writing will be ` +
+        "submitted immediately with whatever they've answered so far. This can't be undone.",
+        "End exam", true);
+      if (!ok) return;
+    }
+    try {
+      const updated = await api("POST", `/api/reios/admin/exams/${e.id}/control` + cq({ action }));
+      setExams((xs) => xs.map((x) => (x.id === e.id ? updated : x)));
+    } catch (err) {
+      toast(err.message, "error", 6000);
+    }
+  }
 
   if (!exams) return <Loading />;
 
@@ -77,9 +94,23 @@ export default function Exams() {
                     )}
                   </td>
                   <td>
-                    <div className="row tight">
+                    <div className="row tight" style={{ flexWrap: "wrap", rowGap: 4 }}>
                       <Link className="btn sm" to={`/console/exams/${e.id}`}>Edit</Link>
-                      {e.is_published && e.window === "live" && (
+                      {e.is_published && e.window !== "ended" && (
+                        <>
+                          {(e.window === "upcoming") && (
+                            <button className="btn sm success" onClick={() => control(e, "start")}>Start exam</button>
+                          )}
+                          {e.window === "live" && (
+                            <button className="btn sm" onClick={() => control(e, "pause")}>Pause exam</button>
+                          )}
+                          {e.window === "paused" && (
+                            <button className="btn sm success" onClick={() => control(e, "resume")}>Resume</button>
+                          )}
+                          <button className="btn sm danger" onClick={() => control(e, "end")}>End exam</button>
+                        </>
+                      )}
+                      {e.is_published && (e.window === "live" || e.window === "paused") && (
                         <Link className="btn sm success" to={`/console/exams/${e.id}/live`}>Live</Link>
                       )}
                       <Link className="btn sm" to={`/console/exams/${e.id}/results`}>Results</Link>

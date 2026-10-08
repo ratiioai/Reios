@@ -146,6 +146,9 @@ class Exam(Base):
     end_at = Column(DateTime(timezone=True), nullable=False)
     duration_minutes = Column(Integer, nullable=False, default=60)
     is_published = Column(Boolean, default=False, nullable=False)
+    # Organizer override of the scheduled start_at/end_at window: scheduled | live | paused | ended
+    control_state = Column(String(16), default="scheduled", nullable=False)
+    paused_at = Column(DateTime(timezone=True), nullable=True)  # when control_state last became "paused"
     # Audience filters: comma-separated, empty = everyone in the college
     branch_filter = Column(String(255), nullable=True)
     batch_filter = Column(String(255), nullable=True)

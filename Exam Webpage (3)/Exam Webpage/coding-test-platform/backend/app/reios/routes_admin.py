@@ -256,6 +256,7 @@ def exam_payload(exam: Exam, db: Session, with_items: bool = False) -> dict:
         "block_copy_paste": exam.block_copy_paste, "max_violations": exam.max_violations,
         "show_results": exam.show_results, "show_answers": exam.show_answers,
         "pass_percentage": exam.pass_percentage, "window": engine.exam_window(exam),
+        "control_state": exam.control_state,
         "exam_type": exam.exam_type, "show_leaderboard": exam.show_leaderboard,
         "set_count": len(exam.sets), "auto_assign_sets": exam.auto_assign_sets,
         "question_count": len(paper), "max_score": engine.exam_max_score(exam),
@@ -927,6 +928,31 @@ def publish_exam(exam_id: int, publish: bool = True, college_id: int = Depends(s
     if publish and not exam.items:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Add questions before publishing")
     exam.is_published = publish
+    db.commit()
+    return exam_payload(exam, db)
+
+
+@router.post("/exams/{exam_id}/control")
+def control_exam(exam_id: int, action: str = Query(..., pattern="^(start|pause|resume|end)$"),
+                 college_id: int = Depends(scoped_college_id), db: Session = Depends(get_db)):
+    """Start/pause/resume/end an exam right now, overriding its scheduled start_at/end_at."""
+    exam = get_exam(db, college_id, exam_id)
+    if action in ("start", "resume") and not exam.is_published:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Publish the exam before starting it")
+    if exam.control_state == "ended":
+        raise HTTPException(status.HTTP_409_CONFLICT, "This exam has already ended and can't be reopened")
+    if action == "resume":
+        engine.resume_from_pause(db, exam)
+        exam.control_state = "live"
+    elif action == "start":
+        exam.control_state = "live"
+    elif action == "pause":
+        exam.control_state = "paused"
+        exam.paused_at = utcnow()
+    elif action == "end":
+        engine.resume_from_pause(db, exam)  # don't leave a dangling paused_at behind
+        exam.control_state = "ended"
+        engine.force_submit_in_progress(db, exam.id, "ended_by_admin")
     db.commit()
     return exam_payload(exam, db)
 

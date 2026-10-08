@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import hash_password
 from app.database import get_db
+from app.reios import engine
 from app.reios.models import (
     Announcement, Attempt, AttemptStatus, CodeAnswer, CodingProblem, College, Exam, ExamItem, MCQAnswer,
     MCQQuestion, ProctorEvent, QuestionSet, Role, SetAssignment, User,
@@ -179,6 +180,7 @@ def update_college(college_id: int, body: CollegeUpdate, db: Session = Depends(g
 
 @router.delete("/colleges/{college_id}")
 def delete_college(college_id: int, confirm: str = Query(..., description="The college's code, typed to confirm"),
+                   force: bool = Query(False, description="Also end any exam attempts still in progress"),
                    db: Session = Depends(get_db), _=Depends(require_super_admin)):
     """
     Permanently remove a college and everything it owns: admins, students, exams, sets, attempts,
@@ -190,9 +192,13 @@ def delete_college(college_id: int, confirm: str = Query(..., description="The c
     exam_ids = select(Exam.id).where(Exam.college_id == college.id)
     writing = db.query(Attempt).filter(Attempt.exam_id.in_(exam_ids),
                                        Attempt.status == AttemptStatus.IN_PROGRESS).count()
-    if writing:
+    if writing and not force:
         raise HTTPException(status.HTTP_409_CONFLICT,
-                            f"{writing} students are writing an exam right now. Wait until it ends")
+                            f"{writing} students are writing an exam right now. End the exam, or delete again "
+                            "to also end their attempts and erase those results, instead of deleting it")
+    if writing:
+        for (exam_id,) in db.query(Exam.id).filter(Exam.college_id == college.id).all():
+            engine.force_submit_in_progress(db, exam_id, "deleted_by_super_admin")
 
     attempt_ids = select(Attempt.id).where(Attempt.exam_id.in_(exam_ids))
     counts = {

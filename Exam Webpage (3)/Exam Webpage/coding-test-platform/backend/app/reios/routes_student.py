@@ -193,7 +193,7 @@ def dashboard(student: User = Depends(require_student), db: Session = Depends(ge
             "completed": len(finished),
             "average_percentage": round(sum(a.total_score / a.max_score * 100 for a in finished) / len(finished), 1)
             if finished else None,
-            "upcoming": sum(1 for r in rows if r["state"] in ("upcoming", "live")),
+            "upcoming": sum(1 for r in rows if r["state"] in ("upcoming", "live", "paused")),
         },
         "announcements": [{"id": a.id, "title": a.title, "body": a.body, "created_at": a.created_at}
                           for a in announcements],

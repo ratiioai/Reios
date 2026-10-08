@@ -5,6 +5,7 @@ import { Badge, Empty, Loading, useToast } from "../../components/ui.jsx";
 import { useAdmin } from "./context.jsx";
 
 const MEDALS = ["🥇", "🥈", "🥉"];
+const REFRESH_MS = 10000;
 
 export default function Leaderboard() {
   const { collegeId, cq } = useAdmin();
@@ -13,21 +14,29 @@ export default function Leaderboard() {
   const [branch, setBranch] = useState("");
   const [branches, setBranches] = useState([]);
   const [data, setData] = useState(null);
+  const [lastAt, setLastAt] = useState(null);
 
   useEffect(() => {
     api("GET", "/api/reios/admin/stats" + cq()).then((s) => setBranches(s.branches)).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collegeId]);
 
-  const load = useCallback(async () => {
-    setData(null);
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setData(null);
     try {
       setData(await api("GET", "/api/reios/admin/leaderboard" + cq({ exam_id: examId, branch, limit: 500 })));
+      setLastAt(new Date());
     } catch (err) { toast(err.message, "error"); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [collegeId, examId, branch]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Ranks can shift as teams keep submitting, so keep the board current on its own.
+  useEffect(() => {
+    const t = setInterval(() => load(true), REFRESH_MS);
+    return () => clearInterval(t);
+  }, [load]);
 
   const overall = data?.mode === "overall";
 
@@ -58,6 +67,9 @@ export default function Leaderboard() {
         </div>
         <button className="btn" onClick={exportCsv} disabled={!data?.rows.length}>Export CSV</button>
       </div>
+      <p className="muted small" style={{ marginTop: -8, marginBottom: 10 }}>
+        Auto-refreshes every 10 seconds{lastAt && ` · last ${lastAt.toLocaleTimeString()}`}
+      </p>
 
       <div className="toolbar">
         <select value={examId} onChange={(e) => setExamId(e.target.value)} style={{ minWidth: 260 }}>

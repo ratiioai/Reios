@@ -2,32 +2,15 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../../lib/api.js";
 import { useAuth } from "../../lib/auth.jsx";
-import { fmtDate, fmtDuration } from "../../lib/format.js";
+import { fmtDate } from "../../lib/format.js";
 import { Badge, Credit, Empty, Loading, OrgBrand, ThemeToggle, useToast } from "../../components/ui.jsx";
 import ChangePassword from "./ChangePassword.jsx";
 import ResultModal from "./ResultModal.jsx";
 import LeaderboardModal from "./LeaderboardModal.jsx";
 
-const ORDER = { in_progress: 0, live: 1, upcoming: 2, completed: 3, missed: 4 };
+const ORDER = { in_progress: 0, live: 1, paused: 2, upcoming: 3, completed: 4, missed: 5 };
 
-function Countdown({ target, onElapsed }) {
-  const [left, setLeft] = useState(() => (target - Date.now()) / 1000);
-  useEffect(() => {
-    const t = setInterval(() => {
-      const next = (target - Date.now()) / 1000;
-      setLeft(next);
-      if (next <= 0) onElapsed?.();
-    }, 1000);
-    return () => clearInterval(t);
-  }, [target, onElapsed]);
-  return (
-    <span className="muted small nums">
-      {left > 86400 ? `Opens ${fmtDate(target)}` : `Opens in ${fmtDuration(left)}`}
-    </span>
-  );
-}
-
-function ExamCard({ e, onResult, onElapsed, onLeaderboard }) {
+function ExamCard({ e, onResult, onLeaderboard }) {
   let status = null;
   let action = null;
 
@@ -41,8 +24,12 @@ function ExamCard({ e, onResult, onElapsed, onLeaderboard }) {
       action = <Link className="btn primary lg" to={`/exam/${e.id}`}>Resume exam</Link>;
       break;
     case "upcoming":
-      status = <Badge color="blue">Scheduled</Badge>;
-      action = <Countdown target={new Date(e.start_at).getTime()} onElapsed={onElapsed} />;
+      status = <Badge color="blue">Coming soon</Badge>;
+      action = <span className="muted small">The organizers will open this exam when it's time</span>;
+      break;
+    case "paused":
+      status = <Badge color="amber">Paused</Badge>;
+      action = <span className="muted small">Paused by the organizers — hold tight</span>;
       break;
     case "completed":
       status = <Badge color="green">Completed</Badge>;
@@ -72,8 +59,10 @@ function ExamCard({ e, onResult, onElapsed, onLeaderboard }) {
       <div className="grow">
         <h3>{e.title} {status}</h3>
         <div className="meta">
-          {fmtDate(e.start_at)} → {fmtDate(e.end_at)} · {e.duration_minutes} min ·{" "}
-          {e.question_count} questions · {e.max_score} marks
+          {e.state === "upcoming" || e.state === "paused"
+            ? "Coming soon"
+            : `${fmtDate(e.start_at)} → ${fmtDate(e.end_at)}`}
+          {" "}· {e.duration_minutes} min · {e.question_count} questions · {e.max_score} marks
         </div>
         {e.sections?.length > 0 && (
           <div className="pill-list" style={{ marginTop: 8 }}>
@@ -112,6 +101,13 @@ export default function Dashboard() {
 
   useEffect(() => { load(); }, [load]);
 
+  // The organizers can open/pause/close an exam by hand at any moment, so poll instead of
+  // relying only on each exam's own scheduled start/end time.
+  useEffect(() => {
+    const t = setInterval(load, 15000);
+    return () => clearInterval(t);
+  }, [load]);
+
   const openResult = useCallback(async (attemptId) => {
     try {
       setResult(await api("GET", `/api/reios/student/attempts/${attemptId}/result`));
@@ -129,7 +125,7 @@ export default function Dashboard() {
   const exams = (data?.exams || []).slice().sort(
     (a, b) => ORDER[a.state] - ORDER[b.state] || new Date(a.start_at) - new Date(b.start_at)
   );
-  const active = exams.filter((e) => ["in_progress", "live", "upcoming"].includes(e.state));
+  const active = exams.filter((e) => ["in_progress", "live", "paused", "upcoming"].includes(e.state));
   const past = exams.filter((e) => ["completed", "missed"].includes(e.state));
   const isEvent = user?.college?.org_type === "event";
   const liveCount = active.filter((e) => e.state === "live" || e.state === "in_progress").length;
@@ -210,7 +206,7 @@ export default function Dashboard() {
           <div className="section-title"><h2>Your exams</h2></div>
           {active.length > 0
             ? active.map((e) => (
-                <ExamCard key={e.id} e={e} onResult={openResult} onElapsed={load} onLeaderboard={setBoardExam} />
+                <ExamCard key={e.id} e={e} onResult={openResult} onLeaderboard={setBoardExam} />
               ))
             : <Empty title="No exams open" hint="Exams you're invited to will appear here." />}
 
@@ -218,7 +214,7 @@ export default function Dashboard() {
             <>
               <div className="section-title"><h2>Past exams</h2></div>
               {past.map((e) => (
-                <ExamCard key={e.id} e={e} onResult={openResult} onElapsed={load} onLeaderboard={setBoardExam} />
+                <ExamCard key={e.id} e={e} onResult={openResult} onLeaderboard={setBoardExam} />
               ))}
             </>
           )}

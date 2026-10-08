@@ -11,6 +11,8 @@ NEW_COLUMNS = {
         ("exam_type", "VARCHAR(16) NOT NULL DEFAULT 'mixed'"),
         ("show_leaderboard", "BOOLEAN NOT NULL DEFAULT FALSE"),
         ("auto_assign_sets", "BOOLEAN NOT NULL DEFAULT TRUE"),
+        ("control_state", "VARCHAR(16) NOT NULL DEFAULT 'scheduled'"),
+        ("paused_at", "TIMESTAMP"),
     ],
     "reios_exam_items": [("set_id", "INTEGER")],
     "reios_attempts": [("set_id", "INTEGER")],

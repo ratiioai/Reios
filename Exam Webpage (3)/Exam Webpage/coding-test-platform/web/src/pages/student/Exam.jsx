@@ -35,6 +35,7 @@ export default function Exam() {
   const [left, setLeft] = useState(0);
   const [showFsOverlay, setShowFsOverlay] = useState(false);
   const [warning, setWarning] = useState(null);
+  const [examPaused, setExamPaused] = useState(false);
   const [showInstr, setShowInstr] = useState(false);
   const [confirmSubmit, setConfirmSubmit] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -73,6 +74,10 @@ export default function Exam() {
 
   const handleConflict = useCallback((message) => {
     if (finishedRef.current) return;
+    if (/paused by the organizers/i.test(message)) {
+      setExamPaused(true);  // not final — the exam resumes with the time they had left intact
+      return;
+    }
     if (/another window|another device|one session/i.test(message)) {
       lockOut(
         "Exam opened somewhere else",
@@ -133,28 +138,39 @@ export default function Exam() {
   }, [hdr, finish, handleConflict]);
 
   /* ── Load pre-start info ─────────────────────────────────────────── */
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const i = await api("GET", `/api/reios/student/exams/${examId}`);
-        if (cancelled) return;
-        if (i.must_change_password) { navigate("/student", { replace: true }); return; }
-        setBoardOn(!!i.leaderboard_enabled);
-        if (i.attempt && i.attempt.status !== "in_progress") {
-          attemptRef.current = i.attempt.id;
-          setDoneMsg("You have already submitted this exam.");
-          setPhase("done");
-          return;
-        }
-        setInfo(i);
-        setPhase("prestart");
-      } catch (err) {
-        if (!cancelled) { setError(err.message); setPhase("prestart"); }
+  const loadInfo = useCallback(async (cancelledRef) => {
+    try {
+      const i = await api("GET", `/api/reios/student/exams/${examId}`);
+      if (cancelledRef.current) return;
+      if (i.must_change_password) { navigate("/student", { replace: true }); return; }
+      setBoardOn(!!i.leaderboard_enabled);
+      if (i.attempt && i.attempt.status !== "in_progress") {
+        attemptRef.current = i.attempt.id;
+        setDoneMsg("You have already submitted this exam.");
+        setPhase("done");
+        return;
       }
-    })();
-    return () => { cancelled = true; };
+      setInfo(i);
+      setPhase("prestart");
+    } catch (err) {
+      if (!cancelledRef.current) { setError(err.message); setPhase("prestart"); }
+    }
   }, [examId, navigate]);
+
+  useEffect(() => {
+    const cancelledRef = { current: false };
+    loadInfo(cancelledRef);
+    return () => { cancelledRef.current = true; };
+  }, [loadInfo]);
+
+  // While waiting for the organizers to open or resume it, check back on our own —
+  // no need for the student to reload the page.
+  useEffect(() => {
+    if (phase !== "prestart" || !info || info.window === "live") return undefined;
+    const cancelledRef = { current: false };
+    const t = setInterval(() => loadInfo(cancelledRef), 10000);
+    return () => { cancelledRef.current = true; clearInterval(t); };
+  }, [phase, info, loadInfo]);
 
   /* ── Start ───────────────────────────────────────────────────────── */
   const [startErr, setStartErr] = useState("");
@@ -249,6 +265,7 @@ export default function Exam() {
       if (!r.session_valid) { handleConflict("opened in another window"); return; }
       deadlineRef.current = Date.now() + r.seconds_left * 1000;
       setViolations((v) => (r.violations !== v ? r.violations : v));
+      setExamPaused(false);
     } catch {
       /* offline — the next heartbeat will resync */
     }
@@ -424,7 +441,9 @@ export default function Exam() {
         <Link to="/student" className="small">← Dashboard</Link>
         <div className="page-head" style={{ marginTop: 10 }}>
           <h1>{i.title}</h1>
-          <p className="lede">{fmtDate(i.start_at)} → {fmtDate(i.end_at)}</p>
+          <p className="lede">
+            {i.window === "upcoming" || i.window === "paused" ? "Coming soon" : `${fmtDate(i.start_at)} → ${fmtDate(i.end_at)}`}
+          </p>
         </div>
 
         <div className="grid cols-4" style={{ margin: "18px 0" }}>
@@ -434,11 +453,12 @@ export default function Exam() {
           </div>
           <div className="stat plain"><div className="label">Questions</div><div className="value">{totalQs}</div></div>
           <div className="stat plain"><div className="label">Total marks</div><div className="value">{i.max_score}</div></div>
-          <div className={"stat " + (resuming ? "amber" : i.window === "live" ? "green" : "red")}>
+          <div className={"stat " + (resuming ? "amber" : i.window === "live" ? "green" : i.window === "paused" ? "amber" : "red")}>
             <div className="label">{resuming ? "Time left" : "Status"}</div>
             <div className="value" style={{ fontSize: 20 }}>
               {resuming ? fmtDuration(i.attempt.seconds_left)
                 : i.window === "live" ? "Open"
+                : i.window === "paused" ? "Paused"
                 : i.window === "upcoming" ? "Not open yet" : "Closed"}
             </div>
           </div>
@@ -500,7 +520,9 @@ export default function Exam() {
           {!canStart && (
             <p className="muted small" style={{ margin: "10px 0 0" }}>
               {i.window === "upcoming"
-                ? "The exam hasn't opened yet. Reload this page once it opens."
+                ? "The organizers haven't opened this exam yet. This page checks automatically — no need to reload."
+                : i.window === "paused"
+                ? "This exam is paused by the organizers. This page checks automatically — no need to reload."
                 : "This exam has closed."}
             </p>
           )}
@@ -534,6 +556,18 @@ export default function Exam() {
             Submit exam
           </button>
         </div>
+
+        {examPaused && (
+          <div className="banner warn" style={{ margin: "0 0 10px" }}>
+            <div>
+              <h3 style={{ margin: 0 }}>Exam paused</h3>
+              <span className="small">
+                The organizers have paused this exam. Your answers are saved and your time isn't
+                running out — just wait, this will resume on its own.
+              </span>
+            </div>
+          </div>
+        )}
 
         <div className="exam-body">
           <aside className={"palette" + (paletteOpen ? " open" : "")}>
