@@ -29,10 +29,17 @@ if ($env:DATABASE_URL -match "CHANGE_ME") { throw "Set the database password in 
 $pgBin = "C:\Program Files\PostgreSQL\18\bin"
 $pgData = Join-Path $root "pgdata"
 if (-not (netstat -ano | Select-String ":5433\s.*LISTENING")) {
-    # Start-Process (not a direct call) so the console doesn't wait on the server's inherited handles
-    Start-Process -FilePath (Join-Path $pgBin "pg_ctl.exe") -WindowStyle Hidden -Wait `
-        -ArgumentList "-D", "`"$pgData`"", "-l", "`"$(Join-Path $logs 'postgres.log')`"", "-w", "start"
-    if (-not (netstat -ano | Select-String ":5433\s.*LISTENING")) { throw "PostgreSQL didn't start - see logs\postgres.log" }
+    # No -Wait: Windows PowerShell's -Wait waits for the whole process tree, and the database server
+    # (a child of pg_ctl) never exits. Start it, then poll until it accepts connections. After an
+    # unclean shutdown (e.g. the laptop restarted) PostgreSQL first runs its automatic recovery.
+    Start-Process -FilePath (Join-Path $pgBin "pg_ctl.exe") -WindowStyle Hidden `
+        -ArgumentList "-D", "`"$pgData`"", "-l", "`"$(Join-Path $logs 'postgres.log')`"", "start"
+    $up = $false
+    for ($i = 0; $i -lt 120 -and -not $up; $i++) {
+        Start-Sleep -Milliseconds 500
+        $up = [bool](netstat -ano | Select-String ":5433\s.*LISTENING")
+    }
+    if (-not $up) { throw "PostgreSQL didn't start - see logs\postgres.log" }
 }
 Write-Host "  PostgreSQL ready on 127.0.0.1:5433" -ForegroundColor Green
 $count = [int]$env:API_INSTANCES

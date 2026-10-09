@@ -25,7 +25,10 @@ $safety = Join-Path $root "backups\laptop-before-sync-$(Get-Date -Format yyyyMMd
 Write-Host "Stopping the API so nothing writes during the swap..."
 & (Join-Path $root "stop-server.ps1") | Out-Null
 if (-not (netstat -ano | Select-String ":5433\s.*LISTENING")) {
-    Start-Process -FilePath "$pg\pg_ctl.exe" -WindowStyle Hidden -Wait -ArgumentList "-D", "`"$root\pgdata`"", "-l", "`"$root\logs\postgres.log`"", "-w", "start"
+    # No -Wait (it would wait for the database server itself, which never exits): start, then poll
+    Start-Process -FilePath "$pg\pg_ctl.exe" -WindowStyle Hidden -ArgumentList "-D", "`"$root\pgdata`"", "-l", "`"$root\logs\postgres.log`"", "start"
+    $i = 0
+    while ($i -lt 120 -and -not (netstat -ano | Select-String ":5433\s.*LISTENING")) { Start-Sleep -Milliseconds 500; $i++ }
 }
 
 $env:PGPASSWORD = $superPw
