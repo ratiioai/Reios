@@ -202,12 +202,18 @@ class AnnouncementIn(BaseModel):
 # Helpers
 # ══════════════════════════════════════════════════════════════════════════
 
+def is_currently_logged_in(user: User) -> bool:
+    expires_at = as_utc(user.active_session_expires_at)
+    return bool(expires_at and expires_at > utcnow())
+
+
 def student_payload(user: User) -> dict:
     return {
         "id": user.id, "roll_no": user.roll_no, "name": user.name, "email": user.email,
         "phone": user.phone, "branch": user.branch, "section": user.section,
         "batch_year": user.batch_year, "is_active": user.is_active,
         "must_change_password": user.must_change_password, "last_login_at": user.last_login_at,
+        "currently_logged_in": is_currently_logged_in(user),
         "created_at": user.created_at,
     }
 
@@ -444,8 +450,7 @@ def list_students(
     page: int = Query(1, ge=1), page_size: int = Query(50, ge=1, le=500),
     college_id: int = Depends(scoped_college_id), db: Session = Depends(get_db),
 ):
-    base = db.query(User).filter(User.college_id == college_id, User.role == Role.STUDENT)
-    query = base
+    query = db.query(User).filter(User.college_id == college_id, User.role == Role.STUDENT)
     if q:
         like = f"%{q.strip().lower()}%"
         query = query.filter(or_(func.lower(User.name).like(like), func.lower(User.roll_no).like(like),
@@ -458,14 +463,17 @@ def list_students(
         query = query.filter(User.batch_year == batch_year)
     if active is not None:
         query = query.filter(User.is_active.is_(active))
-    if logged_in is not None:
-        query = query.filter(User.last_login_at.isnot(None) if logged_in else User.last_login_at.is_(None))
-    total = query.count()
-    students = query.order_by(User.roll_no).offset((page - 1) * page_size).limit(page_size).all()
-    logged_in_count = base.filter(User.last_login_at.isnot(None)).count()
+    # "Currently signed in" depends on comparing a stored timestamp against now, which SQLite can't do
+    # reliably in SQL (it stores naive text), so it's filtered/counted in Python like the rest of the
+    # app's expiry checks.
+    base = query.order_by(User.roll_no).all()
+    logged_in_count = sum(1 for s in base if is_currently_logged_in(s))
+    rows = base if logged_in is None else [s for s in base if is_currently_logged_in(s) == logged_in]
+    total = len(rows)
+    page_rows = rows[(page - 1) * page_size: (page - 1) * page_size + page_size]
     return {"total": total, "page": page, "page_size": page_size,
-            "logged_in_count": logged_in_count, "not_logged_in_count": base.count() - logged_in_count,
-            "items": [student_payload(s) for s in students]}
+            "logged_in_count": logged_in_count, "not_logged_in_count": len(base) - logged_in_count,
+            "items": [student_payload(s) for s in page_rows]}
 
 
 def _is_event(db: Session, college_id: int) -> bool:

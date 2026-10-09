@@ -83,12 +83,14 @@ def check_login(db: Session, user: Optional[User], password: str) -> User:
 
 
 def claim_single_login_session(db: Session, user: User) -> None:
-    """When the account's college/event enforces one login at a time, refuse this one if an earlier
-    session is still within its window, otherwise claim a fresh window for it."""
-    if user.role != Role.STUDENT or not (user.college and user.college.single_login):
+    """Track that this student/team is now signed in (used for the admin's live login status), and,
+    when the college/event enforces one login at a time, refuse this login if an earlier session is
+    still within its window."""
+    if user.role != Role.STUDENT:
         return
+    enforce = bool(user.college and user.college.single_login)
     expires_at = as_utc(user.active_session_expires_at)
-    if expires_at and expires_at > utcnow():
+    if enforce and expires_at and expires_at > utcnow():
         raise HTTPException(status.HTTP_409_CONFLICT,
                             "This account is already logged in elsewhere. Log out there first, or wait for "
                             "that session to expire.")

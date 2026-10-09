@@ -1119,6 +1119,13 @@ def test_admin_can_reset_a_students_login(client, setup):
     token1 = r.json()["access_token"]
     assert client.get("/api/reios/auth/me", headers=auth(token1)).status_code == 200
 
+    # The admin's live status view: TS-R1 shows signed in now, TS-R2 doesn't
+    students = client.get("/api/reios/admin/students", headers=auth(adm)).json()
+    assert students["logged_in_count"] == 1 and students["not_logged_in_count"] == 1
+    by_roll = {s["roll_no"]: s for s in students["items"]}
+    assert by_roll["TS-R1"]["currently_logged_in"] is True
+    assert by_roll["TS-R2"]["currently_logged_in"] is False
+
     # Still logged in elsewhere -> a plain re-login is refused (single_login is on)
     assert client.post("/api/reios/auth/login", json=login1).status_code == 409
 
@@ -1126,14 +1133,21 @@ def test_admin_can_reset_a_students_login(client, setup):
     r = client.post("/api/reios/admin/students/bulk-reset-login", headers=auth(adm), json={"ids": [t1["id"]]})
     assert r.status_code == 200 and r.json() == {"updated": 1}
     assert client.get("/api/reios/auth/me", headers=auth(token1)).status_code == 401
+
+    # The reset is immediately reflected: nobody shows as signed in now
+    students = client.get("/api/reios/admin/students", headers=auth(adm)).json()
+    assert students["logged_in_count"] == 0 and students["not_logged_in_count"] == 2
+
     r2 = client.post("/api/reios/auth/login", json=login1)
     assert r2.status_code == 200
     token1b = r2.json()["access_token"]
+    assert client.get("/api/reios/admin/students?logged_in=true", headers=auth(adm)).json()["total"] == 1
 
     # Reset everyone: both current sessions die, and both can log back in right away
     r = client.post("/api/reios/admin/students/reset-login-all", headers=auth(adm))
     assert r.status_code == 200 and r.json() == {"updated": 2}
     assert client.get("/api/reios/auth/me", headers=auth(token1b)).status_code == 401
+    assert client.get("/api/reios/admin/students", headers=auth(adm)).json()["logged_in_count"] == 0
     assert client.post("/api/reios/auth/login", json=login1).status_code == 200
     assert client.post("/api/reios/auth/login", json={
         "identifier": "TS-R2", "password": "Two", "college_code": "RESETLOGIN"}).status_code == 200

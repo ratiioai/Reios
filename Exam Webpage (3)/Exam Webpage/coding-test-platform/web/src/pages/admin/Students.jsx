@@ -176,7 +176,7 @@ export default function Students() {
                   }}
                   onClick={() => { const v = filters.logged_in === "true" ? "" : "true";
                                     setDraft((d) => ({ ...d, logged_in: v })); setFilters((f) => ({ ...f, logged_in: v, page: 1 })); }}>
-            <div className="label">Logged in</div>
+            <div className="label">Signed in now</div>
             <div className="value">{data.logged_in_count}</div>
           </button>
           <button type="button" className="stat amber"
@@ -186,7 +186,7 @@ export default function Students() {
                   }}
                   onClick={() => { const v = filters.logged_in === "false" ? "" : "false";
                                     setDraft((d) => ({ ...d, logged_in: v })); setFilters((f) => ({ ...f, logged_in: v, page: 1 })); }}>
-            <div className="label">Not logged in yet</div>
+            <div className="label">Not signed in right now</div>
             <div className="value">{data.not_logged_in_count}</div>
           </button>
         </div>
@@ -250,9 +250,12 @@ export default function Students() {
                     <td>{s.name}{s.email && <div className="muted small">{s.email}</div>}</td>
                     {!isEvent && <><td>{s.branch || "—"}</td><td>{s.section || "—"}</td><td>{s.batch_year || "—"}</td></>}
                     <td>
-                      {!s.is_active ? <Badge color="red">Disabled</Badge>
-                        : s.must_change_password ? <Badge color="amber">Not logged in yet</Badge>
-                        : <Badge color="green">Active</Badge>}
+                      <div className="row tight" style={{ flexWrap: "wrap", rowGap: 4 }}>
+                        {!s.is_active ? <Badge color="red">Disabled</Badge>
+                          : s.must_change_password ? <Badge color="amber">Not logged in yet</Badge>
+                          : <Badge color="green">Active</Badge>}
+                        {s.currently_logged_in && <Badge color="green" dot>Signed in now</Badge>}
+                      </div>
                     </td>
                     <td>
                       <div className="row tight">
