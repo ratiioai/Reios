@@ -3,6 +3,7 @@ Signs in as every student/team in the database through nginx, opens their dashbo
 Event teams' password is their team name (unless they changed it); anyone whose password isn't
 known is reported separately rather than guessed at repeatedly (one try only, so no lockouts).
 """
+import os
 import sys
 from collections import Counter
 from pathlib import Path
