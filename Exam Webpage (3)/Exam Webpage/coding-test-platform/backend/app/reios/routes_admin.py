@@ -1064,10 +1064,19 @@ def control_exam(exam_id: int, action: str = Query(..., pattern="^(start|pause|r
 
 
 @router.delete("/exams/{exam_id}")
-def delete_exam(exam_id: int, college_id: int = Depends(scoped_college_id), db: Session = Depends(get_db)):
+def delete_exam(exam_id: int, force: bool = False, college_id: int = Depends(scoped_college_id),
+                db: Session = Depends(get_db)):
     exam = get_exam(db, college_id, exam_id)
-    if db.query(Attempt).filter(Attempt.exam_id == exam.id).first():
-        raise HTTPException(status.HTTP_409_CONFLICT, "Exam has attempts and can't be deleted. Unpublish it instead")
+    attempts = db.query(Attempt).filter(Attempt.exam_id == exam.id)
+    if attempts.filter(Attempt.status == AttemptStatus.IN_PROGRESS).first():
+        raise HTTPException(status.HTTP_409_CONFLICT,
+                            "Students are writing this exam right now. End the exam before deleting it")
+    finished = attempts.count()
+    if finished and not force:
+        raise HTTPException(status.HTTP_409_CONFLICT,
+                            f"Exam has {finished} submitted attempts. Deleting it also deletes their results")
+    # Attempts reference the exam's question sets, so they go first (answers and events cascade with them)
+    attempts.delete(synchronize_session=False)
     # Set questions live only inside this exam; bank questions (active) are left alone
     set_mcq_ids = [i.mcq_id for i in exam.items if i.set_id is not None and i.mcq_id]
     db.query(SetAssignment).filter(SetAssignment.exam_id == exam.id).delete()

@@ -988,6 +988,45 @@ def test_exam_control_start_pause_resume_end(client, setup):
                        headers=auth(admin)).status_code == 409
 
 
+def test_delete_exam_with_attempts(client, setup):
+    """An exam with results can be deleted once nobody is writing it, but only when explicitly forced."""
+    from datetime import datetime, timedelta, timezone
+    admin = setup["admin"]
+    now = datetime.now(timezone.utc)
+    exam = client.post("/api/reios/admin/exams", headers=auth(admin), json={
+        "title": "Delete Test", "exam_type": "mcq", "start_at": (now + timedelta(hours=1)).isoformat(),
+        "end_at": (now + timedelta(hours=2)).isoformat(), "duration_minutes": 30}).json()
+    r = client.post(f"/api/reios/admin/exams/{exam['id']}/sets", headers=auth(admin), json={
+        "name": "Only set", "questions": [{"section": "X", "question_text": "Pick a", "options": ["a", "b"],
+                                           "correct_options": [0]}]})
+    assert r.status_code in (200, 201), r.text
+    client.post(f"/api/reios/admin/exams/{exam['id']}/publish", headers=auth(admin))
+    client.post("/api/reios/admin/students", headers=auth(admin),
+                json={"roll_no": "21CS888", "name": "Deleter", "branch": "CSE", "password": "DeletePw1"})
+    token = student_login(client, "21CS888", "DeletePw1", new_password="DeletePw2")
+
+    client.post(f"/api/reios/admin/exams/{exam['id']}/control?action=start", headers=auth(admin))
+    paper = client.post(f"/api/reios/student/exams/{exam['id']}/start", headers=auth(token)).json()
+    attempt_id = paper["attempt_id"]
+    hdr = {**auth(token), "X-Exam-Session": paper["session"]}
+    client.put(f"/api/reios/student/attempts/{attempt_id}/mcq/{paper['items'][0]['item_id']}", headers=hdr,
+               json={"selected": [0]})
+
+    # Never while someone is writing, even when forced
+    r = client.delete(f"/api/reios/admin/exams/{exam['id']}?force=true", headers=auth(admin))
+    assert r.status_code == 409 and "writing" in r.text
+
+    client.post(f"/api/reios/student/attempts/{attempt_id}/submit", headers=hdr)
+    r = client.delete(f"/api/reios/admin/exams/{exam['id']}", headers=auth(admin))
+    assert r.status_code == 409 and "1 submitted attempts" in r.text
+
+    r = client.delete(f"/api/reios/admin/exams/{exam['id']}?force=true", headers=auth(admin))
+    assert r.status_code == 200, r.text
+    assert client.get(f"/api/reios/admin/exams/{exam['id']}", headers=auth(admin)).status_code == 404
+    assert client.get(f"/api/reios/student/attempts/{attempt_id}/result", headers=auth(token)).status_code == 404
+    assert all(e["id"] != exam["id"] for e in client.get("/api/reios/student/dashboard", headers=auth(token)).json()["exams"])
+
+
 def test_super_admin_force_deletes_event_with_live_attempts(client, setup):
     """Mirrors the per-student force-delete: a super admin can end live attempts to finish deleting an event."""
     from datetime import datetime, timedelta, timezone

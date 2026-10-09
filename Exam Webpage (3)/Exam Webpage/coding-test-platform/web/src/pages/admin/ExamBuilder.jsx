@@ -124,9 +124,15 @@ export default function ExamBuilder() {
   }
 
   async function remove() {
-    if (!(await confirm("Delete exam", "Delete this exam permanently?", "Delete", true))) return;
+    const n = exam.attempts?.submitted || 0;
+    const msg = n > 0
+      ? `This exam has ${n} submitted attempt${n > 1 ? "s" : ""}. Deleting it also permanently deletes ` +
+        "their answers and results — download the results first if you need them. This can't be undone."
+      : "Delete this exam permanently?";
+    if (!(await confirm("Delete exam", msg, "Delete", true))) return;
     try {
-      await api("DELETE", `/api/reios/admin/exams/${examId}` + cq());
+      await api("DELETE", `/api/reios/admin/exams/${examId}` + cq({ force: true }));
+      toast("Exam deleted", "success");
       navigate("/console/exams");
     } catch (err) { toast(err.message, "error"); }
   }
@@ -156,7 +162,7 @@ export default function ExamBuilder() {
           <Link className="btn" to={`/console/exams/${examId}/preview`}>Preview test</Link>
           <button className="btn" onClick={() => setSettings(true)}>Settings</button>
           <button className="btn" onClick={duplicate}>Duplicate</button>
-          {!locked && <button className="btn danger" onClick={remove}>Delete</button>}
+          {exam.attempts.in_progress === 0 && <button className="btn danger" onClick={remove}>Delete</button>}
           <button className={"btn" + (exam.is_published ? "" : " primary")} onClick={togglePublish}>
             {exam.is_published ? "Unpublish" : "Publish"}
           </button>

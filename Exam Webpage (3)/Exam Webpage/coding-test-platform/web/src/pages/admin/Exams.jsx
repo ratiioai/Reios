@@ -48,6 +48,24 @@ export default function Exams() {
     }
   }
 
+  async function remove(e) {
+    const n = e.attempts.submitted;
+    const ok = await confirm("Delete exam",
+      n > 0
+        ? `"${e.title}" has ${n} submitted attempt${n > 1 ? "s" : ""}. Deleting it also permanently deletes ` +
+          "their answers and results — download the results first if you need them. This can't be undone."
+        : `Delete "${e.title}" permanently? This can't be undone.`,
+      "Delete exam", true);
+    if (!ok) return;
+    try {
+      await api("DELETE", `/api/reios/admin/exams/${e.id}` + cq({ force: true }));
+      setExams((xs) => xs.filter((x) => x.id !== e.id));
+      toast("Exam deleted", "success");
+    } catch (err) {
+      toast(err.message, "error", 6000);
+    }
+  }
+
   if (!exams) return <Loading />;
 
   return (
@@ -114,6 +132,10 @@ export default function Exams() {
                         <Link className="btn sm success" to={`/console/exams/${e.id}/live`}>Live</Link>
                       )}
                       <Link className="btn sm" to={`/console/exams/${e.id}/results`}>Results</Link>
+                      {/* A running exam has to be ended first */}
+                      {!(e.is_published && (e.window === "live" || e.window === "paused")) && e.attempts.in_progress === 0 && (
+                        <button className="btn sm danger" onClick={() => remove(e)}>Delete</button>
+                      )}
                     </div>
                   </td>
                 </tr>
