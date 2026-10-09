@@ -143,7 +143,13 @@ def get_current_user(
     # transaction hands the pooled connection back while the request waits for its next hop;
     # holding it let a burst of requests (e.g. 300 teams pressing Start) take every connection
     # while all worker threads waited for one, stalling until the pool's 30 s timeout.
-    db.commit()
+    # The user is kept loaded: an expired one would be reloaded by the role checks (require_student
+    # etc.), taking a connection straight back and holding it across the hop to the route.
+    db.expire_on_commit = False
+    try:
+        db.commit()
+    finally:
+        db.expire_on_commit = True
     return user
 
 
