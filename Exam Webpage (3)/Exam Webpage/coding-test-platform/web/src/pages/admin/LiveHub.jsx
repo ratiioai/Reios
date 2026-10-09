@@ -20,10 +20,13 @@ export default function LiveHub() {
 
   if (!exams) return <Loading />;
 
-  const active = exams.filter((e) => e.is_published && (e.window === "live" || e.window === "paused"));
+  const running = exams.filter((e) => e.is_published && (e.window === "live" || e.window === "paused"));
+  // Published exams waiting for the Start button are listed too, so they can be watched before opening
+  const waiting = exams.filter((e) => e.is_published && e.window === "upcoming");
+  const active = [...running, ...waiting];
 
-  if (active.length === 1) {
-    return <Navigate to={`/console/exams/${active[0].id}/live`} replace />;
+  if (running.length === 1) {
+    return <Navigate to={`/console/exams/${running[0].id}/live`} replace />;
   }
 
   return (
@@ -35,7 +38,7 @@ export default function LiveHub() {
 
       {active.length === 0 ? (
         <Empty title="Nothing running right now"
-               hint="Once you start or publish a live exam, it'll show up here." />
+               hint="Published exams show up here — publish one from the Exams page." />
       ) : (
         <div className="table-wrap">
           <table>
@@ -46,7 +49,7 @@ export default function LiveHub() {
                 return (
                   <tr key={e.id}>
                     <td><strong>{e.title}</strong></td>
-                    <td><Badge color={wb.color}>{wb.text}</Badge></td>
+                    <td><Badge color={wb.color}>{e.window === "upcoming" ? "Not started" : wb.text}</Badge></td>
                     <td className="num">{e.attempts.in_progress}</td>
                     <td>
                       <Link className="btn sm success" to={`/console/exams/${e.id}/live`}>Open Live Monitor</Link>
