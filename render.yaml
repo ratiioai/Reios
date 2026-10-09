@@ -8,6 +8,11 @@ services:
     buildCommand: cd "Exam Webpage (3)/Exam Webpage/coding-test-platform/backend" && pip install -r requirements.txt
     startCommand: cd "Exam Webpage (3)/Exam Webpage/coding-test-platform/backend" && uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2 --no-access-log
     healthCheckPath: /api/health
+    # Only redeploy when the backend changes (not on website-only commits like backend.json updates)
+    buildFilter:
+      paths:
+        - "Exam Webpage (3)/Exam Webpage/coding-test-platform/backend/**"
+        - render.yaml
     plan: free   # fine for trying it; use a paid plan (and more --workers) for real exams
     envVars:
       - key: PYTHON_VERSION

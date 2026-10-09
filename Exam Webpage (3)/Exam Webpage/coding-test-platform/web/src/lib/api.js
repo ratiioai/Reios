@@ -18,8 +18,36 @@ export class ApiError extends Error {
   constructor(status, message, data) { super(message); this.status = status; this.data = data; }
 }
 
+// Where the API lives. Read at startup from backend.json next to the site, so the backend can move
+// (e.g. a laptop whose tunnel address changes on restart) without rebuilding the site; falls back to
+// the build-time VITE_API_BASE, then to this same origin (dev proxy, or a backend serving the site).
+let runtimeBase = null;
+
+async function readBackendFile() {
+  const r = await fetch(`${import.meta.env.BASE_URL}backend.json`, { cache: "no-store" });
+  if (!r.ok) return null;
+  const j = await r.json();
+  return typeof j.api === "string" ? j.api.trim().replace(/\/$/, "") : null;
+}
+
+export async function loadBackendConfig() {
+  try {
+    const base = await Promise.race([readBackendFile(), new Promise((res) => setTimeout(() => res(null), 4000))]);
+    if (base !== null) runtimeBase = base;
+  } catch { /* keep the build-time default */ }
+}
+
+/** The backend may have moved since this page loaded; true if it has (and switch to the new address). */
+async function backendMoved() {
+  try {
+    const base = await readBackendFile();
+    if (base !== null && base !== apiBase()) { runtimeBase = base; return true; }
+  } catch { /* the site itself is unreachable too */ }
+  return false;
+}
+
 function apiBase() {
-  // Vite dev server proxies /api to the backend; in production the backend serves this app.
+  if (runtimeBase !== null) return runtimeBase;
   const configured = import.meta.env.VITE_API_BASE;
   if (configured) return configured.replace(/\/$/, "");
   return "";
@@ -55,11 +83,16 @@ export async function api(method, path, body, opts = {}) {
   // which is what a whole lab signing in at once looks like.
   const attempts = method === "GET" || opts.retry ? 4 : 1;
   let res;
+  let followed = false;  // re-read backend.json at most once per call
   for (let attempt = 1; ; attempt++) {
     try {
       res = await fetch(apiBase() + path, { method, headers, body: payload, keepalive: !!opts.keepalive });
+      // 530: Cloudflare can't reach the tunnel - the server restarted under a new address
+      if (res.status === 530 && !followed && await backendMoved()) { followed = true; attempt = 0; continue; }
       if (![502, 503, 504].includes(res.status) || attempt >= attempts) break;
     } catch {
+      // The old address is gone: if the server has moved, the request never reached it, so it's safe to resend
+      if (!followed && await backendMoved()) { followed = true; attempt = 0; continue; }
       if (attempt >= attempts) throw new ApiError(0, "Cannot reach the server. Check your connection.");
     }
     await new Promise((r) => setTimeout(r, 400 * 2 ** (attempt - 1) + Math.random() * 300));

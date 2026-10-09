@@ -2,7 +2,8 @@
 #   API instances (ports 8001..) -> nginx (port 8080) -> Cloudflare quick tunnel (public https URL)
 # Run:  powershell -ExecutionPolicy Bypass -File C:\reios-server\start-server.ps1
 #       add -NoTunnel to keep it on this machine/LAN only (for testing)
-param([switch]$NoTunnel)
+#       add -NoPublish to start the tunnel without pointing the Vercel site at it
+param([switch]$NoTunnel, [switch]$NoPublish)
 
 $ErrorActionPreference = "Stop"
 $root    = "C:\reios-server"
@@ -57,6 +58,9 @@ foreach ($port in $ports) {
     Write-Host "  API $port ready" -ForegroundColor Green
 }
 
+# The copy of the site nginx serves itself always talks to its own origin
+Set-Content (Join-Path $root "web\backend.json") '{"api": ""}' -Encoding ascii
+
 $nginxDir = Join-Path $root "nginx"
 $ng = Start-Process -FilePath (Join-Path $nginxDir "nginx.exe") -WorkingDirectory $nginxDir -WindowStyle Hidden -PassThru
 $pids += "nginx:8080:$($ng.Id)"
@@ -81,8 +85,28 @@ if (-not $NoTunnel) {
     if ($url) {
         Set-Content (Join-Path $root "PUBLIC_URL.txt") $url
         Write-Host ""
-        Write-Host "  PUBLIC URL:  $url" -ForegroundColor Cyan
-        Write-Host "  Participants sign in at $url/login"
+        Write-Host "  API address: $url" -ForegroundColor Cyan
+        if (-not $NoPublish) {
+            # Point the Vercel site at this server: backend.json in the repo, Vercel rebuilds on push.
+            # Pages already open re-read it automatically once the old address stops answering.
+            $repo = "C:\Users\Dell\Downloads\reios\Reios"
+            $rel  = "Exam Webpage (3)/Exam Webpage/coding-test-platform/web/public/backend.json"
+            Set-Content (Join-Path $repo $rel) "{`"api`": `"$url`"}" -Encoding ascii
+            $prevEap = $ErrorActionPreference; $ErrorActionPreference = "Continue"
+            Push-Location $repo
+            git pull --rebase --autostash -q 2>&1 | Out-Null
+            git commit -q -m "Point the website at the laptop server ($url)" -- $rel 2>&1 | Out-Null
+            git push -q 2>&1 | Out-Null
+            $pushed = $LASTEXITCODE -eq 0
+            Pop-Location
+            $ErrorActionPreference = $prevEap
+            if ($pushed) {
+                Write-Host "  Published to GitHub - https://reios-web.vercel.app switches to it in ~1-2 minutes" -ForegroundColor Green
+            } else {
+                Write-Host "  Couldn't push backend.json to GitHub - commit and push it by hand: $rel" -ForegroundColor Yellow
+            }
+        }
+        Write-Host "  Participants: https://reios-web.vercel.app/login   (or directly $url/login)"
     } else {
         Write-Host "  Tunnel didn't report a URL yet - check logs\tunnel.log" -ForegroundColor Yellow
     }
