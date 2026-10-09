@@ -17,8 +17,8 @@ export default function Students() {
   const noun = isEvent ? "team" : "student";
   const [deletingAll, setDeletingAll] = useState(false);
 
-  const [filters, setFilters] = useState({ q: "", branch: "", section: "", batch_year: "", page: 1 });
-  const [draft, setDraft] = useState({ q: "", branch: "", section: "", batch_year: "" });
+  const [filters, setFilters] = useState({ q: "", branch: "", section: "", batch_year: "", logged_in: "", page: 1 });
+  const [draft, setDraft] = useState({ q: "", branch: "", section: "", batch_year: "", logged_in: "" });
   const [data, setData] = useState(null);
   const [branches, setBranches] = useState([]);
   const [selected, setSelected] = useState(() => new Set());
@@ -142,6 +142,31 @@ export default function Students() {
           )}
         </div>
       </div>
+
+      {data && (
+        <div className="grid cols-2" style={{ marginBottom: 14, maxWidth: 420 }}>
+          <button type="button" className="stat green"
+                  style={{
+                    textAlign: "left", cursor: "pointer", font: "inherit", width: "100%",
+                    outline: filters.logged_in === "true" ? "2px solid var(--success)" : "none",
+                  }}
+                  onClick={() => { const v = filters.logged_in === "true" ? "" : "true";
+                                    setDraft((d) => ({ ...d, logged_in: v })); setFilters((f) => ({ ...f, logged_in: v, page: 1 })); }}>
+            <div className="label">Logged in</div>
+            <div className="value">{data.logged_in_count}</div>
+          </button>
+          <button type="button" className="stat amber"
+                  style={{
+                    textAlign: "left", cursor: "pointer", font: "inherit", width: "100%",
+                    outline: filters.logged_in === "false" ? "2px solid var(--warning)" : "none",
+                  }}
+                  onClick={() => { const v = filters.logged_in === "false" ? "" : "false";
+                                    setDraft((d) => ({ ...d, logged_in: v })); setFilters((f) => ({ ...f, logged_in: v, page: 1 })); }}>
+            <div className="label">Not logged in yet</div>
+            <div className="value">{data.not_logged_in_count}</div>
+          </button>
+        </div>
+      )}
 
       <div className="toolbar">
         <input placeholder={isEvent ? "Search team name or code" : "Search name, roll no, email"} value={draft.q}

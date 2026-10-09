@@ -1100,3 +1100,51 @@ def test_delete_all_students_requires_code_then_force_for_attempts(client, setup
     # Deleting again with nobody left is a clean no-op, not an error
     r = client.delete("/api/reios/admin/students?confirm=WIPEALL", headers=auth(adm))
     assert r.status_code == 200 and r.json() == {"deleted": 0, "attempts_removed": 0}
+
+
+def test_reopen_attempt_after_accidental_violation_limit(client, setup):
+    """Live Monitor's 'give them another chance': undo an auto-submit triggered only by violations."""
+    import app.reios.routes_student as rs
+    admin = setup["admin"]
+    mcq = setup["mcqs"][0]
+    now = datetime.now(timezone.utc)
+    exam = client.post("/api/reios/admin/exams", headers=auth(admin), json={
+        "title": "Reopen Test", "exam_type": "mcq", "start_at": (now - timedelta(minutes=1)).isoformat(),
+        "end_at": (now + timedelta(hours=1)).isoformat()}).json()
+    client.put(f"/api/reios/admin/exams/{exam['id']}/items", headers=auth(admin),
+              json={"items": [{"item_type": "mcq", "question_id": mcq["id"]}]})
+    client.post(f"/api/reios/admin/exams/{exam['id']}/publish", headers=auth(admin))
+
+    r = client.post("/api/reios/admin/students", headers=auth(admin),
+                    json={"roll_no": "21CS778", "name": "Reopen", "branch": "CSE", "password": "ReopenPw1"})
+    token = student_login(client, "21CS778", "ReopenPw1", new_password="ReopenPw2")
+    paper = client.post(f"/api/reios/student/exams/{exam['id']}/start", headers=auth(token)).json()
+    attempt_id, hdr = paper["attempt_id"], {**auth(token), "X-Exam-Session": paper["session"]}
+
+    rs.VIOLATION_DEBOUNCE_SECONDS = 0
+    for _ in range(3):
+        r = client.post(f"/api/reios/student/attempts/{attempt_id}/violation", headers=hdr,
+                        json={"type": "fullscreen_exit"})
+    rs.VIOLATION_DEBOUNCE_SECONDS = 2
+    assert r.json()["auto_submitted"] is True
+
+    # Reopen: back in progress, violations cleared, fresh time
+    r = client.post(f"/api/reios/admin/attempts/{attempt_id}/reopen", headers=auth(admin), json={"minutes": 15})
+    assert r.status_code == 200 and r.json()["status"] == "in_progress"
+    assert client.post(f"/api/reios/admin/attempts/{attempt_id}/reopen", headers=auth(admin),
+                       json={"minutes": 15}).status_code == 400  # already in progress now
+
+    live = client.get(f"/api/reios/admin/exams/{exam['id']}/live", headers=auth(admin)).json()
+    row = next(x for x in live["attempts"] if x["attempt_id"] == attempt_id)
+    assert row["status"] == "in_progress" and row["violations"] == 0 and row["seconds_left"] > 0
+
+    # The student can resume and actually finish it this time
+    resumed = client.post(f"/api/reios/student/exams/{exam['id']}/start", headers=auth(token))
+    assert resumed.status_code == 200
+    hdr2 = {**auth(token), "X-Exam-Session": resumed.json()["session"]}
+    assert client.post(f"/api/reios/student/attempts/{attempt_id}/submit", headers=hdr2).status_code == 200
+
+    # Bulk-forgive is scoped to this college and tolerates a status that isn't in_progress
+    r = client.post("/api/reios/admin/attempts/bulk-forgive-violations", headers=auth(admin),
+                    json={"ids": [attempt_id]})
+    assert r.status_code == 200 and r.json() == {"updated": 1}

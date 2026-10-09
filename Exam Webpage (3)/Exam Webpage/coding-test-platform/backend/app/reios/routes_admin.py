@@ -440,11 +440,12 @@ def update_admin_settings(body: AdminSettingsUpdate, college_id: int = Depends(s
 @router.get("/students")
 def list_students(
     q: Optional[str] = None, branch: Optional[str] = None, section: Optional[str] = None,
-    batch_year: Optional[int] = None, active: Optional[bool] = None,
+    batch_year: Optional[int] = None, active: Optional[bool] = None, logged_in: Optional[bool] = None,
     page: int = Query(1, ge=1), page_size: int = Query(50, ge=1, le=500),
     college_id: int = Depends(scoped_college_id), db: Session = Depends(get_db),
 ):
-    query = db.query(User).filter(User.college_id == college_id, User.role == Role.STUDENT)
+    base = db.query(User).filter(User.college_id == college_id, User.role == Role.STUDENT)
+    query = base
     if q:
         like = f"%{q.strip().lower()}%"
         query = query.filter(or_(func.lower(User.name).like(like), func.lower(User.roll_no).like(like),
@@ -457,9 +458,13 @@ def list_students(
         query = query.filter(User.batch_year == batch_year)
     if active is not None:
         query = query.filter(User.is_active.is_(active))
+    if logged_in is not None:
+        query = query.filter(User.last_login_at.isnot(None) if logged_in else User.last_login_at.is_(None))
     total = query.count()
     students = query.order_by(User.roll_no).offset((page - 1) * page_size).limit(page_size).all()
+    logged_in_count = base.filter(User.last_login_at.isnot(None)).count()
     return {"total": total, "page": page, "page_size": page_size,
+            "logged_in_count": logged_in_count, "not_logged_in_count": base.count() - logged_in_count,
             "items": [student_payload(s) for s in students]}
 
 
@@ -1154,7 +1159,8 @@ def live_monitor(exam_id: int, college_id: int = Depends(scoped_college_id), db:
         last_event = a.events[-1] if a.events else None
         rows.append({
             "attempt_id": a.id, "roll_no": a.student.roll_no, "name": a.student.name,
-            "status": a.status.value, "answered": answered, "total": len(a.item_order or []),
+            "status": a.status.value, "submit_reason": a.submit_reason,
+            "answered": answered, "total": len(a.item_order or []),
             "violations": a.violation_count, "max_violations": exam.max_violations,
             "online": bool(heartbeat and (now - heartbeat).total_seconds() < 150)  # pages check in every 60 s
             and a.status == AttemptStatus.IN_PROGRESS,
@@ -1256,6 +1262,43 @@ def forgive_violations(attempt_id: int, college_id: int = Depends(scoped_college
     engine.record_event(db, a, "violations_cleared", "by admin")
     db.commit()
     return {"attempt_id": a.id, "violations": 0}
+
+
+@router.post("/attempts/bulk-forgive-violations")
+def bulk_forgive_violations(body: BulkIds, college_id: int = Depends(scoped_college_id), db: Session = Depends(get_db)):
+    attempts = db.query(Attempt).join(Exam).filter(Attempt.id.in_(body.ids), Exam.college_id == college_id).all()
+    for a in attempts:
+        a.violation_count = 0
+        engine.record_event(db, a, "violations_cleared", "by admin (bulk)")
+    db.commit()
+    return {"updated": len(attempts)}
+
+
+class ReopenIn(BaseModel):
+    minutes: int = Field(10, ge=1, le=240, description="Extra time to give once reopened")
+
+
+@router.post("/attempts/{attempt_id}/reopen")
+def reopen_attempt(attempt_id: int, body: ReopenIn, college_id: int = Depends(scoped_college_id),
+                   db: Session = Depends(get_db)):
+    """Undo an auto-submit that was only triggered by hitting the violation limit, and give fresh time."""
+    import secrets
+    from datetime import timedelta
+    a = get_attempt(db, college_id, attempt_id)
+    if a.status == AttemptStatus.IN_PROGRESS:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "This attempt is still in progress")
+    if a.submit_reason != "max_violations":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST,
+                            "Only an attempt that was auto-submitted for violations can be reopened")
+    a.status = AttemptStatus.IN_PROGRESS
+    a.violation_count = 0
+    a.submitted_at = None
+    a.submit_reason = None
+    a.deadline_at = utcnow() + timedelta(minutes=body.minutes)
+    a.session_nonce = secrets.token_urlsafe(24)
+    engine.record_event(db, a, "reopened_by_admin", f"violations cleared, +{body.minutes} min")
+    db.commit()
+    return {"attempt_id": a.id, "status": a.status.value, "deadline_at": as_utc(a.deadline_at)}
 
 
 @router.delete("/attempts/{attempt_id}")

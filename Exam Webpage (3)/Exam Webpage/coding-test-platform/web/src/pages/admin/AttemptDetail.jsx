@@ -38,6 +38,7 @@ export default function AttemptDetail({ attemptId, cq, onClose, onChanged }) {
   }
 
   const live = a.status === "in_progress";
+  const canReopen = !live && a.submit_reason === "max_violations";
 
   async function forgive() {
     try {
@@ -58,6 +59,18 @@ export default function AttemptDetail({ attemptId, cq, onClose, onChanged }) {
     } catch (err) { toast(err.message, "error"); }
   }
 
+  async function reopen() {
+    if (!(await confirm("Reopen attempt",
+      "This was auto-submitted for hitting the violation limit. Reopen it, clear the violations, and " +
+      "give them 10 more minutes to finish?", "Reopen", true))) return;
+    try {
+      await api("POST", `/api/reios/admin/attempts/${attemptId}/reopen` + cq(), { minutes: 10 });
+      toast("Reopened — the student can resume", "success");
+      onChanged?.();
+      onClose();
+    } catch (err) { toast(err.message, "error"); }
+  }
+
   return (
     <>
       <Modal
@@ -69,6 +82,11 @@ export default function AttemptDetail({ attemptId, cq, onClose, onChanged }) {
             <button className="btn" onClick={forgive}>Forgive violations</button>
             <button className="btn" onClick={() => setExtending(true)}>Extend time</button>
             <button className="btn danger solid" onClick={forceSubmit}>Force submit</button>
+          </>
+        ) : canReopen ? (
+          <>
+            <button className="btn" onClick={onClose}>Close</button>
+            <button className="btn primary" onClick={reopen}>Reopen · give another chance</button>
           </>
         ) : <button className="btn primary" onClick={onClose}>Close</button>}
       >

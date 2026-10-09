@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../../lib/api.js";
 import { fmtDuration } from "../../lib/format.js";
-import { Badge, Loading, Progress, useToast } from "../../components/ui.jsx";
+import { Badge, Loading, Progress, useConfirm, useToast } from "../../components/ui.jsx";
 import { Stat, useAdmin, windowBadgeProps } from "./context.jsx";
 import AttemptDetail from "./AttemptDetail.jsx";
 
@@ -12,10 +12,12 @@ export default function Live() {
   const { examId } = useParams();
   const { collegeId, cq } = useAdmin();
   const toast = useToast();
+  const confirm = useConfirm();
 
   const [data, setData] = useState(null);
   const [lastAt, setLastAt] = useState(null);
   const [attemptId, setAttemptId] = useState(null);
+  const [selected, setSelected] = useState(() => new Set());
   const pausedRef = useRef(false);
   pausedRef.current = !!attemptId;
 
@@ -36,6 +38,42 @@ export default function Live() {
     const t = setInterval(() => { if (!pausedRef.current) refresh(); }, REFRESH_MS);
     return () => clearInterval(t);
   }, [refresh]);
+
+  function toggle(id) {
+    setSelected((s) => {
+      const next = new Set(s);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  async function bulkForgive() {
+    const ids = [...selected];
+    if (!ids.length) return;
+    try {
+      await api("POST", `/api/reios/admin/attempts/bulk-forgive-violations` + cq(), { ids });
+      toast(`Violations cleared for ${ids.length}`, "success");
+      setSelected(new Set());
+      refresh();
+    } catch (err) { toast(err.message, "error"); }
+  }
+
+  async function bulkReopen() {
+    const ids = [...selected];
+    if (!ids.length) return;
+    const eligible = data.attempts.filter((a) => ids.includes(a.attempt_id) && a.submit_reason === "max_violations");
+    if (!eligible.length) return toast("None of the selected were auto-submitted for violations", "error");
+    if (!(await confirm("Reopen selected",
+      `Reopen ${eligible.length} attempt${eligible.length > 1 ? "s" : ""} auto-submitted for hitting the ` +
+      "violation limit, clear their violations, and give each 10 more minutes?", "Reopen", true))) return;
+    try {
+      await Promise.all(eligible.map((a) =>
+        api("POST", `/api/reios/admin/attempts/${a.attempt_id}/reopen` + cq(), { minutes: 10 })));
+      toast(`Reopened ${eligible.length}`, "success");
+      setSelected(new Set());
+      refresh();
+    } catch (err) { toast(err.message, "error"); }
+  }
 
   if (!data) return <Loading />;
 
@@ -65,20 +103,38 @@ export default function Live() {
               tone={data.attempts.some((a) => a.violations) ? "red" : "plain"} />
       </div>
 
+      {selected.size > 0 && (
+        <div className="toolbar" style={{ marginBottom: 10 }}>
+          <span className="muted small">{selected.size} selected</span>
+          <button className="btn sm" onClick={bulkForgive}>Forgive violations</button>
+          <button className="btn sm" onClick={bulkReopen}>Reopen (give another chance)</button>
+          <button className="btn sm ghost" onClick={() => setSelected(new Set())}>Clear</button>
+        </div>
+      )}
+
       <div className="grid" style={{ gridTemplateColumns: "minmax(0,2fr) minmax(260px,1fr)", alignItems: "start" }}>
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
+                <th>
+                  <input type="checkbox"
+                         checked={data.attempts.length > 0 && selected.size === data.attempts.length}
+                         onChange={(e) =>
+                           setSelected(e.target.checked ? new Set(data.attempts.map((a) => a.attempt_id)) : new Set())} />
+                </th>
                 <th /><th>Student</th><th>Progress</th><th className="num">Violations</th>
                 <th>Time left</th><th>Last event</th><th />
               </tr>
             </thead>
             <tbody>
               {data.attempts.length === 0 ? (
-                <tr><td colSpan={7} className="empty">Nobody has started yet</td></tr>
+                <tr><td colSpan={8} className="empty">Nobody has started yet</td></tr>
               ) : data.attempts.map((a) => (
                 <tr key={a.attempt_id}>
+                  <td>
+                    <input type="checkbox" checked={selected.has(a.attempt_id)} onChange={() => toggle(a.attempt_id)} />
+                  </td>
                   <td title={a.online ? "Online" : "Offline"}>
                     <span className={"status-dot " + (
                       a.status !== "in_progress" ? "off" : a.online ? "on" : "live"

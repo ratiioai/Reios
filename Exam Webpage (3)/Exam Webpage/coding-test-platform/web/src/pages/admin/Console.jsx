@@ -14,6 +14,7 @@ import Exams from "./Exams.jsx";
 import ExamBuilder from "./ExamBuilder.jsx";
 import Results from "./Results.jsx";
 import Live from "./Live.jsx";
+import LiveHub from "./LiveHub.jsx";
 import Announcements from "./Announcements.jsx";
 import Account from "./Account.jsx";
 import Preview from "./Preview.jsx";
@@ -87,6 +88,7 @@ export default function Console() {
     { group: isSuper ? "Selected college / event" : user.college?.org_type === "event" ? "Event" : "College" },
     { id: "students", to: "/console/students", label: "Students" },
     { id: "exams", to: "/console/exams", label: "Exams & Results" },
+    { id: "live", to: "/console/live", label: "Live Monitor" },
     { id: "leaderboard", to: "/console/leaderboard", label: "Leaderboard" },
     { id: "announcements", to: "/console/announcements", label: "Announcements" },
     { group: isSuper ? "Global question bank" : "Question bank" },
@@ -175,6 +177,7 @@ export default function Console() {
               <Route path="exams/:examId" element={<Scoped><ExamBuilder /></Scoped>} />
               <Route path="exams/:examId/results" element={<Scoped><Results /></Scoped>} />
               <Route path="exams/:examId/live" element={<Scoped><Live /></Scoped>} />
+              <Route path="live" element={<Scoped><LiveHub /></Scoped>} />
               <Route path="exams/:examId/preview" element={<Scoped><Preview /></Scoped>} />
               <Route path="usage" element={isSuper ? <Usage /> : <Navigate to="/console" replace />} />
               <Route path="leaderboard" element={<Scoped><Leaderboard /></Scoped>} />
