@@ -1032,11 +1032,23 @@ def control_exam(exam_id: int, action: str = Query(..., pattern="^(start|pause|r
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Publish the exam before starting it")
     if exam.control_state == "ended":
         raise HTTPException(status.HTTP_409_CONFLICT, "This exam has already ended and can't be reopened")
+    from datetime import timedelta
     if action == "resume":
         engine.resume_from_pause(db, exam)
         exam.control_state = "live"
+        # The pause pushed deadlines out; keep the window open past the latest of them
+        latest = db.query(func.max(Attempt.deadline_at)).filter(
+            Attempt.exam_id == exam.id, Attempt.status == AttemptStatus.IN_PROGRESS).scalar()
+        floor = max(as_utc(latest) if latest else utcnow(), utcnow()) + timedelta(minutes=5)
+        if as_utc(exam.end_at) < floor:
+            exam.end_at = floor
     elif action == "start":
         exam.control_state = "live"
+        # A manual start must give everyone the full duration, whatever the scheduled window said
+        # (a window ending sooner cut every team's time short).
+        floor = utcnow() + timedelta(minutes=exam.duration_minutes + 15)
+        if as_utc(exam.end_at) < floor:
+            exam.end_at = floor
     elif action == "pause":
         exam.control_state = "paused"
         exam.paused_at = utcnow()

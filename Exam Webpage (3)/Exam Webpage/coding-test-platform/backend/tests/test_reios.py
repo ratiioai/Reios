@@ -1244,3 +1244,34 @@ def test_reopen_attempt_after_being_cut_off_by_time(client, setup):
     assert detail["status"] == "in_progress" and detail["submit_reason"] is None
     resumed = client.post(f"/api/reios/student/exams/{exam['id']}/start", headers=auth(token))
     assert resumed.status_code == 200 and resumed.json()["attempt_id"] == attempt_id
+
+
+def test_manual_start_gives_full_duration_even_if_window_ends_sooner(client, setup):
+    """Today's event: a 30-minute exam whose window ended 10 minutes after teams started cut everyone
+    to ~10 minutes. Pressing Start must extend the window so every team gets the full duration."""
+    admin = setup["admin"]
+    mcq = setup["mcqs"][0]
+    now = datetime.now(timezone.utc)
+    exam = client.post("/api/reios/admin/exams", headers=auth(admin), json={
+        "title": "Short Window", "exam_type": "mcq", "duration_minutes": 30,
+        "start_at": (now + timedelta(hours=1)).isoformat(),
+        "end_at": (now + timedelta(hours=1, minutes=10)).isoformat()}).json()
+    client.put(f"/api/reios/admin/exams/{exam['id']}/items", headers=auth(admin),
+               json={"items": [{"item_type": "mcq", "question_id": mcq["id"]}]})
+    client.post(f"/api/reios/admin/exams/{exam['id']}/publish", headers=auth(admin))
+    # The window ends 10 minutes from now, much less than the exam's 30
+    r = client.put(f"/api/reios/admin/exams/{exam['id']}", headers=auth(admin), json={
+        **{k: exam[k] for k in ("title", "exam_type", "duration_minutes")},
+        "start_at": (now - timedelta(minutes=1)).isoformat(), "end_at": (now + timedelta(minutes=10)).isoformat()})
+    assert r.status_code == 200, r.text
+    client.post(f"/api/reios/admin/exams/{exam['id']}/publish", headers=auth(admin))
+
+    r = client.post(f"/api/reios/admin/exams/{exam['id']}/control?action=start", headers=auth(admin))
+    assert r.status_code == 200, r.text
+
+    client.post("/api/reios/admin/students", headers=auth(admin),
+                json={"roll_no": "21CS780", "name": "Window", "branch": "CSE", "password": "WindowPw1"})
+    token = student_login(client, "21CS780", "WindowPw1", new_password="WindowPw2")
+    assert client.post(f"/api/reios/student/exams/{exam['id']}/start", headers=auth(token)).status_code == 200
+    info = client.get(f"/api/reios/student/exams/{exam['id']}", headers=auth(token)).json()
+    assert info["attempt"]["seconds_left"] >= 29 * 60  # the full 30 minutes, not the 10 the window allowed

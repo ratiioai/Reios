@@ -23,6 +23,17 @@ Get-Content (Join-Path $root "server.env") | Where-Object { $_ -match "^\s*([A-Z
     [Environment]::SetEnvironmentVariable($Matches[1], $Matches[2], "Process")
 }
 if ($env:DATABASE_URL -match "CHANGE_ME") { throw "Set the database password in server.env first." }
+
+# Reios' own PostgreSQL (port 5433, data in C:\reios-server\pgdata)
+$pgBin = "C:\Program Files\PostgreSQL\18\bin"
+$pgData = Join-Path $root "pgdata"
+if (-not (netstat -ano | Select-String ":5433\s.*LISTENING")) {
+    # Start-Process (not a direct call) so the console doesn't wait on the server's inherited handles
+    Start-Process -FilePath (Join-Path $pgBin "pg_ctl.exe") -WindowStyle Hidden -Wait `
+        -ArgumentList "-D", "`"$pgData`"", "-l", "`"$(Join-Path $logs 'postgres.log')`"", "-w", "start"
+    if (-not (netstat -ano | Select-String ":5433\s.*LISTENING")) { throw "PostgreSQL didn't start - see logs\postgres.log" }
+}
+Write-Host "  PostgreSQL ready on 127.0.0.1:5433" -ForegroundColor Green
 $count = [int]$env:API_INSTANCES
 $ports = 1..$count | ForEach-Object { 8000 + $_ }
 
@@ -33,7 +44,7 @@ foreach ($port in $ports) {
         -ArgumentList "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", "$port",
                       "--proxy-headers", "--forwarded-allow-ips", "127.0.0.1",
                       "--no-access-log", "--timeout-keep-alive", "75"
-    $pids += "api:$port:$($p.Id)"
+    $pids += "api:${port}:$($p.Id)"
 }
 
 Write-Host "Waiting for $count API instances..."
