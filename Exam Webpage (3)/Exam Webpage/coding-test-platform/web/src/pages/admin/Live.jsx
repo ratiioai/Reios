@@ -14,18 +14,21 @@ export default function Live() {
   const toast = useToast();
 
   const [data, setData] = useState(null);
+  const [loadError, setLoadError] = useState("");
   const [lastAt, setLastAt] = useState(null);
   const [attemptId, setAttemptId] = useState(null);
   const [selected, setSelected] = useState(() => new Set());
+  const [bulkReopening, setBulkReopening] = useState(false);
   const pausedRef = useRef(false);
-  pausedRef.current = !!attemptId;
+  pausedRef.current = !!attemptId || bulkReopening;
 
   const refresh = useCallback(async () => {
     try {
       setData(await api("GET", `/api/reios/admin/exams/${examId}/live` + cq()));
+      setLoadError("");
       setLastAt(new Date());
     } catch (err) {
-      toast(err.message, "error", 6000);
+      setLoadError(err.message || "Couldn't reach the server");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [examId, collegeId]);
@@ -58,7 +61,6 @@ export default function Live() {
   }
 
   const REOPENABLE = ["max_violations", "time_up"];
-  const [bulkReopening, setBulkReopening] = useState(false);
 
   async function bulkReopen(minutes) {
     const ids = [...selected];
@@ -74,7 +76,18 @@ export default function Live() {
     } catch (err) { toast(err.message, "error"); }
   }
 
-  if (!data) return <Loading />;
+  if (!data) {
+    if (!loadError) return <Loading />;
+    return (
+      <div className="banner danger" style={{ marginTop: 10 }}>
+        <div>
+          <h3 style={{ margin: 0 }}>Couldn't load Live Monitor</h3>
+          <span className="small">{loadError} — retrying automatically every 10 seconds.</span>{" "}
+          <button className="btn sm" onClick={refresh}>Retry now</button>
+        </div>
+      </div>
+    );
+  }
 
   const writing = data.attempts.filter((a) => a.status === "in_progress");
   const wb = windowBadgeProps(data.exam);

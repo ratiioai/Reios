@@ -20,6 +20,7 @@ export default function AttemptDetail({ attemptId, cq, onClose, onChanged }) {
   const [a, setA] = useState(null);
   const [tab, setTab] = useState("answers");
   const [extending, setExtending] = useState(false);
+  const [reopening, setReopening] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -58,8 +59,6 @@ export default function AttemptDetail({ attemptId, cq, onClose, onChanged }) {
       onClose();
     } catch (err) { toast(err.message, "error"); }
   }
-
-  const [reopening, setReopening] = useState(false);
 
   return (
     <>
