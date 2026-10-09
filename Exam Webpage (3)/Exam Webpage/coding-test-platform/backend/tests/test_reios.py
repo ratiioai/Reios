@@ -2,6 +2,7 @@
 End-to-end tests for the Reios module: super admin -> college -> college admin -> students -> exam -> results.
 Run from the backend folder:  python -m pytest tests/test_reios.py -q
 """
+import base64
 import os
 import tempfile
 from datetime import datetime, timedelta, timezone
@@ -741,6 +742,14 @@ def test_event_add_ons(client, setup, monkeypatch):
 
     assert client.get("/api/reios/auth/branding?code=hfest").json()["color"] == "#0f766e"
     assert client.get("/api/reios/auth/branding?code=PLAIN").json() is None
+
+    # The logo is sent as a short cacheable link, not embedded in every sign-in / page load
+    logo = client.get("/api/reios/auth/branding?code=hfest").json()["logo"]
+    assert logo.startswith("/api/reios/auth/logo/HFEST?v=") and len(logo) < 80
+    img = client.get(logo)
+    assert img.status_code == 200 and img.headers["content-type"] == "image/png"
+    assert img.content == base64.b64decode(png.split(",", 1)[1]) and "max-age" in img.headers["cache-control"]
+    assert client.get("/api/reios/auth/logo/PLAIN").status_code == 404
 
     client.post(f"/api/reios/super/colleges/{ev['id']}/admins", headers=auth(root),
                 json={"name": "Fest HR", "email": "hr@hackfest.com", "password": "FestPass1"})

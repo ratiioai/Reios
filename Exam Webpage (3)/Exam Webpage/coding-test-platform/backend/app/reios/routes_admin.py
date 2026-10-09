@@ -532,6 +532,9 @@ def import_students(file: UploadFile = File(...), college_id: int = Depends(scop
         rows = student_rows(file.file.read(), file.filename or "students.csv")
     except ParseError as exc:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, str(exc))
+    if not rows:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST,
+                            "No rows found in the file - check it has a header row and at least one entry")
     if len(rows) > MAX_IMPORT_ROWS:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, f"At most {MAX_IMPORT_ROWS} rows per import")
     check_capacity(db, college_id, len(rows))

@@ -8,7 +8,7 @@ import io
 import re
 import smtplib
 from email.message import EmailMessage
-from typing import Optional
+from typing import Optional, Tuple
 
 from fastapi import HTTPException, status
 
@@ -54,10 +54,23 @@ def check_logo(logo: Optional[str]) -> Optional[str]:
     return logo.strip()
 
 
+def logo_image(org: College) -> Optional[Tuple[bytes, str]]:
+    """The organization's logo as (bytes, mime type), decoded from the stored data URL."""
+    m = LOGO_RE.match((org.logo or "").strip())
+    if not m:
+        return None
+    return base64.b64decode(m.group(2)), "image/png" if m.group(1) == "png" else "image/jpeg"
+
+
 def branding(org: Optional[College]) -> Optional[dict]:
     if not has_feature(org, "branding"):
         return None
-    return {"name": org.name, "logo": org.logo, "color": org.brand_color}
+    # A link to the logo, not the image itself: a logo can be ~300 KB and this goes out with every
+    # sign-in and page load. The ?v= changes with the logo, so browsers can cache the link for a day.
+    logo = None
+    if org.logo:
+        logo = f"/api/reios/auth/logo/{org.code}?v={hashlib.sha256(org.logo.encode()).hexdigest()[:12]}"
+    return {"name": org.name, "logo": logo, "color": org.brand_color}
 
 
 # ── Certificates ──────────────────────────────────────────────────────────

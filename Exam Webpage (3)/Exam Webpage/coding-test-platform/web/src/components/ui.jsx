@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { markdownToHtml } from "../lib/format.js";
+import { apiUrl } from "../lib/api.js";
 
 /* ── Brand ─────────────────────────────────────────────────────────── */
 export function Mark({ size = 30 }) {
@@ -26,7 +27,7 @@ export function OrgBrand({ branding, sub, style }) {
   return (
     <div className="brand" style={style}>
       {branding.logo
-        ? <img src={branding.logo} alt="" style={{ height: 34, maxWidth: 120, objectFit: "contain", borderRadius: 6 }} />
+        ? <img src={apiUrl(branding.logo)} alt="" style={{ height: 34, maxWidth: 120, objectFit: "contain", borderRadius: 6 }} />
         : <Mark />}
       <span className="wordmark" style={branding.color ? { color: branding.color } : undefined}>
         {branding.name}{sub && <span className="sub">{sub}</span>}

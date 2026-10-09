@@ -46,6 +46,11 @@ async function backendMoved() {
   return false;
 }
 
+/** A link the API hands out (e.g. a logo at /api/...) made absolute, since the site may live elsewhere. */
+export function apiUrl(path) {
+  return path && path.startsWith("/api/") ? apiBase() + path : path;
+}
+
 function apiBase() {
   if (runtimeBase !== null) return runtimeBase;
   const configured = import.meta.env.VITE_API_BASE;

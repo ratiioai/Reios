@@ -3,7 +3,7 @@ Reios login and account endpoints, shared by all roles.
 """
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
 from pydantic import BaseModel, Field
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.auth import hash_password, verify_password
 from app.config import settings
 from app.database import get_db
-from app.reios.features import branding
+from app.reios.features import branding, has_feature, logo_image
 from app.reios.firebase_auth import verify_id_token
 from app.reios.models import College, Role, User
 from app.reios.security import (
@@ -108,6 +108,18 @@ def org_branding(code: str = Query(..., min_length=1, max_length=32), db: Sessio
     """Public: logo and colour for an organization code, so the sign-in page can show them."""
     org = db.query(College).filter(func.lower(College.code) == code.strip().lower(), College.is_active.is_(True)).first()
     return branding(org)
+
+
+@router.get("/logo/{code}")
+def org_logo(code: str = Path(..., min_length=1, max_length=32), db: Session = Depends(get_db)):
+    """Public: an organization's logo image (only when its branding add-on is on). Cacheable: the link
+    carries a version of the image, so a new logo gets a new link."""
+    org = db.query(College).filter(func.lower(College.code) == code.strip().lower(), College.is_active.is_(True)).first()
+    image = logo_image(org) if org and has_feature(org, "branding") else None
+    if not image:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "No logo")
+    return Response(content=image[0], media_type=image[1],
+                    headers={"Cache-Control": "public, max-age=86400", "X-Content-Type-Options": "nosniff"})
 
 
 @router.get("/config")
