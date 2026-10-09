@@ -139,6 +139,11 @@ def get_current_user(
     if not user or not user.is_active or user.token_version != payload.get("tv"):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Session expired, please log in again")
     check_org_access(user)
+    # FastAPI runs each dependency and the route on separate worker-thread hops. Ending this read
+    # transaction hands the pooled connection back while the request waits for its next hop;
+    # holding it let a burst of requests (e.g. 300 teams pressing Start) take every connection
+    # while all worker threads waited for one, stalling until the pool's 30 s timeout.
+    db.commit()
     return user
 
 
