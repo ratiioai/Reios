@@ -9,7 +9,17 @@ import Console from "./pages/admin/Console.jsx";
 import StudentDashboard from "./pages/student/Dashboard.jsx";
 
 // The code editor is most of the bundle, and only the exam page needs it.
-const Exam = lazy(() => import("./pages/student/Exam.jsx"));
+// A tab opened before a new deploy asks for a chunk that no longer exists; reload once to pick up
+// the new build instead of leaving a blank page.
+const RELOAD_FLAG = "reios_chunk_reload";
+const Exam = lazy(() => import("./pages/student/Exam.jsx")
+  .then((mod) => { try { sessionStorage.removeItem(RELOAD_FLAG); } catch { /* ignore */ } return mod; })
+  .catch((err) => {
+    let reloaded = false;
+    try { reloaded = sessionStorage.getItem(RELOAD_FLAG) === "1"; sessionStorage.setItem(RELOAD_FLAG, "1"); } catch { /* ignore */ }
+    if (!reloaded) { window.location.reload(); return new Promise(() => {}); }
+    throw err;
+  }));
 
 function Root() {
   const { user } = useAuth();
