@@ -1,15 +1,19 @@
-# Reios on a laptop: nginx + several API instances + Cloudflare tunnel
+# Reios: website on Vercel, API on a laptop (nginx + several API instances + Cloudflare tunnel)
 
-For when the free Render plan can't keep up. Everything runs on one Windows machine and is
-reachable worldwide over HTTPS.
+For when the free Render plan can't keep up. The API runs on one Windows machine, reachable
+worldwide over HTTPS; the website stays on Vercel.
 
 ```
-Participants ──HTTPS──> Cloudflare quick tunnel ──> nginx :8080 ──> 6 API instances :8001-8006 ──> PostgreSQL :5433
-                         (public *.trycloudflare.com)  load balancer,      (uvicorn, 12 threads each)     (own data dir,
-                                                       reverse proxy,                                       tuned)
-                                                       cache, gzip,
-                                                       rate limits
+Participants ── https://reios-web.vercel.app (the website) ── reads /backend.json = the laptop's address
+      └──HTTPS API calls──> Cloudflare quick tunnel ──> nginx :8080 ──> 6 API instances :8001-8006 ──> PostgreSQL :5433
+                             (*.trycloudflare.com)      load balancer,   (uvicorn, 12 threads each)     (own data dir)
+                                                        reverse proxy, cache, gzip, rate limits
 ```
+
+The tunnel address changes whenever the server restarts. `start-server.ps1` writes the new one
+into `web/public/backend.json` and pushes it; Vercel rebuilds in ~1-2 minutes. Pages already open
+notice the old address is gone, re-read `backend.json` and carry on without a reload.
+The laptop also serves the site itself at the tunnel address (fallback if Vercel has trouble).
 
 ## Layout on the machine (`C:\reios-server`)
 
