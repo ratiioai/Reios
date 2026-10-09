@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, 
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field, field_validator, model_validator
 from sqlalchemy import func, or_
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
 from app.auth import hash_password
 from app.database import get_db
@@ -1097,8 +1097,10 @@ def duplicate_exam(exam_id: int, college_id: int = Depends(scoped_college_id), u
 # ══════════════════════════════════════════════════════════════════════════
 
 def _finalize_expired(db: Session, exam: Exam) -> None:
-    for attempt in db.query(Attempt).filter(Attempt.exam_id == exam.id,
-                                            Attempt.status == AttemptStatus.IN_PROGRESS).all():
+    attempts = db.query(Attempt).filter(Attempt.exam_id == exam.id,
+                                        Attempt.status == AttemptStatus.IN_PROGRESS).options(
+        selectinload(Attempt.code_answers)).all()
+    for attempt in attempts:
         engine.finalize_if_expired(db, attempt)
 
 
@@ -1116,7 +1118,9 @@ def _section_scores(attempt: Attempt) -> dict:
 def exam_results(exam_id: int, college_id: int = Depends(scoped_college_id), db: Session = Depends(get_db)):
     exam = get_exam(db, college_id, exam_id)
     _finalize_expired(db, exam)
-    attempts = db.query(Attempt).filter(Attempt.exam_id == exam.id).all()
+    attempts = db.query(Attempt).filter(Attempt.exam_id == exam.id).options(
+        selectinload(Attempt.student), selectinload(Attempt.mcq_answers), selectinload(Attempt.code_answers),
+    ).all()
     finished = engine.rank_attempts(attempts)
     ranks = {a.id: idx + 1 for idx, a in enumerate(finished)}
     set_names = {qs.id: qs.name for qs in exam.sets}
@@ -1186,7 +1190,12 @@ def live_monitor(exam_id: int, college_id: int = Depends(scoped_college_id), db:
     exam = get_exam(db, college_id, exam_id)
     _finalize_expired(db, exam)
     now = utcnow()
-    attempts = db.query(Attempt).filter(Attempt.exam_id == exam.id).all()
+    # One query per related table instead of one per attempt — with 100+ participants this was the
+    # difference between a page load and a timeout.
+    attempts = db.query(Attempt).filter(Attempt.exam_id == exam.id).options(
+        selectinload(Attempt.student), selectinload(Attempt.mcq_answers),
+        selectinload(Attempt.code_answers), selectinload(Attempt.events),
+    ).all()
     rows = []
     for a in attempts:
         answered = sum(1 for m in a.mcq_answers if m.selected) + sum(1 for c in a.code_answers if c.code.strip())
