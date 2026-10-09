@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../../lib/api.js";
 import { fmtDuration } from "../../lib/format.js";
-import { Badge, Loading, Progress, useConfirm, useToast } from "../../components/ui.jsx";
+import { Badge, Field, Loading, Modal, ModalButton, Progress, useToast } from "../../components/ui.jsx";
 import { Stat, useAdmin, windowBadgeProps } from "./context.jsx";
 import AttemptDetail from "./AttemptDetail.jsx";
 
@@ -12,7 +12,6 @@ export default function Live() {
   const { examId } = useParams();
   const { collegeId, cq } = useAdmin();
   const toast = useToast();
-  const confirm = useConfirm();
 
   const [data, setData] = useState(null);
   const [lastAt, setLastAt] = useState(null);
@@ -58,19 +57,19 @@ export default function Live() {
     } catch (err) { toast(err.message, "error"); }
   }
 
-  async function bulkReopen() {
+  const REOPENABLE = ["max_violations", "time_up"];
+  const [bulkReopening, setBulkReopening] = useState(false);
+
+  async function bulkReopen(minutes) {
     const ids = [...selected];
-    if (!ids.length) return;
-    const eligible = data.attempts.filter((a) => ids.includes(a.attempt_id) && a.submit_reason === "max_violations");
-    if (!eligible.length) return toast("None of the selected were auto-submitted for violations", "error");
-    if (!(await confirm("Reopen selected",
-      `Reopen ${eligible.length} attempt${eligible.length > 1 ? "s" : ""} auto-submitted for hitting the ` +
-      "violation limit, clear their violations, and give each 10 more minutes?", "Reopen", true))) return;
+    const eligible = data.attempts.filter((a) => ids.includes(a.attempt_id) && REOPENABLE.includes(a.submit_reason));
+    if (!eligible.length) return toast("None of the selected were auto-submitted (violations or time up)", "error");
     try {
       await Promise.all(eligible.map((a) =>
-        api("POST", `/api/reios/admin/attempts/${a.attempt_id}/reopen` + cq(), { minutes: 10 })));
+        api("POST", `/api/reios/admin/attempts/${a.attempt_id}/reopen` + cq(), { minutes })));
       toast(`Reopened ${eligible.length}`, "success");
       setSelected(new Set());
+      setBulkReopening(false);
       refresh();
     } catch (err) { toast(err.message, "error"); }
   }
@@ -107,7 +106,7 @@ export default function Live() {
         <div className="toolbar" style={{ marginBottom: 10 }}>
           <span className="muted small">{selected.size} selected</span>
           <button className="btn sm" onClick={bulkForgive}>Forgive violations</button>
-          <button className="btn sm" onClick={bulkReopen}>Reopen (give another chance)</button>
+          <button className="btn sm" onClick={() => setBulkReopening(true)}>Reopen (give another chance)</button>
           <button className="btn sm ghost" onClick={() => setSelected(new Set())}>Clear</button>
         </div>
       )}
@@ -194,6 +193,36 @@ export default function Live() {
         <AttemptDetail attemptId={attemptId} cq={cq}
                        onClose={() => setAttemptId(null)} onChanged={refresh} />
       )}
+
+      {bulkReopening && (
+        <BulkReopenModal count={selected.size} onClose={() => setBulkReopening(false)} onConfirm={bulkReopen} />
+      )}
     </>
+  );
+}
+
+function BulkReopenModal({ count, onClose, onConfirm }) {
+  const [mins, setMins] = useState(60);
+  return (
+    <Modal
+      title="Reopen selected"
+      narrow
+      onClose={onClose}
+      actions={
+        <>
+          <button className="btn" onClick={onClose}>Cancel</button>
+          <ModalButton cls="primary" onClick={() => onConfirm(Number(mins))}>Reopen</ModalButton>
+        </>
+      }
+    >
+      <p className="small muted" style={{ marginTop: 0 }}>
+        Reopens whichever of the {count} selected were auto-submitted (violations or running out of time —
+        anyone who submitted it themselves is skipped), clears their violations, and puts them back in
+        progress with the time below.
+      </p>
+      <Field label="Minutes to give each">
+        <input type="number" min="1" max="240" value={mins} onChange={(e) => setMins(e.target.value)} />
+      </Field>
+    </Modal>
   );
 }

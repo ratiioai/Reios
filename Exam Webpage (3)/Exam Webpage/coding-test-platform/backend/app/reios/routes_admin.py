@@ -1310,28 +1310,36 @@ def bulk_forgive_violations(body: BulkIds, college_id: int = Depends(scoped_coll
 
 
 class ReopenIn(BaseModel):
-    minutes: int = Field(10, ge=1, le=240, description="Extra time to give once reopened")
+    minutes: int = Field(60, ge=1, le=240, description="Extra time to give once reopened")
+
+
+# Auto-submits that were an accident, not the student's or the exam's own choice, and so are safe
+# to undo: hitting the violation limit by mistake, or a deadline that cut them off too early
+# (a wrong exam duration, a server hiccup, etc). A deliberate submit is never reopened this way.
+REOPENABLE_REASONS = {"max_violations", "time_up"}
 
 
 @router.post("/attempts/{attempt_id}/reopen")
 def reopen_attempt(attempt_id: int, body: ReopenIn, college_id: int = Depends(scoped_college_id),
                    db: Session = Depends(get_db)):
-    """Undo an auto-submit that was only triggered by hitting the violation limit, and give fresh time."""
+    """Undo an auto-submit that wasn't the student choosing to finish, and give fresh time."""
     import secrets
     from datetime import timedelta
     a = get_attempt(db, college_id, attempt_id)
     if a.status == AttemptStatus.IN_PROGRESS:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "This attempt is still in progress")
-    if a.submit_reason != "max_violations":
+    if a.submit_reason not in REOPENABLE_REASONS:
         raise HTTPException(status.HTTP_400_BAD_REQUEST,
-                            "Only an attempt that was auto-submitted for violations can be reopened")
+                            "Only an attempt that was auto-submitted (violations or running out of time) "
+                            "can be reopened — not one the student submitted themselves")
+    was_for = a.submit_reason
     a.status = AttemptStatus.IN_PROGRESS
     a.violation_count = 0
     a.submitted_at = None
     a.submit_reason = None
     a.deadline_at = utcnow() + timedelta(minutes=body.minutes)
     a.session_nonce = secrets.token_urlsafe(24)
-    engine.record_event(db, a, "reopened_by_admin", f"violations cleared, +{body.minutes} min")
+    engine.record_event(db, a, "reopened_by_admin", f"was '{was_for}', +{body.minutes} min")
     db.commit()
     return {"attempt_id": a.id, "status": a.status.value, "deadline_at": as_utc(a.deadline_at)}
 

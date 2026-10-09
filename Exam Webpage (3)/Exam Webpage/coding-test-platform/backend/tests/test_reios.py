@@ -1199,3 +1199,48 @@ def test_reopen_attempt_after_accidental_violation_limit(client, setup):
     r = client.post("/api/reios/admin/attempts/bulk-forgive-violations", headers=auth(admin),
                     json={"ids": [attempt_id]})
     assert r.status_code == 200 and r.json() == {"updated": 1}
+
+    # A deliberate submit (the student finishing on their own) is never reopenable
+    r = client.post(f"/api/reios/admin/attempts/{attempt_id}/reopen", headers=auth(admin), json={"minutes": 15})
+    assert r.status_code == 400 and "submitted" in r.text.lower()
+
+
+def test_reopen_attempt_after_being_cut_off_by_time(client, setup):
+    """The other 'accidental cutoff' case: an exam that ran out of time too early (e.g. a wrong
+    duration, or a server hiccup) can also be reopened, with the admin choosing how much time to give back."""
+    from app.database import SessionLocal
+    from app.reios.models import Attempt
+    admin = setup["admin"]
+    mcq = setup["mcqs"][0]
+    now = datetime.now(timezone.utc)
+    exam = client.post("/api/reios/admin/exams", headers=auth(admin), json={
+        "title": "Cutoff Test", "exam_type": "mcq", "start_at": (now - timedelta(minutes=1)).isoformat(),
+        "end_at": (now + timedelta(hours=1)).isoformat()}).json()
+    client.put(f"/api/reios/admin/exams/{exam['id']}/items", headers=auth(admin),
+              json={"items": [{"item_type": "mcq", "question_id": mcq["id"]}]})
+    client.post(f"/api/reios/admin/exams/{exam['id']}/publish", headers=auth(admin))
+
+    client.post("/api/reios/admin/students", headers=auth(admin),
+               json={"roll_no": "21CS779", "name": "Cutoff", "branch": "CSE", "password": "CutoffPw1"})
+    token = student_login(client, "21CS779", "CutoffPw1", new_password="CutoffPw2")
+    paper = client.post(f"/api/reios/student/exams/{exam['id']}/start", headers=auth(token)).json()
+    attempt_id, hdr = paper["attempt_id"], {**auth(token), "X-Exam-Session": paper["session"]}
+
+    db = SessionLocal()
+    a = db.get(Attempt, attempt_id)
+    a.deadline_at = datetime.now(timezone.utc) - timedelta(seconds=100)  # past the grace period
+    db.commit()
+    db.close()
+    r = client.post(f"/api/reios/student/attempts/{attempt_id}/heartbeat", headers=hdr)
+    assert r.json()["status"] == "auto_submitted"
+
+    r = client.get(f"/api/reios/admin/attempts/{attempt_id}", headers=auth(admin))
+    assert r.json()["submit_reason"] == "time_up"
+
+    # Reopen it with a full hour back (the admin's own call, not a fixed amount)
+    r = client.post(f"/api/reios/admin/attempts/{attempt_id}/reopen", headers=auth(admin), json={"minutes": 60})
+    assert r.status_code == 200 and r.json()["status"] == "in_progress"
+    detail = client.get(f"/api/reios/admin/attempts/{attempt_id}", headers=auth(admin)).json()
+    assert detail["status"] == "in_progress" and detail["submit_reason"] is None
+    resumed = client.post(f"/api/reios/student/exams/{exam['id']}/start", headers=auth(token))
+    assert resumed.status_code == 200 and resumed.json()["attempt_id"] == attempt_id
