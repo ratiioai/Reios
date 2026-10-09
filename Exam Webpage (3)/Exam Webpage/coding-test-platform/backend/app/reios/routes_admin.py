@@ -613,6 +613,33 @@ def bulk_status(body: BulkIds, active: bool, college_id: int = Depends(scoped_co
     return {"updated": len(students)}
 
 
+def _reset_login(student: User) -> None:
+    """Sign a student/team out everywhere right now, and free their single-login slot so they can
+    sign back in immediately instead of waiting for it to lapse."""
+    student.token_version += 1
+    student.active_session_expires_at = None
+
+
+@router.post("/students/bulk-reset-login")
+def bulk_reset_login(body: BulkIds, college_id: int = Depends(scoped_college_id), db: Session = Depends(get_db)):
+    students = db.query(User).filter(User.id.in_(body.ids), User.college_id == college_id,
+                                     User.role == Role.STUDENT).all()
+    for student in students:
+        _reset_login(student)
+    db.commit()
+    return {"updated": len(students)}
+
+
+@router.post("/students/reset-login-all")
+def reset_login_all(college_id: int = Depends(scoped_college_id), db: Session = Depends(get_db)):
+    """Force-logout every student/team in this college/event at once."""
+    students = db.query(User).filter(User.college_id == college_id, User.role == Role.STUDENT).all()
+    for student in students:
+        _reset_login(student)
+    db.commit()
+    return {"updated": len(students)}
+
+
 @router.delete("/students")
 def delete_all_students(confirm: str = Query(..., description="The college/event code, typed to confirm"),
                         force: bool = Query(False, description="Also erase exam attempts and results"),

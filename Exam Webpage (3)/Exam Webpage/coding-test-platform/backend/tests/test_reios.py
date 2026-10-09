@@ -1102,6 +1102,43 @@ def test_delete_all_students_requires_code_then_force_for_attempts(client, setup
     assert r.status_code == 200 and r.json() == {"deleted": 0, "attempts_removed": 0}
 
 
+def test_admin_can_reset_a_students_login(client, setup):
+    """Reset login (bulk and for everyone): signs them out right now, no need to wait for the token to expire."""
+    root = setup["root"]
+    ev = client.post("/api/reios/super/colleges", headers=auth(root), json={
+        "name": "Reset Login Event", "code": "RESETLOGIN", "org_type": "event", "single_login": True}).json()
+    client.post(f"/api/reios/super/colleges/{ev['id']}/admins", headers=auth(root),
+               json={"name": "RL HR", "email": "hr@resetlogin.com", "password": "RlPass123"})
+    adm = client.post("/api/reios/auth/login",
+                      json={"identifier": "hr@resetlogin.com", "password": "RlPass123"}).json()["access_token"]
+    t1 = client.post("/api/reios/admin/students", headers=auth(adm), json={"roll_no": "TS-R1", "name": "One"}).json()
+    client.post("/api/reios/admin/students", headers=auth(adm), json={"roll_no": "TS-R2", "name": "Two"})
+
+    login1 = {"identifier": "TS-R1", "password": "One", "college_code": "RESETLOGIN"}
+    r = client.post("/api/reios/auth/login", json=login1)
+    token1 = r.json()["access_token"]
+    assert client.get("/api/reios/auth/me", headers=auth(token1)).status_code == 200
+
+    # Still logged in elsewhere -> a plain re-login is refused (single_login is on)
+    assert client.post("/api/reios/auth/login", json=login1).status_code == 409
+
+    # Admin resets this one student's login: the old token dies immediately, and they can log back in right away
+    r = client.post("/api/reios/admin/students/bulk-reset-login", headers=auth(adm), json={"ids": [t1["id"]]})
+    assert r.status_code == 200 and r.json() == {"updated": 1}
+    assert client.get("/api/reios/auth/me", headers=auth(token1)).status_code == 401
+    r2 = client.post("/api/reios/auth/login", json=login1)
+    assert r2.status_code == 200
+    token1b = r2.json()["access_token"]
+
+    # Reset everyone: both current sessions die, and both can log back in right away
+    r = client.post("/api/reios/admin/students/reset-login-all", headers=auth(adm))
+    assert r.status_code == 200 and r.json() == {"updated": 2}
+    assert client.get("/api/reios/auth/me", headers=auth(token1b)).status_code == 401
+    assert client.post("/api/reios/auth/login", json=login1).status_code == 200
+    assert client.post("/api/reios/auth/login", json={
+        "identifier": "TS-R2", "password": "Two", "college_code": "RESETLOGIN"}).status_code == 200
+
+
 def test_reopen_attempt_after_accidental_violation_limit(client, setup):
     """Live Monitor's 'give them another chance': undo an auto-submit triggered only by violations."""
     import app.reios.routes_student as rs

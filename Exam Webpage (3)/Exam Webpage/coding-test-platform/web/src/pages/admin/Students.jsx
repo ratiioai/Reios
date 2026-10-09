@@ -69,10 +69,31 @@ export default function Students() {
         if (!(await confirm("Reset passwords", `Generate new passwords for ${ids.length} ${noun}s?`))) return;
         const r = await api("POST", "/api/reios/admin/students/bulk-reset-passwords" + cq(), { ids });
         setCreds({ title: "New passwords", creds: r.credentials });
+      } else if (action === "reset-login") {
+        if (!(await confirm("Reset login",
+          `Sign ${ids.length} ${noun}${ids.length > 1 ? "s" : ""} out everywhere right now? They'll need to ` +
+          "log in again, but can do so immediately, even if they're signed in somewhere else.",
+          "Reset login", true))) return;
+        const r = await api("POST", "/api/reios/admin/students/bulk-reset-login" + cq(), { ids });
+        toast(`${r.updated} signed out`, "success");
       } else {
         await api("POST", "/api/reios/admin/students/bulk-status" + cq({ active: action === "activate" }), { ids });
         toast("Updated", "success");
       }
+      load();
+    } catch (err) {
+      toast(err.message, "error");
+    }
+  }
+
+  async function resetLoginAll() {
+    const ok = await confirm("Reset login for everyone",
+      `Sign out every ${noun} in this ${isEvent ? "event" : "college"} right now, all at once? They'll need ` +
+      "to log in again, but can do so immediately.", "Reset everyone", true);
+    if (!ok) return;
+    try {
+      const r = await api("POST", "/api/reios/admin/students/reset-login-all" + cq());
+      toast(`${r.updated} signed out`, "success");
       load();
     } catch (err) {
       toast(err.message, "error");
@@ -136,9 +157,12 @@ export default function Students() {
             {isEvent ? "+ Add team" : "+ Add student"}
           </button>
           {data?.total > 0 && (
-            <button className="btn danger" onClick={() => setDeletingAll(true)}>
-              Delete all {noun}s
-            </button>
+            <>
+              <button className="btn" onClick={resetLoginAll}>Reset login for everyone</button>
+              <button className="btn danger" onClick={() => setDeletingAll(true)}>
+                Delete all {noun}s
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -189,6 +213,7 @@ export default function Students() {
         {selected.size > 0 && (
           <span className="row tight">
             <span className="muted small">{selected.size} selected</span>
+            <button className="btn sm" onClick={() => bulk("reset-login")}>Reset login</button>
             <button className="btn sm" onClick={() => bulk("reset")}>Reset passwords</button>
             <button className="btn sm" onClick={() => bulk("activate")}>Activate</button>
             <button className="btn sm danger" onClick={() => bulk("deactivate")}>Deactivate</button>
