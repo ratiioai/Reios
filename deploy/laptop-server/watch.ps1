@@ -1,7 +1,8 @@
-# Live log viewer. One mode per window; watch-logs.ps1 opens all three.
+﻿# Live log viewer. One mode per window; watch-logs.ps1 opens all three.
 #   -Mode requests : every request through nginx (red = server error, yellow = rate-limited)
 #   -Mode errors   : only problems - failed requests, nginx errors, API errors from all instances
-#   -Mode health   : status of every piece, refreshed every 10 s, plus tunnel/database messages
+#   -Mode health   : status of every piece, refreshed every 10 s, plus ping,
+#                    a local-only database/Render check and tunnel/database messages
 param([ValidateSet("requests", "errors", "health")][string]$Mode = "requests", [int]$History = 20)
 
 $root   = "C:\reios-server"
@@ -50,6 +51,12 @@ function Follow-Files([string[]]$Patterns, [string]$Filter, [int]$Last) {
     }
 }
 
+function Get-Ping([string]$target = "1.1.1.1", [int]$count = 3) {
+    $p = New-Object Net.NetworkInformation.Ping
+    $times = @(1..$count | ForEach-Object { try { $r = $p.Send($target, 1500); if ($r.Status -eq "Success") { $r.RoundtripTime } } catch { } })
+    [pscustomobject]@{ Avg = $(if ($times) { [int]($times | Measure-Object -Average).Average } else { $null }); Lost = $count - $times.Count; Count = $count }
+}
+
 switch ($Mode) {
     "requests" {
         Write-Host "Every request (nginx writes in batches, so lines appear within ~5 s)" -ForegroundColor Cyan
@@ -64,10 +71,16 @@ switch ($Mode) {
     }
     "health" {
         while ($true) {
+            $ping = Get-Ping
             Clear-Host
             Write-Host "Reios health - $(Get-Date -Format 'HH:mm:ss')  (refreshes every 10 s, Ctrl+C to stop)" -ForegroundColor Cyan
             Write-Host ""
             & "$root\status.ps1"
+            Write-Host ""
+            Write-Host "Network:" -ForegroundColor Cyan
+            $pingColor = if ($null -eq $ping.Avg -or $ping.Lost) { "Red" } elseif ($ping.Avg -gt 150) { "Yellow" } else { "Green" }
+            $pingText = if ($null -eq $ping.Avg) { "no reply" } else { "$($ping.Avg) ms" }
+            Write-Host "Ping         1.1.1.1  $pingText  (lost $($ping.Lost)/$($ping.Count))" -ForegroundColor $pingColor
             Write-Host ""
             Write-Host "Tunnel (latest):" -ForegroundColor Cyan
             Get-Content "$root\logs\tunnel.log" -Tail 4 -ErrorAction SilentlyContinue | ForEach-Object { Write-LogLine $_ $null }
